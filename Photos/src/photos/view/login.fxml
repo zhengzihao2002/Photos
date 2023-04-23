@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.CheckBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.PasswordField?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.Pane?>
+<?import javafx.scene.text.Font?>
+
+<Pane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="400.0" prefWidth="600.0" style="-fx-background-image: url('photos/view/qq.png'); -fx-background-size: cover; -fx-background-repeat: no-repeat; -fx-background-position: center;" xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1" fx:controller="photos.controller.LoginController">
+   
+   <children>
+      <Label fx:id="title" alignment="CENTER" contentDisplay="CENTER" prefHeight="63.0" prefWidth="600.0" style="-fx-font-family: Impact; -fx-font-size: 64px; -fx-text-stroke: red !important; -fx-text-stroke-width: 5px !important;" text="Photos" textFill="WHITE">
+</Label>
+
+      <Button fx:id="login" layoutX="195.0" layoutY="331.0" mnemonicParsing="false" onMouseClicked="#loginHandler" prefHeight="44.0" prefWidth="195.0" text="Login">
+         <font>
+            <Font name="System Bold Italic" size="23.0" />
+         </font></Button>
+      <Pane layoutX="-1.0" layoutY="87.0" prefHeight="231.0" prefWidth="600.0" style="-fx-background-color: rgba(224, 224, 224, 0.4);">
+         <children>
+            <Label layoutX="51.0" layoutY="44.0" text="Username:">
+               <font>
+                  <Font size="36.0" />
+               </font>
+            </Label>
+            <Label layoutX="51.0" layoutY="116.0" prefHeight="44.0" prefWidth="163.0" text="Password:">
+               <font>
+                  <Font size="36.0" />
+               </font>
+            </Label>
+            <TextField fx:id="unameText" layoutX="260.0" layoutY="44.0" prefHeight="44.0" prefWidth="217.0" />
+            <Label fx:id="warning" alignment="CENTER" layoutX="139.0" layoutY="184.0" prefHeight="17.0" prefWidth="293.0" text="Invalid Username / Password Combination" textFill="RED" visible="false">
+               <font>
+                  <Font size="14.0" />
+               </font>
+            </Label>
+            <PasswordField fx:id="passwordText" layoutX="260.0" layoutY="125.0" prefHeight="44.0" prefWidth="217.0" />
+            <CheckBox fx:id="remUsername" layoutX="494.0" layoutY="57.0" mnemonicParsing="false" text="Remember" />
+         </children>
+      </Pane>
+   </children>
+</Pane>

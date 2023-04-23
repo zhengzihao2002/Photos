@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.DatePicker?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ListView?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.Pane?>
+<?import javafx.scene.text.Font?>
+
+<Pane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="400.0" prefWidth="600.0" xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1" fx:controller="photos.controller.nonAdminController">
+   <children>
+      <Button fx:id="logout" layoutX="485.0" layoutY="20.0" mnemonicParsing="false" onMouseClicked="#logoutHandler" prefHeight="30.0" prefWidth="100.0" text="Logout" />
+      <Button fx:id="create" layoutX="240.0" layoutY="111.0" mnemonicParsing="false" onMouseClicked="#createNewAlbum" prefHeight="50.0" prefWidth="150.0" text="Create new album" />
+      <Button fx:id="delete" layoutX="405.0" layoutY="111.0" mnemonicParsing="false" onMouseClicked="#deleteAlbum" prefHeight="50.0" prefWidth="150.0" text="Delete existing album" />
+      <Button fx:id="rename" layoutX="240.0" layoutY="180.0" mnemonicParsing="false" onMouseClicked="#renameAlbum" prefHeight="50.0" prefWidth="150.0" text="Rename album" />
+      <Label fx:id="welcome" alignment="CENTER" layoutX="262.0" layoutY="65.0" prefHeight="25.0" prefWidth="280.0" text="Welcome" wrapText="true">
+         <font>
+            <Font name="Arial Black" size="18.0" />
+         </font>
+      </Label>
+      <ListView fx:id="albumList" prefHeight="400.0" prefWidth="213.0" />
+      <Button fx:id="open" layoutX="405.0" layoutY="180.0" mnemonicParsing="false" onMouseClicked="#openAlbum" prefHeight="50.0" prefWidth="150.0" text="Open a album" />
+      <TextField fx:id="searchTarget" layoutX="330.0" layoutY="315.0" promptText="location=sesh" />
+      <ComboBox fx:id="searchMethod" layoutX="218.0" layoutY="315.0" prefHeight="26.0" prefWidth="89.0" />
+      <Button fx:id="search" layoutX="514.0" layoutY="315.0" mnemonicParsing="false" onMouseClicked="#searchPhoto" text="Search" />
+      <Label fx:id="searchDes" alignment="CENTER" layoutX="229.0" layoutY="267.0" prefHeight="40.0" prefWidth="361.0" text="Search by Tag / Date" textAlignment="CENTER">
+         <font>
+            <Font size="17.0" />
+         </font>
+      </Label>
+      <Label fx:id="info" alignment="CENTER" layoutX="219.0" layoutY="354.0" prefHeight="50.0" prefWidth="381.0" text="e.g. : &quot;person=sesh AND location=prague&quot; or &quot;person=sesh OR location=prague&quot; or &quot;location=PRC&quot;" wrapText="true" />
+      <DatePicker fx:id="from" layoutX="317.0" layoutY="302.0" promptText="from" />
+      <DatePicker fx:id="to" layoutX="317.0" layoutY="328.0" promptText="to" />
+   </children>
+</Pane>
