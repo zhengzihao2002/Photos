@@ -18,3 +18,9 @@ This was the third project for CS213 Software Methodology at Rutgers University.
 1. Clone the repository locally
 2.Make sure you are using atleast Java 13
 3.Make sure that JavaFX is configured properly
+
+
+## Group Members
+
+- [Zihao Zheng](https://github.com/zhengzihao2002) - Wrote 90% of Code, 100% of JavaDoc comments, 50% of StoryBoard, 
+- Yiming Huang - Wrote 10% of Code, 50% of StoryBoard, 100% of UML
