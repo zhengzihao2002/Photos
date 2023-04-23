@@ -1,2 +1,20 @@
 # Photos
-JavaFX based Photo Album
+
+
+## Description
+This was the third project for CS213 Software Methodology at Rutgers University. The goal was to create a photo album application using JavaFX.
+
+## Features
+* Clean & responsive UI
+* Add/edit/delete albums
+* Add/edit/delete photos
+* Move/copy photos to different albums
+* Search photos by date
+* Create new album from search results 
+* Admin panel to add/edit/delete users
+* Data persistence using serialization
+
+## Local Setup
+1. Clone the repository locally
+2.Make sure you are using atleast Java 13
+3.Make sure that JavaFX is configured properly
