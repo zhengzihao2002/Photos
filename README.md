@@ -46,3 +46,7 @@ Slide Show
 Please follow both Rutgers University's [Principles of Academic Integrity](http://academicintegrity.rutgers.edu/) and the Rutgers Department of Computer Science's [Academic Integrity Policy](https://www.cs.rutgers.edu/academics/undergraduate/academic-integrity-policy)
 
 Do you dare not steal my code. If you do so i curse you fail your career. Welcome to use this as an guide to see what is expected in the project.
+
+
+## Grade
+![login](Photos/doc/readme/grade.jpeg)
