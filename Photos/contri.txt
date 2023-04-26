@@ -11,4 +11,4 @@ ZIHAO ZHENG: everything else. additionally taught Yiming from scratch how to use
 
 
 -------------------- COMMENTS --------------------
-Overall Contribution of each group member, is weighted by: code -> 90%, Javadoc + Storyboard + uml + UI Design -> 10%
+Overall Contribution of each group member, is weighted by: Code -> 90%, Javadoc + Storyboard + uml + UI Design -> 10%
