@@ -47,7 +47,7 @@ Slide Show
 ## For Rutgers Students
 Please follow both Rutgers University's [Principles of Academic Integrity](http://academicintegrity.rutgers.edu/) and the Rutgers Department of Computer Science's [Academic Integrity Policy](https://www.cs.rutgers.edu/academics/undergraduate/academic-integrity-policy)
 
-Do you dare not steal my code. If you do so i curse you fail your career. Welcome to use this as an guide to see what is expected in the project.
+Only use this as an guide to see what is expected in the project. Code stealing is strictly prohibited. The author's name is hidden in the code in a form that is not visible to human eye but visible to plagiarism checkers. Don't risk it.
 
 
 ## Grade
