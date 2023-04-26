@@ -26,3 +26,15 @@ This was the third project for CS213 Software Methodology at Rutgers University.
 - Yiming Huang - 12%
 
 For details see contri.txt
+
+## Gallery
+Login Screen
+![login](docs/readme/login.png)
+Admin Panel
+![login](docs/readme/admin.png)
+Home Screen
+![login](docs/readme/nonadmin.png)
+Album Details
+![login](docs/readme/album.png)
+Seperate Display
+![login](docs/readme/seperate.png)
