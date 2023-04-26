@@ -28,6 +28,8 @@ This was the third project for CS213 Software Methodology at Rutgers University.
 For details see contri.txt
 
 ## Gallery
+Due to the fact that only JavaFX is allowed, GUI may look ugly, but it has rich features.
+
 Login Screen
 ![login](Photos/doc/readme/login.png)
 Admin Panel
