@@ -1,6 +1,6 @@
 CODE WISE
 
 YI photos: admin controller 里的 create and delete user independently, and most just调用我的method或者reuse我的code。
-create or delete method I step by step told you how to write初期。possible user list controller?.design左边的ui
+create or delete method I step by step told you how to write初期。design左边的ui. Wrote user list controller
 
 ZIHAO photos: everything else
