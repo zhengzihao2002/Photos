@@ -41,4 +41,4 @@ Seperate Display
 
 
 ## For Rutgers Students
-Stealing code is unethical. If you do so, no only your professor will punish you, you will not succeed in the rest of your career. This can be a template of what this project should look like (because it received 100%)
+Stealing code is unethical. If you do so, no only your professor will punish you, you will not succeed in the rest of your career. This can be a template of what this project should look like (because it received 100%). Refer to Rutgers Academic Integrity
