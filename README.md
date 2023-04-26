@@ -42,4 +42,4 @@ Seperate Display
 
 ## For Rutgers Students
 Stealing code is unethical. If you do so, no only your professor will punish you, you will not succeed in the rest of your career. This can be a template of what this project should look like (because it received 100%). 
-Please follow both Rutgers University's [Principles of Academic Integrity](http://academicintegrity.rutgers.edu/) and the Rutgers Department of Computer Science's [Academic Integrity Policy](https://www.cs.rutgers.edu/academic-integrity/introduction)
+Please follow both Rutgers University's [Principles of Academic Integrity](http://academicintegrity.rutgers.edu/) and the Rutgers Department of Computer Science's [Academic Integrity Policy](https://www.cs.rutgers.edu/academics/undergraduate/academic-integrity-policy)
