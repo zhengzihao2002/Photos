@@ -1,6 +1,6 @@
 CODE WISE
 
-YI photos: admin controller 里的 create and delete user independently, and most just调用我的method或者reuse我的code。
-create or delete method I step by step told you how to write初期。design左边的ui. Wrote user list controller
+YI photos: admin controller's create and delete user wrote basically independently, and mostly just called zihao's written method (such as delete file related, load scene,etc ) or reuse zihao's code as template。
+create OR delete (cannot remember) method zihao step by step told yi how to write in the beginning stage to get yi started。design ui of left side of storyboard. Wrote user list controller independently?
 
 ZIHAO photos: everything else. taught yi from scratch how to use JavaFX (set stages, connect fxml with controller, etc)
