@@ -29,12 +29,12 @@ For details see contri.txt
 
 ## Gallery
 Login Screen
-![login](Photos/docs/readme/login.png)
+![login](Photos/doc/readme/login.png)
 Admin Panel
-![login](Photos/docs/readme/admin.png)
+![login](Photos/doc/readme/admin.png)
 Home Screen
-![login](Photos/docs/readme/nonadmin.png)
+![login](Photos/doc/readme/nonadmin.png)
 Album Details
-![login](Photos/docs/readme/album.png)
+![login](Photos/doc/readme/album.png)
 Seperate Display
-![login](Photos/docs/readme/seperate.png)
+![login](Photos/doc/readme/seperate.png)
