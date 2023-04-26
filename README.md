@@ -38,6 +38,8 @@ Album Details
 ![login](Photos/doc/readme/album.png)
 Seperate Display
 ![login](Photos/doc/readme/seperate.png)
+Slide Show
+![login](Photos/doc/readme/slideshow.png)
 
 
 ## For Rutgers Students
