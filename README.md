@@ -20,7 +20,9 @@ This was the third project for CS213 Software Methodology at Rutgers University.
 3. Make sure that JavaFX is configured properly
 4. Import the "Photos" directory as a existing project. If using eclipse, there is a read me inside for instructions
 
-## Group Members Contributions
+## Group Members Contributions 
 
-- [Zihao Zheng](https://github.com/zhengzihao2002) -  Wrote at least 90% of Code, designed 4/6 of UI's, 100% of JavaDoc comments, 50% of StoryBoard, Designed Photo and Album data structures.
-- Yiming Huang - Wrote 10% of Code, 50% of StoryBoard, 100% of UML drawing, designed 2/6 of UI's
+- [Zihao Zheng](https://github.com/zhengzihao2002) - At least 90%
+- Yiming Huang - 10%
+
+For details see contri.txt
