@@ -4,6 +4,6 @@ YIMING HUANG: Wrote 10% of Code, 50% of StoryBoard, 100% of UML drawing, designe
 
 -------------------- CODE WISE CONTRIBUTION--------------------
 YIMING HUANG: admin controller's create and delete user wrote basically independently, and mostly just called zihao's written method (such as delete file related, load scene,etc ) or reuse zihao's code as template。
-For UserListController, zihao step by step guided yi how to write to get yi started。design ui of left side of storyboard. 
+For UserListController, zihao step by step guided Yiming how to write to get Yiming started。design ui of left side of storyboard. 
 
-ZIHAO ZHENG: everything else. additionally taught yi from scratch how to use JavaFX (set stages, connect fxml with controller, etc)
+ZIHAO ZHENG: everything else. additionally taught Yiming from scratch how to use JavaFX (set stages, connect fxml with controller, etc)
