@@ -1,0 +1,76 @@
+{
+  "name": "photos",
+  "productName": "Photos",
+  "version": "0.1.0",
+  "description": "Local, offline photo library manager for macOS (M0 foundation).",
+  "private": true,
+  "main": "src/main/main.js",
+  "scripts": {
+    "start": "echo \"Use ./dev start instead of npm start.\" && exit 1",
+    "dist": "echo \"Use ./dev dist instead of npm run dist.\" && exit 1",
+    "preinstall": "[ \"$PHOTOS_DEV\" = \"1\" ] || { echo \"Use ./dev setup instead of npm install.\"; exit 1; }"
+  },
+  "devDependencies": {
+    "@electron/rebuild": "4.2.0",
+    "electron": "44.4.1",
+    "electron-builder": "26.15.3"
+  },
+  "build": {
+    "appId": "com.local.photos",
+    "productName": "Photos",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "src/**/*",
+      "package.json"
+    ],
+    "mac": {
+      "category": "public.app-category.photography",
+      "target": [
+        {
+          "target": "dir",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        }
+      ],
+      "identity": null,
+      "hardenedRuntime": false,
+      "gatekeeperAssess": false,
+      "icon": "build/icon.icns",
+      "extendInfo": {
+        "LSHasLocalizedDisplayName": true,
+        "CFBundleDisplayName": "Photos"
+      },
+      "extraResources": [
+        {
+          "from": "build/en.lproj",
+          "to": "en.lproj"
+        },
+        {
+          "from": "build/zh-Hans.lproj",
+          "to": "zh-Hans.lproj"
+        }
+      ]
+    },
+    "asar": true,
+    "asarUnpack": [
+      "node_modules/ffmpeg-static/**",
+      "node_modules/ffprobe-static/**",
+      "node_modules/sharp/**",
+      "node_modules/@img/**",
+      "**/*.node"
+    ],
+    "npmRebuild": false
+  },
+  "dependencies": {
+    "better-sqlite3": "13.0.3",
+    "exifr": "7.1.3",
+    "ffmpeg-static": "5.3.0",
+    "ffprobe-static": "3.1.0",
+    "onnxruntime-node": "1.30.0",
+    "sharp": "0.35.4"
+  }
+}

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' photos-media: data: blob:; media-src 'self' photos-media:; connect-src 'self' https://tiles.openfreemap.org; worker-src 'self';" />
+  <title>Photos</title>
+  <link rel="stylesheet" href="vendor/maplibre/maplibre-gl.css" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="sidebar">
+    <div class="drag-region"></div>
+    <div class="sidebar-placeholder"><!-- M6 fills this with navigation --></div>
+  </div>
+
+  <div id="content">
+    <div class="drag-region"></div>
+    <div id="toolbar"><!-- M3.7 fills this with the zoom slider --></div>
+    <div id="grid-scroll">
+      <div id="grid-root"></div>
+    </div>
+  </div>
+
+  <script src="vendor/preact-bundle.js"></script>
+  <script src="vendor/maplibre/maplibre-gl-csp.js"></script>
+  <script src="vendor/supercluster/supercluster.min.js"></script>
+  <script src="vendor/map-styles/styles.js"></script>
+  <script src="lib/range-set.js"></script>
+  <script src="lib/data-layer.js"></script>
+  <script src="lib/timeline-data-layer.js"></script>
+  <script src="lib/layout-engine.js"></script>
+  <script src="lib/square-layout.js"></script>
+  <script src="renderer.js"></script>
+  <script src="viewer.js"></script>
+  <script src="sidebar.js"></script>
+  <script src="albums.js"></script>
+  <script src="places.js"></script>
+  <script src="people.js"></script>
+</body>
+</html>

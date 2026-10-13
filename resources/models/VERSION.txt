@@ -1,0 +1,20 @@
+Face models for the People feature (M10). Downloaded 2026-10-11.
+Source: OpenCV Zoo, https://github.com/opencv/opencv_zoo (branch main).
+Files are unmodified originals.
+
+face_detection_yunet_2023mar.onnx
+  Purpose: face detection (boxes, score, 5 landmarks)
+  Source path: models/face_detection_yunet/
+  Size: 232589 bytes
+  SHA-256: 8f2383e4dd3cfbb4553ea8718107fc0423210dc964f9f4280604804ed2552fa4
+  License: MIT, copyright (c) 2020 Shiqi Yu. Full text: LICENSE-yunet.txt
+
+face_recognition_sface_2021dec.onnx
+  Purpose: face embedding (128 values, compared by cosine similarity)
+  Source path: models/face_recognition_sface/
+  Size: 38696353 bytes
+  SHA-256: 0ba9fbfa01b5270c96627c4ef784da859931e02f04419c829e83484087c34e79
+  License: Apache-2.0. Full text: LICENSE-sface.txt
+
+Runtime: onnxruntime-node 1.30.0 (MIT), CPU execution.
+Both licenses must appear in the app's credits (M9).

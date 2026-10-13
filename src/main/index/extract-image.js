@@ -1,0 +1,133 @@
+/**
+ * extract-image.js
+ *
+ * Per-file metadata extraction for images (including RAW, HEIC, GIF, BMP).
+ * Single-file-in-isolation scope only — Live Photo pairing and burst
+ * grouping need sibling files and are handled by the M1.6 orchestrator.
+ *
+ * Read-only: exifr and the container dimension readers only ever open files
+ * for reading.
+ */
+
+const exifr = require('exifr');
+const { readContainerDimensions } = require('./image-dimensions');
+const {
+  parseFilenameTimestamp,
+  isPanoramaByAspectRatio,
+  applyOrientation,
+  isPlausibleCaptureParts,
+} = require('./metadata-helpers');
+
+const EXIFR_OPTIONS = {
+  translateKeys: true,
+  translateValues: false,
+  reviveValues: true,
+  mergeOutput: true,
+};
+
+function dateToParts(date) {
+  return {
+    year: date.getFullYear(),
+    month: date.getMonth() + 1,
+    day: date.getDate(),
+    hour: date.getHours(),
+    minute: date.getMinutes(),
+    second: date.getSeconds(),
+  };
+}
+
+function nullIfUndefined(value) {
+  return value === undefined ? null : value;
+}
+
+async function readExif(fullPath) {
+  try {
+    const result = await exifr.parse(fullPath, EXIFR_OPTIONS);
+    return result || {};
+  } catch (err) {
+    return {};
+  }
+}
+
+async function resolveRawDimensions(fullPath, extension, exif) {
+  const containerResult = await readContainerDimensions(fullPath, extension);
+  if (containerResult) return containerResult;
+
+  if (typeof exif.ImageWidth === 'number' && typeof exif.ImageHeight === 'number') {
+    return { width: exif.ImageWidth, height: exif.ImageHeight };
+  }
+  if (typeof exif.ExifImageWidth === 'number' && typeof exif.ExifImageHeight === 'number') {
+    return { width: exif.ExifImageWidth, height: exif.ExifImageHeight };
+  }
+  return null;
+}
+
+function exifDateToPlausibleParts(value) {
+  if (!(value instanceof Date) || Number.isNaN(value.getTime())) return null;
+  const parts = dateToParts(value);
+  return isPlausibleCaptureParts(parts) ? parts : null;
+}
+
+function resolveCaptureTimeFromExifOrFilename(exif, filename) {
+  // Each rung must pass the plausibility rule (M1 patch A.2); a sentinel such
+  // as "0000:00:00 00:00:00" (revived by exifr as 1899-11-30) falls through.
+  const originalParts = exifDateToPlausibleParts(exif.DateTimeOriginal);
+  if (originalParts) return { parts: originalParts, source: 'exif_original' };
+  const createParts = exifDateToPlausibleParts(exif.CreateDate);
+  if (createParts) return { parts: createParts, source: 'exif_create' };
+  const filenameParts = parseFilenameTimestamp(filename);
+  if (filenameParts) {
+    return { parts: filenameParts, source: 'filename_pattern' };
+  }
+  return null;
+}
+
+async function extractImageMetadata(fullPath, filename, extension) {
+  const exif = await readExif(fullPath);
+
+  const rawDimensions = await resolveRawDimensions(fullPath, extension, exif);
+  // HEIF: the container's 'irot' is authoritative when present (HEIF spec);
+  // EXIF Orientation is the fallback (e.g. files written without 'irot').
+  const hasIrot = rawDimensions !== null && typeof rawDimensions.irotDegrees === 'number';
+  const orientation = hasIrot
+    ? (rawDimensions.irotDegrees % 180 === 90 ? 6 : 1)
+    : (typeof exif.Orientation === 'number' ? exif.Orientation : 1);
+
+  let width = null;
+  let height = null;
+  let orientationApplied = 0;
+
+  if (rawDimensions) {
+    const oriented = applyOrientation(rawDimensions.width, rawDimensions.height, orientation);
+    width = oriented.width;
+    height = oriented.height;
+    orientationApplied = 1;
+  }
+
+  const captureTime = resolveCaptureTimeFromExifOrFilename(exif, filename);
+  const isPanorama = isPanoramaByAspectRatio(width, height);
+
+  const latitude = typeof exif.latitude === 'number' ? exif.latitude : null;
+  const longitude = typeof exif.longitude === 'number' ? exif.longitude : null;
+
+  return {
+    width,
+    height,
+    orientationApplied,
+    captureTimeParts: captureTime ? captureTime.parts : null,
+    captureTimeSource: captureTime ? captureTime.source : null,
+    cameraMake: nullIfUndefined(exif.Make),
+    cameraModel: nullIfUndefined(exif.Model),
+    lensModel: nullIfUndefined(exif.LensModel),
+    iso: typeof exif.ISO === 'number' && exif.ISO > 0 ? exif.ISO : null,
+    fNumber: typeof exif.FNumber === 'number' ? exif.FNumber : null,
+    exposureTimeSeconds: typeof exif.ExposureTime === 'number' ? exif.ExposureTime : null,
+    focalLengthMm: typeof exif.FocalLength === 'number' ? exif.FocalLength : null,
+    gpsLatitude: latitude,
+    gpsLongitude: longitude,
+    isPanorama,
+    extractionError: width === null || height === null ? 'dimensions_unavailable' : null,
+  };
+}
+
+module.exports = { extractImageMetadata };

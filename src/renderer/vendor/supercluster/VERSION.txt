@@ -1,0 +1,2 @@
+supercluster 9.1.0 (supercluster.min.js)
+sha512-WMhsJPm8Tf9f5mKxJ1D0mB5tbCMOFi8wTrm/LGnsJHGg8xkeNT/TWDZuFauOGRISnclbYgnxD7g3xJAfQO3FLg==

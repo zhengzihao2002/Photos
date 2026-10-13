@@ -1,0 +1,1530 @@
+/*
+ * Light/dark mode: Electron's nativeTheme (default themeSource: 'system')
+ * drives Chromium's `prefers-color-scheme` media feature automatically.
+ *
+ * Vibrancy: the whole BrowserWindow has `vibrancy: 'sidebar'` set natively
+ * (see main.js) with a transparent window background. #sidebar stays
+ * transparent so the native macOS vibrancy material shows through it.
+ * #content gets a solid, opaque background next to the vibrant sidebar.
+ */
+
+:root {
+  --content-bg: #ffffff;
+  --text-primary: #1d1d1f;
+  --text-secondary: #6e6e73;
+  --accent: #0a84ff;
+  --sidebar-text: #1d1d1f;
+  --sidebar-hover-bg: rgba(0, 0, 0, 0.05);
+  --sidebar-selected-bg: rgba(0, 0, 0, 0.1);
+  --sidebar-header: rgba(0, 0, 0, 0.5);
+  --sidebar-panel-bg: rgba(255, 255, 255, 0.35);
+  --sidebar-panel-border: rgba(0, 0, 0, 0.08);
+  --sidebar-selected-fg: #007aff;
+  --seg-bg: rgba(0, 0, 0, 0.05);
+  --seg-border: rgba(0, 0, 0, 0.06);
+  --seg-active-bg: #ffffff;
+  --divider: rgba(0, 0, 0, 0.1);
+  --grid-placeholder-bg: rgba(0, 0, 0, 0.06);
+  --grid-gap: 4px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --content-bg: #1e1e1e;
+    --text-primary: #f5f5f7;
+    --text-secondary: #98989d;
+    --accent: #0a84ff;
+    --sidebar-text: #f5f5f7;
+    --sidebar-hover-bg: rgba(255, 255, 255, 0.06);
+    --sidebar-selected-bg: rgba(255, 255, 255, 0.13);
+    --sidebar-header: rgba(255, 255, 255, 0.5);
+    --sidebar-panel-bg: rgba(255, 255, 255, 0.05);
+    --sidebar-panel-border: rgba(255, 255, 255, 0.09);
+    --sidebar-selected-fg: #4ca6ff;
+    --seg-bg: rgba(255, 255, 255, 0.08);
+    --seg-border: rgba(255, 255, 255, 0.08);
+    --seg-active-bg: rgba(255, 255, 255, 0.2);
+    --divider: rgba(255, 255, 255, 0.12);
+    --grid-placeholder-bg: rgba(255, 255, 255, 0.08);
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
+  color: var(--text-primary);
+}
+
+body {
+  display: flex;
+  flex-direction: row;
+}
+
+.drag-region {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 28px;
+  -webkit-app-region: drag;
+  z-index: 10;
+}
+
+/* macOS 26 floating sidebar: an inset rounded panel. The native vibrancy
+   material shows through the panel and the thin gap around it. */
+#sidebar {
+  position: relative;
+  width: 236px;
+  flex-shrink: 0;
+  margin: 8px;
+  border-radius: 16px;
+  background: var(--sidebar-panel-bg);
+  border: 1px solid var(--sidebar-panel-border);
+  color: var(--sidebar-text);
+  padding-top: 44px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* M6 sidebar navigation (sidebar.js renders into .sidebar-placeholder). */
+.sidebar-placeholder {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0 8px 12px;
+  -webkit-app-region: no-drag;
+}
+
+.sb-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  font-size: 15px;
+}
+
+.sb-items,
+.sb-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.sb-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  margin-bottom: 2px;
+  padding: 4px 10px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: left;
+  color: var(--sidebar-header);
+  cursor: default;
+}
+
+.sb-chevron {
+  width: 10px;
+  height: 10px;
+  opacity: 0;
+  transition: transform 150ms ease, opacity 120ms ease;
+}
+
+.sb-header:hover .sb-chevron,
+.sb-header:focus-visible .sb-chevron {
+  opacity: 1;
+}
+
+.sb-chevron.is-open {
+  transform: rotate(90deg);
+}
+
+.sb-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 40px;
+  padding: 0 10px;
+  border-radius: 10px;
+  color: var(--sidebar-text);
+  cursor: default;
+  user-select: none;
+  outline: none;
+}
+
+.sb-row:not(.is-disabled):hover {
+  background: var(--sidebar-hover-bg);
+}
+
+.sb-row.is-selected,
+.sb-row.is-selected:hover {
+  background: var(--sidebar-selected-bg);
+}
+
+.sb-row.is-disabled {
+  opacity: 0.4;
+}
+
+.sb-header:focus-visible,
+.sb-row:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+/* Sequoia style: icons in text color; the selected row turns icon + label
+   accent blue on a subtle fill. CSS overrides the SVG size/stroke attributes. */
+.sb-icon {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  color: var(--sidebar-text);
+}
+
+.sb-icon path {
+  stroke-width: 1.6;
+}
+
+.sb-row.is-selected .sb-icon,
+.sb-row.is-selected .sb-label {
+  color: var(--sidebar-selected-fg);
+}
+
+.sb-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#content {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--content-bg);
+  overflow: hidden;
+}
+
+/* M6 (B.6c): airy toolbar -- controls vertically centered (level with the
+   traffic lights), no divider line, consistent spacing. The toolbar itself
+   is the window drag area; its controls are no-drag. */
+#toolbar {
+  position: relative;
+  z-index: 5;
+  flex-shrink: 0;
+  height: 56px;
+  -webkit-app-region: drag;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-left: 16px;
+  padding-right: 16px;
+  background: transparent; /* frosted layer below (::before) */
+}
+
+/* The old 28px drag strip over #content would cover the now-centered
+   toolbar controls and block clicks; the toolbar already drags the window. */
+#content > .drag-region {
+  display: none;
+}
+
+/* M6 (B.4): sidebar hidden via View > Hide Sidebar / the toolbar toggle.
+   #content (flex: 1) then fills the window; the grid re-lays out on the
+   width change. Toolbars get extra left padding so their controls clear the
+   traffic-light buttons, which now sit over the content area. */
+body.sidebar-hidden #sidebar {
+  width: 0;
+  margin-left: 0;
+  margin-right: 0;
+  border-width: 0;
+  opacity: 0;
+  visibility: hidden; /* out of tab order / clicks once collapsed */
+  pointer-events: none;
+}
+
+/* The nav keeps its full width while the panel shrinks, so labels slide
+   out instead of wrapping (#sidebar's overflow: hidden clips it). */
+.sidebar-placeholder {
+  min-width: 234px;
+}
+
+/* Animated only while body.sidebar-animate is set (added after startup, so a
+   sidebar restored as hidden does not visibly collapse on launch). Hiding
+   delays visibility:hidden until the collapse finishes. */
+body.sidebar-animate #sidebar {
+  transition: width 240ms ease, margin 240ms ease, opacity 180ms ease,
+    border-width 240ms ease, visibility 0s linear 0s;
+}
+
+body.sidebar-animate.sidebar-hidden #sidebar {
+  transition: width 240ms ease, margin 240ms ease, opacity 180ms ease,
+    border-width 240ms ease, visibility 0s linear 240ms;
+}
+
+body.sidebar-animate #toolbar,
+body.sidebar-animate .viewer-toolbar {
+  transition: padding-left 240ms ease;
+}
+
+body.sidebar-hidden #toolbar,
+body.sidebar-hidden .viewer-toolbar {
+  padding-left: 84px;
+}
+
+/* M6 (B.4): sidebar toggle button. Visible sidebar: inside the panel,
+   top-right, level with the traffic lights (.sb-toggle). Hidden sidebar:
+   at the left of the grid/viewer toolbar (.toolbar-sidebar-toggle). */
+.sb-toggle,
+.toolbar-sidebar-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: default;
+  -webkit-app-region: no-drag;
+}
+
+.sb-toggle:hover,
+.toolbar-sidebar-toggle:hover {
+  background: var(--sidebar-hover-bg);
+  color: var(--text-primary);
+}
+
+.sb-toggle:focus-visible,
+.toolbar-sidebar-toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.sb-toggle svg,
+.toolbar-sidebar-toggle svg {
+  width: 18px;
+  height: 18px;
+}
+
+.sb-toggle {
+  position: absolute;
+  top: 3px;
+  right: 10px;
+  z-index: 11; /* above the drag region (z-index 10) */
+}
+
+.toolbar-sidebar-toggle {
+  flex-shrink: 0;
+  margin-right: 10px;
+}
+
+#grid-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  position: relative;
+  /* M6: extend up behind the 56px toolbar so photos scroll UNDER it; the
+     padding keeps the first row below the toolbar when scrolled to the top. */
+  margin-top: -56px;
+  padding-top: 56px;
+}
+
+#grid-root {
+  position: relative;
+  width: 100%;
+}
+
+.row-header {
+  position: absolute;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: flex-end;
+  padding: 0 4px 6px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.row-items {
+  position: absolute;
+  left: 0;
+  right: 0;
+  display: flex;
+  gap: var(--grid-gap);
+  padding: 0 4px;
+}
+
+.tile {
+  background: var(--grid-placeholder-bg);
+  border-radius: 4px;
+  overflow: hidden;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.empty-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--text-secondary);
+  font-size: 15px;
+}
+.tile-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  animation: tileFadeIn 200ms ease-in;
+}
+
+@keyframes tileFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.tile-error {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  font-size: 20px;
+}
+
+.tile-video-badge {
+  position: absolute;
+  left: 6px;
+  bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 600;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+
+.tile-play-icon {
+  font-size: 10px;
+}
+
+.tile-live-badge {
+  position: absolute;
+  left: 6px;
+  top: 6px;
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+.zoom-slider-wrap {
+  -webkit-app-region: no-drag;
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.zoom-icon {
+  color: var(--text-secondary);
+  line-height: 1;
+  user-select: none;
+}
+
+.zoom-icon-sm {
+  font-size: 10px;
+}
+
+.zoom-icon-lg {
+  font-size: 16px;
+}
+
+.zoom-slider {
+  width: 120px;
+  cursor: pointer;
+}
+.tile-selected {
+  outline: 3px solid var(--accent);
+  outline-offset: -3px;
+}
+
+/* M4 — Timeline views (Years/Months/Days). Simple CSS grid, no virtualization
+   needed at this scale (tens of years/months, thousands of days at most). */
+.timeline-scroll {
+  overflow-y: auto;
+  height: 100%;
+  padding: 20px;
+}
+
+.timeline-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 16px;
+}
+
+.timeline-tile {
+  display: flex;
+  flex-direction: column;
+  cursor: pointer;
+}
+
+.timeline-tile:hover .timeline-tile-thumb {
+  outline: 2px solid var(--accent);
+}
+
+.timeline-tile-thumb {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 8px;
+  background: var(--grid-placeholder-bg);
+  overflow: hidden;
+}
+
+.timeline-tile-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.timeline-tile-label {
+  margin-top: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.timeline-tile-count {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.timeline-loading {
+  padding: 24px;
+  color: var(--text-secondary);
+}
+
+.timeline-year-header {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 24px 0 12px;
+}
+.timeline-year-group:first-child .timeline-year-header {
+  margin-top: 0;
+}
+
+/* ── M5 Viewer ─────────────────────────────────────────────────────────
+ * Overlay inside #content (sidebar stays visible, as in Apple Photos).
+ * Background follows system appearance via the shared variables.
+ */
+#viewer-root {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  pointer-events: none; /* empty root must not block the grid */
+}
+
+.viewer {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--content-bg);
+  color: var(--text-primary);
+  pointer-events: auto;
+  animation: viewer-in 160ms ease-out;
+}
+.viewer.is-closing { animation: viewer-out 160ms ease-in forwards; }
+
+@keyframes viewer-in {
+  from { opacity: 0; transform: scale(0.98); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes viewer-out {
+  from { opacity: 1; transform: none; }
+  to   { opacity: 0; transform: scale(0.98); }
+}
+
+.viewer-toolbar {
+  position: relative;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  height: 52px; /* overridden inline with the grid toolbar's measured height */
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid var(--divider);
+  -webkit-app-region: drag; /* overlay covers #content's drag strip */
+  user-select: none;
+}
+
+.viewer-btn {
+  -webkit-app-region: no-drag;
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--text-primary);
+  min-width: 32px;
+  height: 28px;
+  padding: 0;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: default;
+}
+.viewer-btn:hover:not(.is-disabled) { background: var(--divider); }
+.viewer-btn.is-active { color: var(--accent); }
+.viewer-btn.is-disabled { opacity: 0.35; }
+.viewer-btn-text { font-size: 13px; font-weight: 500; padding: 0 8px; }
+
+.viewer-title {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  max-width: 36%;
+  text-align: center;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+}
+.viewer-title-date { font-size: 13px; font-weight: 600; }
+.viewer-title-time { font-size: 11px; color: var(--text-secondary); }
+.viewer-toolbar-spacer { flex: 1; }
+
+.viewer-group {
+  -webkit-app-region: no-drag;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 9px;
+  background: var(--grid-placeholder-bg);
+}
+.viewer-group .viewer-btn { min-width: 34px; border-radius: 7px; }
+
+.viewer-zoom {
+  -webkit-app-region: no-drag;
+  width: 96px;
+  margin: 0;
+  accent-color: var(--text-secondary);
+}
+.viewer-zoom:disabled { opacity: 0.45; }
+
+.viewer-stage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.viewer-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+/* M5.4: progressive-display messages */
+.viewer-notice {
+  position: absolute;
+  left: 50%;
+  bottom: 16px;
+  transform: translateX(-50%);
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.6);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  pointer-events: none;
+  white-space: nowrap;
+}
+.viewer-empty {
+  font-size: 14px;
+  color: var(--text-secondary);
+  text-align: center;
+  padding: 24px;
+}
+
+/* M5.5: previous/next chevrons — appear on stage hover (Apple style) */
+.viewer-chev {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: 50%;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.35);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  opacity: 0;
+  transition: opacity 150ms ease, background 150ms ease;
+  cursor: default;
+  -webkit-app-region: no-drag;
+  z-index: 2;
+}
+.viewer-chev-prev { left: 14px; }
+.viewer-chev-next { right: 14px; }
+.viewer-stage:hover .viewer-chev { opacity: 1; }
+.viewer-chev:hover { background: rgba(0, 0, 0, 0.55); }
+
+/* M5.6: zoom & pan — inline width/height/translate come from the zoom engine */
+.viewer-stage { touch-action: none; }
+.viewer-img.is-sized {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  object-fit: fill;
+  max-width: none;
+  max-height: none;
+}
+.viewer-stage.is-zoomed { cursor: grab; }
+.viewer-stage.is-panning { cursor: grabbing; }
+
+/* M5.7: video player */
+.viewer-video-wrap {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.viewer-video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  outline: none;
+}
+.viewer-vbar {
+  position: absolute;
+  left: 50%;
+  bottom: 16px;
+  transform: translateX(-50%);
+  width: min(560px, calc(100% - 32px));
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 12px;
+  color: #fff;
+  /* M6: lighter glass so the bar doesn't blend into the dark-mode background
+     (#1e1e1e) or black video borders. */
+  background: rgba(80, 80, 84, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  -webkit-app-region: no-drag;
+  z-index: 3;
+}
+.viewer-vbtn {
+  appearance: none;
+  border: 0;
+  padding: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  background: transparent;
+  cursor: default;
+}
+.viewer-vbtn:hover { background: rgba(255, 255, 255, 0.15); }
+.viewer-vtime {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  min-width: 38px;
+  text-align: center;
+  opacity: 0.9;
+}
+.viewer-vscrub { flex: 1; min-width: 60px; margin: 0; accent-color: #fff; }
+.viewer-vvol { width: 70px; margin: 0; accent-color: #fff; }
+
+/* M5.7: Live Photo */
+.viewer-live-badge {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px 3px 6px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.4);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  cursor: default;
+  user-select: none;
+  -webkit-app-region: no-drag;
+}
+.viewer-live-badge.is-playing { background: rgba(0, 0, 0, 0.65); }
+.viewer-live-video { position: absolute; inset: 0; pointer-events: none; }
+
+/* M5.8: Info panel — floating, translucent, follows system appearance */
+.viewer-info {
+  position: absolute;
+  right: 14px;
+  width: 280px;
+  max-height: calc(100% - 100px);
+  overflow-y: auto;
+  box-sizing: border-box;
+  padding: 12px 14px 14px;
+  border-radius: 12px;
+  font-size: 12px;
+  color: var(--text-primary);
+  background: rgba(246, 246, 246, 0.86);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.18);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  backdrop-filter: blur(20px) saturate(1.4);
+  -webkit-app-region: no-drag;
+  z-index: 4;
+  animation: viewer-in 140ms ease-out;
+}
+@media (prefers-color-scheme: dark) {
+  .viewer-info {
+    background: rgba(40, 40, 42, 0.86);
+    border-color: rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+  }
+}
+.viewer-info-head { display: flex; align-items: center; gap: 8px; }
+.viewer-info-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.viewer-info-close {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 12px;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  padding: 0;
+  cursor: default;
+}
+.viewer-info-close:hover { background: var(--divider); }
+.viewer-info-date { margin-top: 4px; }
+.viewer-info-note { margin-top: 2px; font-size: 11px; color: var(--text-secondary); font-style: italic; }
+.viewer-info-section {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--divider);
+}
+.viewer-info-camera { font-weight: 600; }
+.viewer-info-sub { margin-top: 2px; color: var(--text-secondary); }
+.viewer-info-exposure {
+  margin-top: 8px;
+  display: flex;
+  border: 1px solid var(--divider);
+  border-radius: 7px;
+  overflow: hidden;
+}
+.viewer-info-exposure span {
+  flex: 1;
+  padding: 4px 2px;
+  text-align: center;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.viewer-info-exposure span + span { border-left: 1px solid var(--divider); }
+.viewer-info-row { display: flex; justify-content: space-between; gap: 12px; padding: 2px 0; }
+.viewer-info-key { color: var(--text-secondary); flex-shrink: 0; }
+.viewer-info-val { text-align: right; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.viewer-info-badges { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 6px; }
+.viewer-info-badge {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--grid-placeholder-bg);
+  color: var(--text-secondary);
+}
+.viewer-info-finder {
+  margin-top: 12px;
+  width: 100%;
+  appearance: none;
+  border: 1px solid var(--divider);
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 12px;
+  padding: 5px 0;
+  border-radius: 7px;
+  cursor: default;
+}
+.viewer-info-finder:hover { background: var(--grid-placeholder-bg); }
+
+/* ---- M6 (B.5): sidebar header row + album indicators ---------------- */
+.sb-header-row {
+  display: flex;
+  align-items: center;
+}
+
+.sb-header-row .sb-header {
+  flex: 1;
+  min-width: 0;
+}
+
+.sb-trailing {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.sb-trailing-icon {
+  width: 16px;
+  height: 16px;
+  color: #ff9f0a; /* macOS orange */
+}
+
+.sb-spinner,
+.album-badge-scanning {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid var(--sidebar-header);
+  border-top-color: transparent;
+  animation: photos-spin 0.8s linear infinite;
+}
+
+@keyframes photos-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ---- M6 (B.5): All Albums overview (albums.js) ----------------------- */
+.albums-view {
+  padding: 24px 28px 40px;
+}
+
+.albums-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 28px 22px;
+}
+
+.album-card {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  color: var(--text-primary);
+  cursor: default;
+  outline: none;
+}
+
+.album-cover {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--grid-placeholder-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: filter 120ms ease, background 120ms ease;
+}
+
+.album-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* center-cropped square */
+  display: block;
+}
+
+.album-card:hover .album-cover {
+  filter: brightness(0.92);
+}
+
+.album-card:focus-visible .album-cover {
+  box-shadow: 0 0 0 3px var(--accent);
+}
+
+.album-cover-placeholder {
+  width: 40%;
+  height: 40%;
+  color: var(--text-secondary);
+  opacity: 0.6;
+}
+
+.album-cover-add {
+  background: transparent;
+  border: 1.5px dashed var(--divider);
+}
+
+.album-card-add:hover .album-cover-add {
+  filter: none;
+  background: var(--sidebar-hover-bg);
+}
+
+.album-add-icon {
+  width: 34%;
+  height: 34%;
+  color: var(--text-secondary);
+}
+
+.album-name {
+  margin-top: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.album-count {
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.album-card.is-missing .album-cover img {
+  opacity: 0.45;
+}
+
+.album-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+}
+
+.album-badge-missing {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.album-badge-icon {
+  width: 15px;
+  height: 15px;
+  color: #ffb340;
+}
+
+.album-badge-scanning {
+  border-color: rgba(255, 255, 255, 0.9);
+  border-top-color: transparent;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+/* ---- M6 (B.5): drop target while dragging files over the window ------ */
+/* Full-window frosted overlay; ignores the mouse so it never intercepts the
+   drop itself. */
+body.drop-active::after {
+  content: 'Drop folders to add them to Photos\A They\2019ll appear as albums. Your files are never moved or copied.';
+  white-space: pre-line;
+  position: fixed;
+  inset: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 24px;
+  border: 3px solid var(--accent);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--content-bg) 72%, transparent);
+  -webkit-backdrop-filter: blur(22px) saturate(1.2);
+  backdrop-filter: blur(22px) saturate(1.2);
+  color: var(--text-primary);
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.6;
+  pointer-events: none;
+  z-index: 1000; /* above sidebar, grid and viewer */
+}
+
+/* ---- M6 (B.5g): sidebar status footer (scan progress + notices) ------ */
+.sb-footer-host {
+  flex-shrink: 0;
+  min-width: 234px; /* keeps its width while the sidebar slides closed */
+  -webkit-app-region: no-drag;
+}
+
+.sb-footer {
+  margin: 0 8px 8px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--sidebar-hover-bg);
+  color: var(--sidebar-text);
+  font-size: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sb-footer-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.sb-footer-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+.sb-footer-count {
+  flex-shrink: 0;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.sb-progress {
+  position: relative;
+  height: 4px;
+  margin-top: 6px;
+  border-radius: 2px;
+  background: var(--divider);
+  overflow: hidden;
+}
+
+.sb-progress-fill {
+  height: 100%;
+  border-radius: 2px;
+  background: var(--accent);
+  transition: width 200ms ease;
+}
+
+.sb-progress-fill.is-indeterminate {
+  width: 35%;
+  animation: sb-indeterminate 1.2s ease-in-out infinite;
+}
+
+@keyframes sb-indeterminate {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(290%); }
+}
+
+.sb-footer-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.sb-footer-icon {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  margin-top: 1px;
+  color: #ff9f0a;
+}
+
+.sb-footer-text {
+  flex: 1;
+  min-width: 0;
+  white-space: pre-line;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.sb-footer-dismiss {
+  padding: 0 2px;
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 15px;
+  line-height: 1;
+  cursor: default;
+}
+
+.sb-footer-dismiss:hover {
+  color: var(--text-primary);
+}
+
+/* ---- M6 (B.6c): pill-shaped segmented control (Years / Months / All) - */
+.seg {
+  position: relative;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr; /* equal widths so the highlight slides cleanly */
+  padding: 3px;
+  border-radius: 999px;
+  border: 1px solid var(--seg-border);
+  background: var(--seg-bg);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  backdrop-filter: blur(20px) saturate(1.4);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  -webkit-app-region: no-drag;
+}
+
+.seg-indicator {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  left: 3px;
+  border-radius: 999px;
+  background: var(--seg-active-bg);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18), 0 0 0 0.5px rgba(0, 0, 0, 0.06);
+  transition: transform 260ms cubic-bezier(0.3, 0.7, 0.2, 1);
+  pointer-events: none;
+}
+
+.seg-btn {
+  position: relative;
+  z-index: 1;
+  padding: 5px 16px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  color: var(--text-secondary);
+  cursor: default;
+  transition: color 160ms ease;
+}
+
+.seg-btn:hover {
+  color: var(--text-primary);
+}
+
+.seg-btn.is-active {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.seg-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+/* ---- M6 (B.6c): frosted, cloudy title bar ---------------------------- */
+/* A frosted layer behind the toolbar controls, extending 28px below the
+   toolbar over the top of the scrolling content: most cloudy at the top,
+   fading to fully clear at the bottom. Purely visual -- ignores the mouse
+   and is not a window-drag area. */
+#toolbar::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: calc(100% + 20px);
+  background: linear-gradient(to bottom,
+    color-mix(in srgb, var(--content-bg) 72%, transparent) 0%,
+    color-mix(in srgb, var(--content-bg) 40%, transparent) 62%,
+    transparent 100%);
+  -webkit-backdrop-filter: blur(14px) saturate(1.2);
+  backdrop-filter: blur(14px) saturate(1.2);
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 55%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 0%, #000 55%, transparent 100%);
+  pointer-events: none;
+  -webkit-app-region: no-drag;
+  z-index: -1; /* behind the controls, above the content (#toolbar is z-index 5) */
+}
+
+/* ---- M6 (B.6c): bigger Year tiles (Years view only) ------------------ */
+.timeline-grid.is-years {
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 20px;
+}
+
+.timeline-grid.is-years .timeline-tile-thumb {
+  border-radius: 14px;
+}
+
+.timeline-grid.is-years .timeline-tile-label {
+  margin-top: 10px;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.timeline-grid.is-years .timeline-tile-count {
+  font-size: 13px;
+}
+
+/* M6 (B.6d): the view control sits at the exact horizontal center of the
+   content toolbar, independent of the title's width (as in Apple Photos). */
+#toolbar > .seg {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+/* ---- M6 (B.6e): zoom -/+ pill (right edge of the toolbar) ------------- */
+.zoom-pill {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  height: 30px;
+  padding: 0 3px;
+  border-radius: 999px;
+  border: 1px solid var(--seg-border);
+  background: var(--seg-bg);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  backdrop-filter: blur(20px) saturate(1.4);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  -webkit-app-region: no-drag; /* the toolbar drags the window; this must not */
+}
+
+.zoom-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-primary);
+  cursor: default;
+  -webkit-app-region: no-drag;
+  transition: background 140ms ease, transform 100ms ease;
+}
+
+.zoom-btn svg {
+  width: 15px;
+  height: 15px;
+}
+
+.zoom-btn:hover:not(:disabled) {
+  background: var(--seg-active-bg);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+}
+
+.zoom-btn:active:not(:disabled) {
+  transform: scale(0.92);
+}
+
+.zoom-btn:disabled {
+  color: var(--text-secondary);
+  opacity: 0.4;
+}
+
+.zoom-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.zoom-divider {
+  width: 1px;
+  height: 14px;
+  margin: 0 1px;
+  background: var(--seg-border);
+}
+
+/* ---- M6 (B.8): search field (toolbar, left of the zoom pill) --------- */
+.search-pill {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 220px;
+  height: 30px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid var(--seg-border);
+  background: var(--seg-bg);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  backdrop-filter: blur(20px) saturate(1.4);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  -webkit-app-region: no-drag; /* the toolbar drags the window; this must not */
+  transition: width 200ms ease, box-shadow 200ms ease;
+}
+
+.search-pill:focus-within {
+  width: 260px;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+/* The zoom pill sits right after the search field. */
+.search-pill ~ .zoom-pill {
+  margin-left: 10px;
+}
+
+.search-icon {
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+  color: var(--text-secondary);
+}
+
+.search-input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  font: inherit;
+  font-size: 13px;
+  color: var(--text-primary);
+  -webkit-app-region: no-drag;
+}
+
+.search-input::placeholder {
+  color: var(--text-secondary);
+}
+
+.search-clear {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--text-secondary);
+  color: var(--content-bg);
+  font-size: 12px;
+  line-height: 1;
+  opacity: 0.7;
+  cursor: default;
+  -webkit-app-region: no-drag;
+}
+
+.search-clear:hover {
+  opacity: 1;
+}
+
+/* ---- M6: view-filter button (albums / All Photos), left of the zoom pill */
+.filter-pill {
+  margin-left: 10px;
+  display: flex;
+  align-items: center;
+  height: 30px;
+  padding: 0 3px;
+  border-radius: 999px;
+  border: 1px solid var(--seg-border);
+  background: var(--seg-bg);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  backdrop-filter: blur(20px) saturate(1.4);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  -webkit-app-region: no-drag; /* the toolbar drags the window; this must not */
+}
+
+.filter-pill ~ .zoom-pill {
+  margin-left: 10px;
+}
+
+.filter-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-primary);
+  cursor: default;
+  -webkit-app-region: no-drag;
+  transition: background 140ms ease, color 140ms ease, transform 100ms ease;
+}
+
+.filter-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.filter-btn:hover {
+  background: var(--seg-active-bg);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+}
+
+.filter-btn:active {
+  transform: scale(0.92);
+}
+
+.filter-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+/* A filter other than All Items is active. */
+.filter-pill.is-active .filter-btn {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
+
+/* M7: video length badge, app-wide (user request). Bottom-right, white text
+   on a dark tint box, length only. Overrides the M3 .tile-video-badge rules
+   above by source order; .pa-duration is the same badge on the map area
+   page (places.js). */
+.tile-video-badge,
+.pa-duration {
+  position: absolute;
+  left: auto;
+  right: 6px;
+  bottom: 6px;
+  display: block;
+  padding: 1px 6px;
+  border-radius: 5px;
+  background: rgba(0, 0, 0, 0.55);
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 16px;
+  text-shadow: none;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+.tile-video-badge .tile-play-icon {
+  display: none;
+}

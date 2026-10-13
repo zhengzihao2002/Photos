@@ -1,0 +1,33 @@
+# Dependencies and project-local toolchain
+node_modules/
+.toolchain/
+.cache/
+
+# App data (database, thumbnails, electron-data) — never commit
+.dev-data/
+PhotosData/
+*.db
+*.db-wal
+*.db-shm
+*.db-journal
+*.sqlite
+*.sqlite3
+
+# Backups
+*.bak
+*.backup
+backup*/
+backups/
+
+# Build output
+dist/
+out/
+
+# Logs
+*.log
+npm-debug.log*
+
+# macOS / editor clutter
+.DS_Store
+._*
+*.swp

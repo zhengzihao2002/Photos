@@ -1,0 +1,115 @@
+#!/bin/bash
+# Photos development entry point.
+# Everything it downloads, installs, or caches stays inside this folder.
+# Usage: ./dev setup | start | dist | npm <args> | node <args> | audit <mode> | clean
+set -euo pipefail
+ROOT="$(cd "$(dirname "$0")" && pwd -P)"
+cd "$ROOT"
+
+# Pinned Node.js: version and published SHA-256 of the official tarballs.
+NODE_VERSION="24.21.0"
+case "$(uname -m)" in
+  arm64)  NODE_ARCH="arm64"; NODE_SHA="bed7eea5325e1108f32ce5228ddd6a5f0f08a499ee42aa7442aea583702f6057" ;;
+  x86_64) NODE_ARCH="x64";   NODE_SHA="1462cb3b3046b815cf8ea436d3da450ec1a9f11dac7e5a46b0ada5305d7e8097" ;;
+  *) echo "Unsupported Mac architecture: $(uname -m)" >&2; exit 1 ;;
+esac
+NODE_NAME="node-v$NODE_VERSION-darwin-$NODE_ARCH"
+TOOLCHAIN="$ROOT/.toolchain"
+NODE_DIR="$TOOLCHAIN/node"
+CACHE="$ROOT/.cache"
+STAMP="$ROOT/node_modules/.photos-setup-stamp"
+ELECTRON_BIN="$ROOT/node_modules/electron/dist/Electron.app/Contents/MacOS/Electron"
+
+# Only the project's own Node, its packages, and macOS built-ins are visible.
+export PATH="$NODE_DIR/bin:$ROOT/node_modules/.bin:/usr/bin:/bin:/usr/sbin:/sbin"
+export PHOTOS_DEV=1
+export npm_config_cache="$CACHE/npm"
+export npm_config_update_notifier=false
+export npm_config_fund=false
+# Package install steps never run on their own: no compiling, no surprise downloads.
+export npm_config_ignore_scripts=true
+export electron_config_cache="$CACHE/electron"
+export ELECTRON_BUILDER_CACHE="$CACHE/electron-builder"
+
+# Install and build tools get a private home and temp folder inside the project,
+# because some of them write under the home folder with no setting to change it.
+private_env() {
+  mkdir -p "$CACHE/home" "$CACHE/tmp"
+  export HOME="$CACHE/home"
+  export TMPDIR="$CACHE/tmp"
+}
+
+ensure_node() {
+  if [ -x "$NODE_DIR/bin/node" ] && [ "$("$NODE_DIR/bin/node" -v 2>/dev/null)" = "v$NODE_VERSION" ]; then
+    return 0
+  fi
+  echo "Downloading Node $NODE_VERSION ($NODE_ARCH) into .toolchain/ ..."
+  mkdir -p "$TOOLCHAIN" "$CACHE/tmp"
+  local tgz="$CACHE/tmp/$NODE_NAME.tar.gz"
+  /usr/bin/curl -fL --progress-bar -o "$tgz" "https://nodejs.org/dist/v$NODE_VERSION/$NODE_NAME.tar.gz"
+  local got
+  got="$(/usr/bin/shasum -a 256 "$tgz" | awk '{print $1}')"
+  if [ "$got" != "$NODE_SHA" ]; then
+    rm -f "$tgz"
+    echo "Checksum mismatch for the Node download." >&2
+    echo "  expected $NODE_SHA" >&2
+    echo "  got      $got" >&2
+    exit 1
+  fi
+  echo "Checksum verified."
+  rm -rf "$NODE_DIR" "$TOOLCHAIN/$NODE_NAME"
+  /usr/bin/tar -xzf "$tgz" -C "$TOOLCHAIN"
+  mv "$TOOLCHAIN/$NODE_NAME" "$NODE_DIR"
+  rm -f "$tgz"
+  echo "Node $("$NODE_DIR/bin/node" -v) ready."
+}
+
+need_setup() {
+  if [ ! -x "$NODE_DIR/bin/node" ] || [ ! -x "$ELECTRON_BIN" ]; then
+    echo "Not set up yet. Run: ./dev setup" >&2
+    exit 1
+  fi
+}
+
+# Everything in .cache is disposable except the residue audit's marker.
+clean_cache() {
+  [ -d "$CACHE" ] || return 0
+  if [ "${PHOTOS_KEEP_CACHE:-0}" = "1" ]; then
+    echo "Download caches kept (PHOTOS_KEEP_CACHE=1)."
+    return 0
+  fi
+  find "$CACHE" -mindepth 1 -maxdepth 1 ! -name residue -exec rm -rf {} +
+  echo "Download caches cleared."
+}
+
+cmd_setup() {
+  ensure_node
+  private_env
+  local want
+  want="$NODE_VERSION $(/usr/bin/shasum -a 256 package-lock.json | awk '{print $1}')"
+  if [ -f "$STAMP" ] && [ "$(cat "$STAMP")" = "$want" ] && [ -x "$ELECTRON_BIN" ]; then
+    echo "Already set up. Nothing to do."
+  else
+    echo "Installing dependencies exactly as package-lock.json lists them ..."
+    # Package install steps are skipped as a group, then the two needed ones run.
+    # This avoids the automatic compile of better-sqlite3, which needs compilers
+    # and header downloads but produces nothing the app uses.
+    npm ci --ignore-scripts
+    (cd node_modules/ffmpeg-static && node install.js)
+    node node_modules/electron/install.js
+    echo "$want" > "$STAMP"
+    echo "Setup complete."
+  fi
+  clean_cache
+}
+
+case "${1:-help}" in
+  setup) cmd_setup ;;
+  start) need_setup; shift; exec node_modules/.bin/electron . "$@" ;;
+  dist)  need_setup; private_env; shift; node_modules/.bin/electron-builder --mac "$@"; clean_cache ;;
+  npm)   ensure_node; private_env; shift; exec npm "$@" ;;
+  node)  ensure_node; private_env; shift; exec node "$@" ;;
+  audit) shift; exec "$ROOT/tools/residue-audit.sh" "$@" ;;
+  clean) clean_cache ;;
+  *)     echo "Usage: ./dev setup | start | dist | npm <args> | node <args> | audit <mark|report|known> | clean" ;;
+esac

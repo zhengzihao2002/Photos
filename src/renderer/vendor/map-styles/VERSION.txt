@@ -1,0 +1,1 @@
+OpenFreeMap styles (positron, dark), downloaded 2026-10-11 from https://tiles.openfreemap.org/styles/<name>
