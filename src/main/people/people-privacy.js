@@ -15,6 +15,7 @@ const db = require('../index/db');
 const paths = require('../paths');
 const faceManager = require('../faces/face-manager');
 const { buildMenu } = require('../menu');
+const bus = require('../window-bus'); // M8b.3
 
 function isEnabled() {
   const c = config.load();
@@ -25,8 +26,10 @@ function applyMenu() {
   Menu.setApplicationMenu(buildMenu({ peopleEnabled: isEnabled() }));
 }
 
+// M8b.3: every open window learns the change; `win` is kept for the
+// confirmation sheet in deleteAll, which must attach to the asking window.
 function tell(win, payload) {
-  if (win && win.isDestroyed() === false) win.webContents.send('people:privacy', payload);
+  bus.send('people:privacy', payload);
 }
 
 /** At startup: menu checkbox from config; the face worker only if People is on. */

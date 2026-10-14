@@ -20,6 +20,8 @@ const MAX_RESTARTS = 3;
 const RESTART_DELAY_MS = 2000;
 const STOP_TIMEOUT_MS = 8000;
 
+const bus = require('../window-bus'); // M8b.3
+
 let worker = null;
 let mainWindowRef = null;
 let gateTimer = null;
@@ -29,10 +31,9 @@ let stopRequested = false;
 let stopWaiters = [];
 let latest = { done: 0, total: 0, failed: 0, state: 'starting' };
 
+// M8b.3: always the current window(s), never a reference kept from start().
 function send(message) {
-  if (mainWindowRef && mainWindowRef.isDestroyed() === false) {
-    mainWindowRef.webContents.send('progress:update', { taskId: TASK_ID, ...message });
-  }
+  bus.send('progress:update', { taskId: TASK_ID, ...message });
 }
 
 function report(state, msg) {

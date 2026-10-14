@@ -19,6 +19,7 @@ const MAX_RESTARTS = 3;
 const RESTART_DELAY_MS = 2000;
 const STOP_TIMEOUT_MS = 5000;
 const TASK_ID = 'thumbnail-generation';
+const bus = require('../window-bus'); // M8b.3
 
 let worker = null;
 let mainWindowRef = null;
@@ -27,10 +28,9 @@ let stopRequested = false;
 let latestSnapshot = { current: 0, total: 0, errors: 0, message: null };
 let stopWaiters = [];
 
+// M8b.3: always the current window(s), never a reference kept from start().
 function send(message) {
-  if (mainWindowRef && !mainWindowRef.isDestroyed()) {
-    mainWindowRef.webContents.send('progress:update', { taskId: TASK_ID, ...message });
-  }
+  bus.send('progress:update', { taskId: TASK_ID, ...message });
 }
 
 function snapshotFrom(msg) {
