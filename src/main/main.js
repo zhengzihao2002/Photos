@@ -196,6 +196,13 @@ app.whenReady().then(() => {
   createMainWindow();
   thumbnailManager.start({ mainWindow });
   require('./people/people-privacy').init(mainWindow); // M10.8: menu state; face worker only if People is on
+  // M8b.5: catch up on changes made while closed, then watch every source.
+  // After each scan the watcher set is re-synced (a scan may mark a source
+  // missing; add/relink/remove also call refresh).
+  const folderWatcher = require('./index/folder-watcher');
+  folderWatcher.reconcileAtLaunch();
+  folderWatcher.refresh();
+  require('./index/scan-queue').onScanFinished(() => folderWatcher.refresh());
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createMainWindow();
@@ -210,6 +217,7 @@ app.on('before-quit', (event) => {
   // M8b.2: the scan queue stops too (pending dropped, running worker ended)
   // before the database closes; the next launch catches up.
   const scanQueue = require('./index/scan-queue');
+  require('./index/folder-watcher').stopAll(); // M8b.5
   Promise.all([thumbnailManager.stop(), faceManager.stop(), scanQueue.shutdown()]).then(() => {
     db.close();
     residueCleanup.schedule(); // M8a: remove per-app items macOS wrote outside the data folder

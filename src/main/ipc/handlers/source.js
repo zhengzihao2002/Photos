@@ -34,8 +34,13 @@ const {
   relinkSourceFolder,
 } = require('../../index/source-folders');
 
+// M8b.5: watchers follow the source list immediately.
+function refreshWatchers() { require('../../index/folder-watcher').refresh(); }
+
 async function sourceAdd(event, payload) {
-  return addSourceFolder(db.get(), payload.rootPath);
+  const res = await addSourceFolder(db.get(), payload.rootPath);
+  if (res && res.added) refreshWatchers();
+  return res;
 }
 
 async function sourceList() {
@@ -43,11 +48,15 @@ async function sourceList() {
 }
 
 async function sourceRemove(event, payload) {
-  return removeSourceFolder(db.get(), payload.sourceFolderId);
+  const res = removeSourceFolder(db.get(), payload.sourceFolderId);
+  if (res && res.removed) refreshWatchers();
+  return res;
 }
 
 async function sourceRelink(event, payload) {
-  return relinkSourceFolder(db.get(), payload.sourceFolderId, payload.newRootPath);
+  const res = await relinkSourceFolder(db.get(), payload.sourceFolderId, payload.newRootPath);
+  if (res && res.relinked) refreshWatchers();
+  return res;
 }
 
 module.exports = [

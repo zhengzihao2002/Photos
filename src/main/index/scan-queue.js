@@ -120,7 +120,7 @@ async function pump() {
   const rootPath = lookupRoot(sourceFolderId);
   if (!rootPath) { broadcastState(); schedulePump(); return; } // removed meanwhile
 
-  running = { sourceFolderId, kind: req.kind };
+  running = { sourceFolderId, kind: req.kind, t0: Date.now() };
   console.log('[M8b-diag] scan start', sourceFolderId, req.kind, 'pending after:', order.join(',') || '-'); // M8b.9: remove
   broadcastState();
   let result = { status: 'failed', message: 'not run' };
@@ -135,7 +135,7 @@ async function pump() {
     result = { status: 'failed', message: err && err.message };
   } finally {
     const finished = running;
-    console.log('[M8b-diag] scan end', finished.sourceFolderId, result.status, result.summary ? JSON.stringify({ d: result.summary.deleted, skip: result.summary.sweepSkipped || null }) : (result.message || '')); // M8b.9: remove
+    console.log('[M8b-diag] scan end', finished.sourceFolderId, (Date.now() - finished.t0) + 'ms', result.status, result.summary ? JSON.stringify({ d: result.summary.deleted, skip: result.summary.sweepSkipped || null }) : (result.message || '')); // M8b.9: remove
     running = null;
     broadcastState();
     for (const fn of finishedListeners) {
