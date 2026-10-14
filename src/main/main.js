@@ -207,7 +207,10 @@ app.on('before-quit', (event) => {
   if (quitting) return;
   quitting = true;
   event.preventDefault();
-  Promise.all([thumbnailManager.stop(), faceManager.stop()]).then(() => {
+  // M8b.2: the scan queue stops too (pending dropped, running worker ended)
+  // before the database closes; the next launch catches up.
+  const scanQueue = require('./index/scan-queue');
+  Promise.all([thumbnailManager.stop(), faceManager.stop(), scanQueue.shutdown()]).then(() => {
     db.close();
     residueCleanup.schedule(); // M8a: remove per-app items macOS wrote outside the data folder
     app.exit(0);

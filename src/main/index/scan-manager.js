@@ -1,15 +1,21 @@
 /**
  * scan-manager.js
  *
- * Owns spawning the scan worker thread and relaying its progress onto the
- * app's existing progress:update channel (reserved by M0, unused until
- * now). Only one scan runs at a time; a second start request while one is
- * already running is rejected rather than silently queued or ignored.
+ * Runs ONE scan worker and reports on it. Policy (ordering, coalescing,
+ * what to scan next) lives in scan-queue.js; nothing else should call
+ * runScan directly.
+ *
+ * M8b.2: runScan returns a promise that ALWAYS settles, whatever the worker
+ * does (done / missing / fatal / thrown error / exit without a message), and
+ * every outcome emits a terminal progress:update, so neither the queue nor
+ * the renderer can be left waiting. Progress goes through window-bus, so it
+ * reaches whichever window is open now (or is dropped if none is).
  */
 
 const { Worker } = require('worker_threads');
 const path = require('path');
 const { geoDatasetPath } = require('../resource-paths');
+const bus = require('../window-bus');
 
 let activeWorker = null;
 
@@ -17,51 +23,84 @@ function isScanRunning() {
   return activeWorker !== null;
 }
 
-function startScan({ dbPath, sourceFolderId, sourceRootPath, mainWindow }) {
+/**
+ * @param {{dbPath:string, sourceFolderId:number, sourceRootPath:string, dirs?:string[]}} job
+ * @returns {Promise<{status:'done'|'missing'|'failed', taskId:string, summary?:object,
+ *                    errors?:object[], message?:string}>}
+ */
+function runScan({ dbPath, sourceFolderId, sourceRootPath, dirs }) {
   if (activeWorker) {
-    return { started: false, reason: 'A scan is already running' };
+    // Only reachable if something bypasses scan-queue; fail loudly but settle.
+    return Promise.resolve({ status: 'failed', taskId: null, message: 'A scan is already running' });
   }
 
   const taskId = `scan-${sourceFolderId}-${Date.now()}`;
 
-  const worker = new Worker(path.join(__dirname, 'worker-scan.js'), {
-    // M7.3: the worker cannot ask Electron where resources live, so the
-    // resolved dataset path travels with the other spawn-time data.
-    workerData: { dbPath, sourceFolderId, sourceRootPath, taskId, geoDatasetPath: geoDatasetPath() },
-  });
+  return new Promise((resolve) => {
+    let settled = false;
+    let worker;
 
-  activeWorker = worker;
-
-  function send(payload) {
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.webContents.send('progress:update', payload);
+    function finish(result, terminalMessage) {
+      if (settled) return;
+      settled = true;
+      activeWorker = null;
+      bus.send('progress:update', {
+        taskId,
+        current: result.total || 0,
+        total: result.total || 0,
+        message: terminalMessage,
+        sourceFolderId,
+      });
+      resolve({ taskId, ...result });
     }
-  }
 
-  worker.on('message', (msg) => {
-    if (msg.type === 'progress') {
-      send({ taskId: msg.taskId, current: msg.current, total: msg.total, message: msg.message });
-    } else if (msg.type === 'done') {
-      send({ taskId: msg.taskId, current: msg.total, total: msg.total, message: 'Scan complete' });
-      activeWorker = null;
-    } else if (msg.type === 'missing') {
-      send({ taskId: msg.taskId, current: 0, total: 0, message: 'Source folder not found' });
-      activeWorker = null;
-    } else if (msg.type === 'fatal') {
-      send({ taskId: msg.taskId, current: 0, total: 0, message: `Scan failed: ${msg.message}` });
-      activeWorker = null;
+    try {
+      worker = new Worker(path.join(__dirname, 'worker-scan.js'), {
+        workerData: {
+          dbPath, sourceFolderId, sourceRootPath, taskId,
+          dirs: Array.isArray(dirs) ? dirs : null,
+          geoDatasetPath: geoDatasetPath(),
+        },
+      });
+    } catch (err) {
+      finish({ status: 'failed', message: err.message }, `Scan failed: ${err.message}`);
+      return;
     }
-  });
 
-  worker.on('error', () => {
-    activeWorker = null;
-  });
+    activeWorker = worker;
 
-  worker.on('exit', () => {
-    activeWorker = null;
-  });
+    worker.on('message', (msg) => {
+      if (!msg || settled) return;
+      if (msg.type === 'progress') {
+        bus.send('progress:update', {
+          taskId, current: msg.current, total: msg.total, message: msg.message, sourceFolderId,
+        });
+      } else if (msg.type === 'done') {
+        finish({ status: 'done', total: msg.total, summary: msg.summary, errors: msg.errors }, 'Scan complete');
+      } else if (msg.type === 'missing') {
+        finish({ status: 'missing' }, 'Source folder not found');
+      } else if (msg.type === 'fatal') {
+        finish({ status: 'failed', message: msg.message }, `Scan failed: ${msg.message}`);
+      }
+    });
 
-  return { started: true, taskId };
+    worker.on('error', (err) => {
+      finish({ status: 'failed', message: err && err.message }, `Scan failed: ${err && err.message}`);
+    });
+
+    worker.on('exit', (code) => {
+      // Normal exits arrive after a terminal message (already settled).
+      finish({ status: 'failed', message: `worker exited (${code})` }, `Scan failed: worker exited (${code})`);
+    });
+  });
 }
 
-module.exports = { startScan, isScanRunning };
+/** Quit path: stop a running worker. Each directory is one transaction, so
+ *  an interrupted scan rolls back cleanly; the next launch catches up. */
+function terminate() {
+  const w = activeWorker;
+  if (!w) return Promise.resolve();
+  return w.terminate().then(() => {}, () => {});
+}
+
+module.exports = { runScan, isScanRunning, terminate };

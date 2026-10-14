@@ -717,46 +717,41 @@
    * finished scan bumps libraryChangeStore and starts the next queued one.
    */
   const scanQueue = (function () {
-    const pending = [];
-    let scanRunning = false;
-    let retryTimer = null;
-
+    // M8b.2: thin client. Ordering, coalescing and retry live in the main
+    // process (scan-queue.js), which never rejects a request as busy and
+    // keeps working with no window open. Same enqueue() API as before.
     function isTerminal(msg) {
       return msg === 'Scan complete' ||
         msg === 'Source folder not found' ||
         (typeof msg === 'string' && msg.startsWith('Scan failed'));
     }
 
-    async function startNext() {
-      if (scanRunning || pending.length === 0) return;
-      const job = pending.shift();
-      scanRunning = true;
-      const result = await window.api.startScan(job);
-      if (result.started) { scanStatusStore.set(job.sourceFolderId); return; }
-      // Another scan is already running (e.g. resumed from a prior session).
-      scanRunning = false;
-      pending.unshift(job);
-      clearTimeout(retryTimer);
-      retryTimer = setTimeout(startNext, 2000);
+    function applyState(st) {
+      const running = st && st.running != null ? st.running : null;
+      scanStatusStore.set(running);
+      if (running == null) progressStore.set(null);
     }
 
     function onProgress(payload) {
       if (!payload || typeof payload.taskId !== 'string' || !payload.taskId.startsWith('scan-')) return;
       if (isTerminal(payload.message)) {
         progressStore.set(null);
-        scanStatusStore.set(null);
-        scanRunning = false;
-        libraryChangeStore.bump();
-        startNext();
+        libraryChangeStore.bump(); // once per finished scan
       } else {
         progressStore.set({ current: payload.current, total: payload.total });
       }
     }
 
     window.api.onProgress(onProgress);
+    window.api.onScanQueueState(applyState);
+    window.api.getScanQueueState().then(applyState, () => {});
 
     return {
-      enqueue(job) { pending.push(job); startNext(); },
+      enqueue(job) {
+        window.api.enqueueScan({ sourceFolderId: job.sourceFolderId, kind: 'full' })
+          .then((res) => { if (!res || !res.queued) console.warn('Scan not queued:', res && res.reason); })
+          .catch((err) => noticeStore.set('Could not start a scan: ' + err.message));
+      },
     };
   })();
 

@@ -84,7 +84,9 @@ async function* discoverFilesByDirectory(rootPath, options = {}) {
     try {
       entries = await fs.promises.readdir(dirPath, { withFileTypes: true });
     } catch (err) {
-      errors.push({ path: dirPath, message: err.message });
+      // M8b.2: kind 'dir' = a directory could not be read. The scan worker
+      // must then skip its deletion sweep (unreadable is not deleted).
+      errors.push({ path: dirPath, message: err.message, code: err.code, kind: 'dir' });
       return;
     }
 

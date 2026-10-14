@@ -18,7 +18,15 @@ contextBridge.exposeInMainWorld('api', {
   // M6: native alert/confirm sheet; resolves to { response: buttonIndex }.
   showMessage: (options) => ipcRenderer.invoke('dialog:show-message', options),
 
-  startScan: (payload) => ipcRenderer.invoke('scan:start', payload),
+  // M8b.2: scans go through the main-process queue; never rejected as busy.
+  startScan: (payload) => ipcRenderer.invoke('scan:enqueue', payload),
+  enqueueScan: (payload) => ipcRenderer.invoke('scan:enqueue', payload),
+  getScanQueueState: () => ipcRenderer.invoke('scan:get-queue-state'),
+  onScanQueueState: (callback) => {
+    const listener = (_event, payload) => callback(payload);
+    ipcRenderer.on('scan:queue-state', listener);
+    return () => ipcRenderer.removeListener('scan:queue-state', listener);
+  },
 
   addSource: (payload) => ipcRenderer.invoke('source:add', payload),
   listSources: () => ipcRenderer.invoke('source:list'),

@@ -88,7 +88,9 @@ async function run() {
   let processed = 0;
 
   try {
-    for await (const group of discoverFilesByDirectory(sourceRootPath)) {
+    // M8b.2 (F11): collect walk errors; an unreadable directory blocks the sweep.
+    const walkErrors = [];
+    for await (const group of discoverFilesByDirectory(sourceRootPath, { errors: walkErrors })) {
       const { summary, errors } = await processDirectoryBatch({
         db,
         stmts,
@@ -114,8 +116,25 @@ async function run() {
     }
 
     const now = Math.floor(Date.now() / 1000);
-    const deletedCount = stmts.sweepDeletions(sourceFolderId, scanStartedAt, now);
-    aggregate.deleted = deletedCount;
+
+    // M8b.2 (F11): unreadable is never deleted. If the root vanished during
+    // the walk (drive unplugged, folder moved) or any directory could not be
+    // read, rows not seen this scan are NOT tombstoned.
+    if (!(await isReachableDirectory(sourceRootPath))) {
+      markMissing(db, sourceFolderId, now);
+      db.pragma('wal_checkpoint(PASSIVE)');
+      db.close();
+      parentPort.postMessage({ type: 'missing', taskId, sourceFolderId });
+      return;
+    }
+    const dirErrors = walkErrors.filter((e) => e.kind === 'dir');
+    if (dirErrors.length > 0) {
+      aggregate.deleted = 0;
+      aggregate.sweepSkipped = { unreadableDirs: dirErrors.length, first: dirErrors[0].path, code: dirErrors[0].code };
+    } else {
+      aggregate.deleted = stmts.sweepDeletions(sourceFolderId, scanStartedAt, now);
+    }
+    allErrors.push(...walkErrors);
 
     // M7.3: fill place names for new, changed, and not-yet-computed rows.
     aggregate.places = runPlacePassSafely(db, geoDatasetPath);
