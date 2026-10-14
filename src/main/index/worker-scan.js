@@ -35,6 +35,10 @@ const { markMissing, markScanned } = require('./source-folders');
 const { createReverseGeocoder } = require('../places/reverse-geocode');
 const { runPlacePass } = require('../places/place-pass');
 
+// M8b.6: the app's own folders (from the main process) are never walked.
+const EXCLUDE = (workerData && Array.isArray(workerData.protectedRoots)) ? workerData.protectedRoots : [];
+const isExcludedPath = (p) => EXCLUDE.some((e) => p === e || p.startsWith(e + path.sep));
+
 async function isReachableDirectory(rootPath) {
   try {
     const stat = await fs.promises.stat(rootPath);
@@ -46,7 +50,7 @@ async function isReachableDirectory(rootPath) {
 
 async function countTotalFiles(rootPath) {
   let count = 0;
-  for await (const file of discoverFiles(rootPath)) {
+  for await (const file of discoverFiles(rootPath, { exclude: EXCLUDE })) {
     count += 1;
   }
   return count;
@@ -93,7 +97,7 @@ async function run() {
   try {
     // M8b.2 (F11): collect walk errors; an unreadable directory blocks the sweep.
     const walkErrors = [];
-    for await (const group of discoverFilesByDirectory(sourceRootPath, { errors: walkErrors })) {
+    for await (const group of discoverFilesByDirectory(sourceRootPath, { errors: walkErrors, exclude: EXCLUDE })) {
       const { summary, errors } = await processDirectoryBatch({
         db,
         stmts,
@@ -174,6 +178,7 @@ function normalizeScopedEntries(dirs, sourceRootPath) {
     if (rel === '..' || rel.startsWith('..' + path.sep) || path.isAbsolute(rel)) continue;
     const segs = rel ? rel.split(path.sep) : [];
     if (segs.some((x) => isHidden(x) || isBundleDirectory(x))) continue;
+    if (isExcludedPath(path.join(sourceRootPath, ...segs))) continue;
     const key = segs.join('/');
     const recursive = !!(d && typeof d === 'object' && d.recursive);
     const prev = seen.get(key);
@@ -210,7 +215,7 @@ async function runScoped() {
   try {
     for (const e of entries) {
       const walkErrors = [];
-      for await (const group of discoverFilesByDirectory(e.abs, { recursive: e.recursive, errors: walkErrors })) {
+      for await (const group of discoverFilesByDirectory(e.abs, { recursive: e.recursive, errors: walkErrors, exclude: EXCLUDE })) {
         const { summary, errors } = await processDirectoryBatch({
           db, stmts, sourceFolderId, sourceRootPath, files: group.files,
         });

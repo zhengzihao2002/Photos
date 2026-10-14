@@ -69,6 +69,10 @@ function classifyMediaType(extension) {
 async function* discoverFilesByDirectory(rootPath, options = {}) {
   const errors = options.errors || [];
   const visitedRealPaths = new Set();
+  // M8b.6: never enter the app's own folders (code, data root), whatever
+  // path or symlink leads there.
+  const exclude = Array.isArray(options.exclude) ? options.exclude : [];
+  const isExcluded = (p) => exclude.some((e) => p === e || p.startsWith(e + path.sep));
 
   async function resolveRealPath(fullPath) {
     try {
@@ -115,6 +119,7 @@ async function* discoverFilesByDirectory(rootPath, options = {}) {
 
         if (stat.isDirectory()) {
           if (isBundleDirectory(entry.name)) continue;
+          if (isExcluded(fullPath) || isExcluded(real)) continue;
           subDirsToWalk.push(fullPath);
         } else if (stat.isFile()) {
           const extension = getExtension(entry.name);
@@ -128,6 +133,7 @@ async function* discoverFilesByDirectory(rootPath, options = {}) {
 
       if (entry.isDirectory()) {
         if (isBundleDirectory(entry.name)) continue;
+        if (isExcluded(fullPath)) continue;
         subDirsToWalk.push(fullPath);
         continue;
       }
@@ -154,6 +160,9 @@ async function* discoverFilesByDirectory(rootPath, options = {}) {
   }
 
   const rootReal = await resolveRealPath(rootPath);
+  // M8b.6: the starting folder itself may be (or lead, via a symlink, into)
+  // an excluded folder, e.g. a scoped scan of a link to the app folder.
+  if (isExcluded(rootPath) || (rootReal !== null && isExcluded(rootReal))) return;
   if (rootReal !== null) {
     visitedRealPaths.add(rootReal);
   }

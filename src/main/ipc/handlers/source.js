@@ -27,6 +27,7 @@
  */
 
 const db = require('../../index/db');
+const paths = require('../../paths'); // M8b.6
 const {
   addSourceFolder,
   listSourceFolders,
@@ -38,7 +39,7 @@ const {
 function refreshWatchers() { require('../../index/folder-watcher').refresh(); }
 
 async function sourceAdd(event, payload) {
-  const res = await addSourceFolder(db.get(), payload.rootPath);
+  const res = await addSourceFolder(db.get(), payload.rootPath, { protectedRoots: paths.protectedRoots() });
   if (res && res.added) refreshWatchers();
   return res;
 }
@@ -54,7 +55,8 @@ async function sourceRemove(event, payload) {
 }
 
 async function sourceRelink(event, payload) {
-  const res = await relinkSourceFolder(db.get(), payload.sourceFolderId, payload.newRootPath);
+  const res = await relinkSourceFolder(db.get(), payload.sourceFolderId, payload.newRootPath,
+    { protectedRoots: paths.protectedRoots() });
   if (res && res.relinked) refreshWatchers();
   return res;
 }

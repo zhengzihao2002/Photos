@@ -18,6 +18,7 @@ const { execFile } = require('child_process');
 const db = require('./db');
 const scanQueue = require('./scan-queue');
 const ev = require('./watch-events');
+const paths = require('../paths'); // M8b.6
 
 const QUIET_MS = 2000;
 const MAX_WAIT_MS = 10000;
@@ -26,6 +27,10 @@ const FALLBACK_MS = 10 * 60 * 1000;
 const NETWORK_FS = new Set(['smbfs', 'nfs', 'afpfs', 'webdav', 'cifs', 'ftp']);
 
 const entries = new Map(); // sourceFolderId -> entry
+// M8b.6: events from the app's own folders are dropped on arrival, so its
+// own writes can never trigger scans (refreshed on every refresh()).
+let excluded = [];
+const isExcluded = (p) => excluded.some((e) => p === e || p.startsWith(e + path.sep));
 let stopped = false;
 let refreshChain = Promise.resolve();
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -64,7 +69,9 @@ function onEvent(entry, name) {
   if (name == null) { entry.buf.add(entry.root); schedule(entry); return; }
   const rel = String(name);
   if (ev.isIgnoredRelative(rel)) return;
-  entry.buf.add(path.join(entry.root, rel));
+  const abs = path.join(entry.root, rel);
+  if (isExcluded(abs)) return;
+  entry.buf.add(abs);
   schedule(entry);
 }
 
@@ -142,6 +149,7 @@ function stopOne(id) {
 function refresh() {
   refreshChain = refreshChain.then(async () => {
     if (stopped) return;
+    try { excluded = paths.protectedRoots(); } catch (err) { /* keep previous list */ }
     const rows = db.get().prepare('SELECT id, root_path, status FROM source_folders').all();
     const table = await mountTable();
     const ids = new Set(rows.map((r) => r.id));

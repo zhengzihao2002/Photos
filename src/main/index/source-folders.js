@@ -25,7 +25,28 @@ function pathsOverlap(pathA, pathB) {
   return false;
 }
 
-async function addSourceFolder(db, rootPath) {
+/**
+ * M8b.6: a source must never contain, equal, or sit inside the app's own
+ * folders (indexing its thumbnails, reacting to its own writes). Checked
+ * against both the given and the real path. Returns a reason or null.
+ */
+function protectedConflict(rootPath, protectedRoots) {
+  if (!Array.isArray(protectedRoots) || protectedRoots.length === 0) return null;
+  const candidates = [path.resolve(rootPath)];
+  try { candidates.push(fs.realpathSync(rootPath)); } catch (err) { /* checked by stat already */ }
+  for (const p of protectedRoots) {
+    for (const c of candidates) {
+      if (!pathsOverlap(p, c)) continue;
+      const contains = normalizePath(p).startsWith(normalizePath(c) + path.sep);
+      return contains
+        ? 'This folder contains the Photos app\u2019s own folder (' + p + '). Choose a folder that doesn\u2019t include it.'
+        : 'This folder is part of the Photos app\u2019s own folder. Choose a different folder.';
+    }
+  }
+  return null;
+}
+
+async function addSourceFolder(db, rootPath, opts = {}) {
   let stat;
   try {
     stat = await fs.promises.stat(rootPath);
@@ -35,6 +56,8 @@ async function addSourceFolder(db, rootPath) {
   if (!stat.isDirectory()) {
     return { added: false, reason: 'Not a folder' };
   }
+  const protectedReason = protectedConflict(rootPath, opts.protectedRoots);
+  if (protectedReason) return { added: false, reason: protectedReason };
 
   const existingRows = db.prepare('SELECT id, root_path FROM source_folders').all();
   const conflict = existingRows.find((row) => pathsOverlap(row.root_path, rootPath));
@@ -110,7 +133,7 @@ function removeSourceFolder(db, id) {
   return { removed: true, deletedItemCount };
 }
 
-async function relinkSourceFolder(db, id, newRootPath) {
+async function relinkSourceFolder(db, id, newRootPath, opts = {}) {
   const existing = db.prepare('SELECT id FROM source_folders WHERE id = ?').get(id);
   if (!existing) {
     return { relinked: false, reason: 'Source folder not found' };
@@ -125,6 +148,8 @@ async function relinkSourceFolder(db, id, newRootPath) {
   if (!stat.isDirectory()) {
     return { relinked: false, reason: 'Not a folder' };
   }
+  const protectedReason = protectedConflict(newRootPath, opts.protectedRoots);
+  if (protectedReason) return { relinked: false, reason: protectedReason };
 
   const otherRows = db.prepare('SELECT id, root_path FROM source_folders WHERE id != ?').all(id);
   const conflict = otherRows.find((row) => pathsOverlap(row.root_path, newRootPath));
@@ -159,6 +184,7 @@ function markScanned(db, sourceFolderId, scannedAt) {
 
 module.exports = {
   pathsOverlap,
+  protectedConflict,
   addSourceFolder,
   listSourceFolders,
   removeSourceFolder,

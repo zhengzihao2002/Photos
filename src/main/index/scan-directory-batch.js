@@ -79,6 +79,35 @@ function needsReextraction(row) {
   });
 }
 
+// M8b.6: iCloud "optimized storage" leaves dataless files whose contents are
+// downloaded on first read. Cheap pre-filter (no blocks but non-empty), then
+// the macOS SF_DATALESS flag (0x40000000) via /usr/bin/stat, which reads
+// metadata only. Never throws; any doubt means "not dataless".
+const SF_DATALESS = 0x40000000;
+function isDataless(fullPath, stat) {
+  if (!(stat.blocks === 0 && stat.size > 0)) return Promise.resolve(false);
+  return new Promise((resolve) => {
+    require('child_process').execFile('/usr/bin/stat', ['-f', '%Xf', fullPath], { timeout: 5000 }, (err, out) => {
+      if (err) { resolve(false); return; }
+      const flags = parseInt(String(out).trim(), 16);
+      resolve(Number.isFinite(flags) && (flags & SF_DATALESS) !== 0);
+    });
+  });
+}
+
+function unchangedResult(existing, relativePath) {
+  return {
+    valid: true,
+    mode: 'unchanged',
+    id: existing.id,
+    relativePath,
+    filename: existing.filename,
+    media_type: existing.media_type,
+    capture_time_local: existing.capture_time_local,
+    capture_time_source: existing.capture_time_source,
+  };
+}
+
 async function classifyFile(file, sourceFolderId, relativePath, stmts) {
   let stat;
   try {
@@ -89,6 +118,13 @@ async function classifyFile(file, sourceFolderId, relativePath, stmts) {
 
   const mtimeSeconds = Math.floor(stat.mtimeMs / 1000);
   const existing = stmts.findExisting(sourceFolderId, relativePath);
+
+  // M8b.6: an iCloud-only file is never read (that would download it).
+  // Indexed already: keep the row as is. New: skip until downloaded.
+  if (await isDataless(file.fullPath, stat)) {
+    if (existing) return unchangedResult(existing, relativePath);
+    return { valid: false, error: { path: file.fullPath, message: 'iCloud file not downloaded; skipped until it is' } };
+  }
 
   if (existing && existing.file_size_bytes === stat.size && existing.file_mtime === mtimeSeconds
       && !needsReextraction(existing)) {

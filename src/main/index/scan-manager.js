@@ -16,6 +16,7 @@ const { Worker } = require('worker_threads');
 const path = require('path');
 const { geoDatasetPath } = require('../resource-paths');
 const bus = require('../window-bus');
+const paths = require('../paths'); // M8b.6
 
 let activeWorker = null;
 
@@ -60,6 +61,7 @@ function runScan({ dbPath, sourceFolderId, sourceRootPath, dirs }) {
           dbPath, sourceFolderId, sourceRootPath, taskId,
           dirs: Array.isArray(dirs) ? dirs : null,
           geoDatasetPath: geoDatasetPath(),
+          protectedRoots: paths.protectedRoots(), // M8b.6: never indexed
         },
       });
     } catch (err) {

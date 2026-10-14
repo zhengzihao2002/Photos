@@ -157,6 +157,25 @@ function crashDumpsDir() {
   return ensureDir(path.join(dataRoot(), 'crash-dumps'));
 }
 
+/**
+ * M8b.6: folders a source must never contain or sit inside: the app's own
+ * code and its data root (dev: the project folder, which holds .dev-data;
+ * packaged: Photos.app and PhotosData beside it). Both the given and the
+ * real (symlink-resolved) forms are returned, de-duplicated. Main process
+ * only; workers receive the list in workerData.
+ */
+function protectedRoots() {
+  const roots = app.isPackaged
+    ? [path.dirname(path.dirname(path.dirname(app.getPath('exe')))), getDataRoot()]
+    : [app.getAppPath(), getDataRoot()];
+  const out = new Set();
+  for (const r of roots) {
+    out.add(path.resolve(r));
+    try { out.add(fs.realpathSync(r)); } catch (err) { /* not created yet */ }
+  }
+  return Array.from(out);
+}
+
 /** Convenience bundle for IPC responses / logging. */
 function allPaths() {
   return {
@@ -182,6 +201,7 @@ module.exports = {
   crashDumpsDir,
   faceCropsDir,
   allPaths,
+  protectedRoots,
   // exported for tests / diagnostics only, not for general use:
   _getAppBundleParentDir: getAppBundleParentDir,
 };
