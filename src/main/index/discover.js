@@ -145,6 +145,9 @@ async function* discoverFilesByDirectory(rootPath, options = {}) {
       yield { dirPath, files: filesHere };
     }
 
+    // M8b.4: options.recursive === false reads only the starting folder
+    // (scoped scans of a single changed directory). Default: recursive.
+    if (options.recursive === false) return;
     for (const subDir of subDirsToWalk) {
       yield* walk(subDir);
     }

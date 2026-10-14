@@ -67,6 +67,37 @@ function createUpsertStatements(db) {
     WHERE source_folder_id = @sourceFolderId AND is_deleted = 0 AND updated_at < @scanStartedAt
   `);
 
+  // M8b.4: deletion sweep limited to one directory of a source. relative_path
+  // is '/'-separated and includes the filename; rows of folder D are the range
+  // [D + '/', D + '0') on the (source_folder_id, relative_path) index ('0' is
+  // the character after '/'). Non-recursive = no further '/' after the prefix.
+  // The root folder ('') has no range.
+  const sweepScopedStmt = db.prepare(`
+    UPDATE items
+    SET is_deleted = 1, updated_at = @now
+    WHERE source_folder_id = @sourceFolderId AND is_deleted = 0 AND updated_at < @scanStartedAt
+      AND relative_path >= @lo AND relative_path < @hi
+      AND (@recursive = 1 OR instr(substr(relative_path, @plen + 1), '/') = 0)
+  `);
+  const sweepScopedRootStmt = db.prepare(`
+    UPDATE items
+    SET is_deleted = 1, updated_at = @now
+    WHERE source_folder_id = @sourceFolderId AND is_deleted = 0 AND updated_at < @scanStartedAt
+      AND (@recursive = 1 OR instr(relative_path, '/') = 0)
+  `);
+
+  function sweepDeletionsScoped(sourceFolderId, dirRel, recursive, scanStartedAt, now) {
+    const r = recursive ? 1 : 0;
+    if (!dirRel) {
+      return sweepScopedRootStmt.run({ sourceFolderId, scanStartedAt, now, recursive: r }).changes;
+    }
+    const prefix = dirRel.replace(/\/+$/, '') + '/';
+    return sweepScopedStmt.run({
+      sourceFolderId, scanStartedAt, now, recursive: r,
+      lo: prefix, hi: prefix.slice(0, -1) + '0', plen: prefix.length,
+    }).changes;
+  }
+
   function findExisting(sourceFolderId, relativePath) {
     return findExistingStmt.get({ sourceFolderId, relativePath });
   }
@@ -95,6 +126,7 @@ function createUpsertStatements(db) {
     updateItemFull,
     updateItemGrouping,
     sweepDeletions,
+    sweepDeletionsScoped,
   };
 }
 

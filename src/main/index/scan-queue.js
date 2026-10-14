@@ -6,7 +6,8 @@
  * awaited inside try/finally and runScan always settles.
  *
  * Requests:  { sourceFolderId, kind: 'full' }
- *            { sourceFolderId, kind: 'dirs', dirs: [absolute dir paths] }   (M8b.4)
+ *            { sourceFolderId, kind: 'dirs', dirs: [{ path, recursive }] }  (M8b.4;
+ *            a bare path string means non-recursive)
  * Coalescing (per source, while waiting): repeats are absorbed; 'full'
  * absorbs any 'dirs'; 'dirs' sets merge. A source that is RUNNING may also
  * hold one pending request, so changes made after its scan began are seen.
@@ -20,7 +21,32 @@ const paths = require('../paths');
 const scanManager = require('./scan-manager');
 const bus = require('../window-bus');
 
-const pending = new Map();   // sourceFolderId -> { kind, dirs:Set|null }
+const pending = new Map();   // sourceFolderId -> { kind, dirs: Map<path, recursive>|null }
+
+// M8b.4: dirs entries are { path, recursive }; a bare string = non-recursive.
+function normalizeDirs(list) {
+  const out = [];
+  for (const d of list || []) {
+    if (typeof d === 'string' && d) out.push({ path: d, recursive: false });
+    else if (d && typeof d.path === 'string' && d.path) out.push({ path: d.path, recursive: !!d.recursive });
+  }
+  return out;
+}
+
+function mergeDirs(map, list) {
+  for (const d of list) map.set(d.path, map.get(d.path) === true || d.recursive);
+}
+
+// Drop entries already covered by a recursive ancestor entry.
+function pruneDirs(map) {
+  const recursiveRoots = Array.from(map).filter(([, r]) => r).map(([p]) => p);
+  const out = [];
+  for (const [p, r] of map) {
+    const covered = recursiveRoots.some((root) => root !== p && p.startsWith(root.endsWith('/') ? root : root + '/'));
+    if (!covered) out.push({ path: p, recursive: r });
+  }
+  return out;
+}
 const order = [];            // sourceFolderIds, FIFO
 let running = null;          // { sourceFolderId, kind }
 let stopped = false;
@@ -44,13 +70,15 @@ function enqueue(request) {
   const id = Number(request && request.sourceFolderId);
   if (!Number.isInteger(id) || id <= 0) return { queued: false, reason: 'invalid sourceFolderId' };
   const kind = request.kind === 'dirs' ? 'dirs' : 'full';
-  const dirs = kind === 'dirs' ? (request.dirs || []).filter((d) => typeof d === 'string' && d) : null;
+  const dirs = kind === 'dirs' ? normalizeDirs(request.dirs) : null;
   if (kind === 'dirs' && dirs.length === 0) return { queued: false, reason: 'no directories' };
 
   const existing = pending.get(id);
   let coalesced = false;
   if (!existing) {
-    pending.set(id, { kind, dirs: dirs ? new Set(dirs) : null });
+    let map = null;
+    if (dirs) { map = new Map(); mergeDirs(map, dirs); }
+    pending.set(id, { kind, dirs: map });
     order.push(id);
   } else {
     coalesced = true;
@@ -60,7 +88,7 @@ function enqueue(request) {
       existing.kind = 'full';
       existing.dirs = null;
     } else {
-      dirs.forEach((d) => existing.dirs.add(d));
+      mergeDirs(existing.dirs, dirs);
     }
   }
   broadcastState();
@@ -101,7 +129,7 @@ async function pump() {
       dbPath: paths.dbPath(),
       sourceFolderId,
       sourceRootPath: rootPath,
-      dirs: req.kind === 'dirs' ? Array.from(req.dirs) : undefined,
+      dirs: req.kind === 'dirs' ? pruneDirs(req.dirs) : undefined,
     });
   } catch (err) {
     result = { status: 'failed', message: err && err.message };
