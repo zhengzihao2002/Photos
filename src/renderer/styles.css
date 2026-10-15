@@ -70,6 +70,10 @@ body {
    text fields stay selectable and editable. */
 body {
   user-select: none;
+  /* M8c.2 (U11): scrollbars and native controls follow light/dark mode.
+     Set on body, not the root, so the root stays transparent for the
+     window's native vibrancy. */
+  color-scheme: light dark;
 }
 input, textarea, [contenteditable] {
   user-select: text;
@@ -1601,4 +1605,24 @@ body.drop-active::after {
   text-align: center;
   pointer-events: none;
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.35);
+}
+
+/* M8c.2 (U6): video controls fade out when idle (see VideoPlayer in viewer.js).
+   Quick fade-in on movement, gentler fade-out, as in Apple Photos. Hidden
+   controls ignore clicks so nothing invisible can be pressed. */
+.viewer-vbar {
+  transition: opacity 150ms ease-out;
+}
+.viewer-video-wrap.is-idle .viewer-vbar {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 400ms ease-in;
+}
+
+/* M8c.2 (U9): discrete zoom steps (Cmd +/-/0, the - / + buttons) glide;
+   pinch and slider dragging never set is-zoom-anim, so they stay immediate. */
+.viewer-stage.is-zoom-anim .viewer-img {
+  transition: width 250ms cubic-bezier(0.2, 0.8, 0.2, 1),
+              height 250ms cubic-bezier(0.2, 0.8, 0.2, 1),
+              transform 250ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }

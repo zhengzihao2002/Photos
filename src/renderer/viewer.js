@@ -51,6 +51,10 @@
   }
 
   // ── date title: capture_time_local is wall-clock 'YYYY-MM-DD HH:MM:SS' ─
+  // M8c.2 (U3): Info panel open/closed is remembered for this session only,
+  // as in Apple Photos (kept across photos and reopening; closed at launch).
+  let sessionInfoOpen = false;
+
   // M8c.1 (U7): one line, date and time with seconds, in the system language
   // and 12-hour form, as Apple's viewer title (e.g. 2026年5月9日 上午11:22:15).
   function formatTitle(s) {
@@ -58,7 +62,7 @@
     if (!m) return { date: '' };
     const d = new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +(m[6] || 0));
     return {
-      date: d.toLocaleString(undefined, { year: 'numeric', month: 'long', day: 'numeric',
+      date: d.toLocaleString('en-US', { year: 'numeric', month: 'long', day: 'numeric',
         hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true }),
     };
   }
@@ -124,9 +128,27 @@
     const [muted, setMuted] = useState(false);
     const [vol, setVol] = useState(1);
     const scrubRef = useRef(null); // { wasPlaying } during a scrub drag
+    // M8c.2 (U6): controls fade out 3 s after the mouse stops, as in Apple
+    // Photos (also when paused). Never while the pointer is on the bar or
+    // during a scrub. The pointer itself is never hidden.
+    const [idle, setIdle] = useState(false);
+    const idleTimerRef = useRef(null);
+    const overBarRef = useRef(false);
+    const wakeRef = useRef(() => {});
+    wakeRef.current = () => {
+      clearTimeout(idleTimerRef.current);
+      setIdle(false);
+      idleTimerRef.current = setTimeout(() => {
+        if (!overBarRef.current && !scrubRef.current) setIdle(true);
+      }, 3000);
+    };
+    useEffect(() => {
+      wakeRef.current();
+      return () => clearTimeout(idleTimerRef.current);
+    }, [url]);
     useEffect(() => {
       const v = vref.current;
-      apiRef.current = { toggle: () => { if (v) (v.paused ? v.play().catch(() => {}) : v.pause()); } };
+      apiRef.current = { toggle: () => { wakeRef.current(); if (v) (v.paused ? v.play().catch(() => {}) : v.pause()); } };
       return () => {
         apiRef.current = null;
         if (v) { v.pause(); v.removeAttribute('src'); v.load(); } // free decoder + buffers
@@ -136,10 +158,11 @@
     const endScrub = (el) => {
       const v = vref.current, st = scrubRef.current;
       scrubRef.current = null;
+      wakeRef.current();
       if (v && st && st.wasPlaying) v.play().catch(() => {});
       if (el) el.blur();
     };
-    return h('div', { className: 'viewer-video-wrap' },
+    return h('div', { className: 'viewer-video-wrap' + (idle ? ' is-idle' : ''), onMouseMove: () => wakeRef.current() },
       h('video', {
         ref: vref, className: 'viewer-video', src: url, poster: poster || undefined, preload: 'metadata', playsInline: true,
         onPlay: () => setPlaying(true), onPause: () => setPlaying(false), onEnded: () => setPlaying(false),
@@ -149,7 +172,9 @@
         onError: () => onError && onError(),
         onClick: toggle,
       }),
-      h('div', { className: 'viewer-vbar' },
+      h('div', { className: 'viewer-vbar',
+          onMouseEnter: () => { overBarRef.current = true; wakeRef.current(); },
+          onMouseLeave: () => { overBarRef.current = false; wakeRef.current(); } },
         h('button', { className: 'viewer-vbtn', 'aria-label': playing ? 'Pause' : 'Play', onMouseDown: noFocus, onClick: toggle },
           h(Icon, { name: playing ? 'pause' : 'play', size: 18 })),
         h('span', { className: 'viewer-vtime' }, fmtTime(t)),
@@ -201,7 +226,7 @@
     const m = /^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})/.exec(s || '');
     if (!m) return null;
     const d = new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]);
-    return d.toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) +
+    return d.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) +
       ' at ' + d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
   }
   function cameraName(make, model) {
@@ -312,7 +337,7 @@
     const [item, setItem] = useState(null);
     const [img, setImg] = useState(null);        // { url, rank } rank: 1 sm, 2 md, 3 full
     const [notice, setNotice] = useState(null);  // string | null
-    const [infoOpen, setInfoOpen] = useState(false);
+    const [infoOpen, setInfoOpen] = useState(() => sessionInfoOpen);
     // M7.7: Places section below the photo (places.js), slid into view by
     // scrolling at fit size. sheet = how far the stage is shifted up, in px.
     const [sheet, setSheet] = useState(0);
@@ -340,7 +365,6 @@
     const videoApiRef = useRef(null);          // { toggle } while a video is mounted
     const [livePlaying, setLivePlaying] = useState(false);
     const [liveSound, setLiveSound] = useState(false); // M6: true when LIVE was pressed
-    const infoLoadedRef = useRef(false);
     const closeTimer = useRef(null);
     const stateRef = useRef(null);
     const sessionRef = useRef({ openedId: null, lastId: null }); // one open->close session
@@ -478,16 +502,8 @@
       return () => window.removeEventListener('photos:show-info', showInfo);
     }, []);
 
-    // Info panel visibility persists in config.json (viewer.infoOpen).
-    useEffect(() => {
-      window.api.getConfig().then((c) => {
-        setInfoOpen(!!(c && c.viewer && c.viewer.infoOpen));
-        infoLoadedRef.current = true;
-      });
-    }, []);
-    useEffect(() => {
-      if (infoLoadedRef.current) window.api.updateConfig({ patch: { viewer: { infoOpen } } });
-    }, [infoOpen]);
+    // M8c.2 (U3): remember Info visibility for the session (not config.json).
+    useEffect(() => { sessionInfoOpen = infoOpen; }, [infoOpen]);
 
     // Match the grid toolbar's real height so switching views doesn't shift.
     const requestId = state ? state.requestId : null;
@@ -513,9 +529,19 @@
     }, [isOpen]);
 
     // Zoom toward an anchor point (stage-centre-relative px), clamped.
-    function applyZoom(targetFn, ax = 0, ay = 0) {
+    // M8c.2 (U9): discrete zoom steps glide (see .is-zoom-anim in styles.css);
+    // pinch and slider dragging stay immediate. Kept in state so a re-render
+    // (e.g. fit <-> zoomed) cannot strip the class mid-animation.
+    const [zoomAnim, setZoomAnim] = useState(false);
+    const zoomAnimTimerRef = useRef(null);
+    function applyZoom(targetFn, ax = 0, ay = 0, animate = false) {
       const g = geomRef.current;
       if (!g) return;
+      if (animate) {
+        clearTimeout(zoomAnimTimerRef.current);
+        setZoomAnim(true);
+        zoomAnimTimerRef.current = setTimeout(() => setZoomAnim(false), 300);
+      }
       setView((v) => {
         const curW = v.fit ? g.fitW : Math.min(Math.max(v.dw, g.fitW), g.maxW);
         const curPx = v.fit ? 0 : v.px, curPy = v.fit ? 0 : v.py;
@@ -624,11 +650,11 @@
         drag = null; setPanning(false);
         try { el.releasePointerCapture(e.pointerId); } catch (err) { /* already released */ }
       }
+      // M8c.2 (U9): as in Apple Photos, double-click closes a photo; zoom is
+      // via the slider, - / + and Cmd +/-/0. Videos and the arrows are unaffected.
       function onDbl(e) {
         if (!zoomable() || e.target.closest('.viewer-chev')) return;
-        const [ax, ay] = rel(e);
-        if (geomRef.current.zoomed) zoomRef.current.applyZoom(() => 0);
-        else zoomRef.current.applyZoom((w, g) => (g.fullW > g.fitW + 0.5 ? g.fullW : g.fitW * 2), ax, ay);
+        S.viewerStore.close();
       }
       el.addEventListener('wheel', onWheel, { passive: false });
       el.addEventListener('pointerdown', onDown);
@@ -750,9 +776,9 @@
         }
         if (e.key === ' ' && videoApiRef.current) { e.preventDefault(); videoApiRef.current.toggle(); return; } // Space = play/pause on videos
         if (e.key === 'Escape' || e.key === ' ') { e.preventDefault(); S.viewerStore.close(); return; }
-        if (e.metaKey && (e.key === '=' || e.key === '+')) { e.preventDefault(); if (zoomable()) zoomRef.current.applyZoom((w) => w * 1.25); return; }
-        if (e.metaKey && (e.key === '-' || e.key === '_')) { e.preventDefault(); if (zoomable()) zoomRef.current.applyZoom((w) => w / 1.25); return; }
-        if (e.metaKey && e.key === '0') { e.preventDefault(); if (zoomable()) zoomRef.current.applyZoom(() => 0); return; }
+        if (e.metaKey && (e.key === '=' || e.key === '+')) { e.preventDefault(); if (zoomable()) zoomRef.current.applyZoom((w) => w * 1.25, 0, 0, true); return; }
+        if (e.metaKey && (e.key === '-' || e.key === '_')) { e.preventDefault(); if (zoomable()) zoomRef.current.applyZoom((w) => w / 1.25, 0, 0, true); return; }
+        if (e.metaKey && e.key === '0') { e.preventDefault(); if (zoomable()) zoomRef.current.applyZoom(() => 0, 0, 0, true); return; }
         if (e.metaKey && (e.key === 'i' || e.key === 'I')) { e.preventDefault(); setInfoOpen((x) => !x); return; }
         // M6: grid is oldest (left) -> newest (right); data 'prev' is the NEWER photo.
         if (e.key === 'ArrowRight') { e.preventDefault(); goRef.current('prev'); return; }
@@ -765,6 +791,10 @@
 
     if (!state) return null;
     const title = formatTitle(item && item.capture_time_local);
+    // M8c.2 (U12): a located item's title shows the place on line 1 and
+    // 'date · position' on line 2, as in Apple Photos (scrolled or not).
+    const posText = pos ? pos.i.toLocaleString('en-US') + '/' + pos.n.toLocaleString('en-US') : '';
+    const titlePlace = item ? (item.place_locality_en || item.place_region_en || '') : '';
     const geom = computeGeom(dims, item, stageSize, view);
     geomRef.current = geom;
     const isVideo = !!media && media.kind === 'video';
@@ -785,7 +815,7 @@
         // Zoom slider (M5.6): log scale between fit and max.
         // M8c.1 (U7): slider in a capsule with - / + steps, as in Apple Photos.
         h('div', { className: 'viewer-group is-zoom' },
-          h('button', { className: 'viewer-zoom-step', 'aria-label': 'Zoom Out', title: 'Zoom Out', disabled: !sliderEnabled, onMouseDown: (e) => e.preventDefault(), onClick: () => { const g = geomRef.current; if (!g) return; const t = Math.max(0, Math.min(100, sliderValue(g) + (-20))) / 100; zoomRef.current.applyZoom(() => g.fitW * Math.pow(g.maxW / g.fitW, t)); } }, '−'),
+          h('button', { className: 'viewer-zoom-step', 'aria-label': 'Zoom Out', title: 'Zoom Out', disabled: !sliderEnabled, onMouseDown: (e) => e.preventDefault(), onClick: () => { const g = geomRef.current; if (!g) return; const t = Math.max(0, Math.min(100, sliderValue(g) + (-20))) / 100; zoomRef.current.applyZoom(() => g.fitW * Math.pow(g.maxW / g.fitW, t), 0, 0, true); } }, '−'),
         h('input', { className: 'viewer-zoom', type: 'range', min: 0, max: 100, step: 1,
           value: sliderValue(geom), disabled: !sliderEnabled, 'aria-label': 'Zoom', title: 'Zoom',
           onInput: (e) => {
@@ -794,10 +824,11 @@
             const t = Number(e.currentTarget.value) / 100;
             zoomRef.current.applyZoom(() => g.fitW * Math.pow(g.maxW / g.fitW, t));
           } }),
-          h('button', { className: 'viewer-zoom-step', 'aria-label': 'Zoom In', title: 'Zoom In', disabled: !sliderEnabled, onMouseDown: (e) => e.preventDefault(), onClick: () => { const g = geomRef.current; if (!g) return; const t = Math.max(0, Math.min(100, sliderValue(g) + (20))) / 100; zoomRef.current.applyZoom(() => g.fitW * Math.pow(g.maxW / g.fitW, t)); } }, '+')),
+          h('button', { className: 'viewer-zoom-step', 'aria-label': 'Zoom In', title: 'Zoom In', disabled: !sliderEnabled, onMouseDown: (e) => e.preventDefault(), onClick: () => { const g = geomRef.current; if (!g) return; const t = Math.max(0, Math.min(100, sliderValue(g) + (20))) / 100; zoomRef.current.applyZoom(() => g.fitW * Math.pow(g.maxW / g.fitW, t), 0, 0, true); } }, '+')),
         h('div', { className: 'viewer-title' },
-          h('div', { className: 'viewer-title-date' }, title.date),
-          h('div', { className: 'viewer-title-time' }, pos ? pos.i + '/' + pos.n : '\u00a0')),
+          h('div', { className: 'viewer-title-date' }, titlePlace || title.date),
+          h('div', { className: 'viewer-title-time' },
+            titlePlace ? title.date + (posText ? ' \u00b7 ' + posText : '') : (posText || '\u00a0'))),
         h('div', { className: 'viewer-toolbar-spacer' }),
         // M8c.1 (U7): Apple's order. Trash stays visible and disabled (write feature).
         h('div', { className: 'viewer-group' },
@@ -808,7 +839,7 @@
           h(ToolButton, { icon: 'trash', label: 'Delete', disabled: true })),
         h('div', { className: 'viewer-group' },
           h(ToolButton, { icon: 'edit', label: 'Edit', disabled: true }))),
-      h('div', { className: 'viewer-stage' + (geom && geom.zoomed ? ' is-zoomed' : '') + (panning ? ' is-panning' : ''), ref: stageRef,
+      h('div', { className: 'viewer-stage' + (geom && geom.zoomed ? ' is-zoomed' : '') + (panning ? ' is-panning' : '') + (zoomAnim ? ' is-zoom-anim' : ''), ref: stageRef,
         style: sheet > 0 ? { transform: 'translateY(' + (-sheet) + 'px)' } : undefined },
         isVideo && h(VideoPlayer, {
           key: media.url, url: media.url, poster: img ? img.url : null, apiRef: videoApiRef,

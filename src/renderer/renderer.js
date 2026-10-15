@@ -42,7 +42,7 @@
     const opts = daysAgo < 6
       ? { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }
       : { day: 'numeric', month: 'long', year: 'numeric' };
-    return d.toLocaleDateString(undefined, opts);
+    return d.toLocaleDateString('en-US', opts);
   }
 
   function formatDuration(seconds) {
@@ -1077,7 +1077,7 @@
       : sourceMatch
       ? (sourceNames[Number(sourceMatch[1])] || 'Folder')
       : (section === 'map' && area
-        ? (/^zh/i.test(navigator.language || '') ? '\u5730\u70B9' : 'Places')
+        ? (false /* M8c.2 (U13): English UI */ ? '\u5730\u70B9' : 'Places')
         : (SECTION_TITLES[section] || ''));
     const [summary, setSummary] = useState(null);
     useEffect(() => {
@@ -1553,7 +1553,7 @@
   function MonthTile({ month, thumbPath }) {
     const resolved = typeof thumbPath === 'string';
     const label = new Date(Date.UTC(month.year, month.month - 1, 1))
-      .toLocaleDateString(undefined, { month: 'long', year: 'numeric', timeZone: 'UTC' });
+      .toLocaleDateString('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' });
     return h('div', { className: 'timeline-tile', onClick: () => navigateToPeriod({ year: month.year, month: month.month }) },
       h('div', { className: 'timeline-tile-thumb' },
         resolved && h('img', { src: 'file://' + thumbPath })),
@@ -1607,7 +1607,7 @@
   function formatFullDate(dateStr) {
     // dateStr is 'YYYY-MM-DD'; parsed at UTC noon to avoid local-timezone shifting.
     const d = new Date(dateStr + 'T12:00:00');
-    return d.toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' });
+    return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
   }
 
   function DayTile({ day, thumbPath }) {
@@ -1659,7 +1659,7 @@
     function monthLabel(monthKey) {
       const [y, m] = monthKey.split('-').map(Number);
       return new Date(Date.UTC(y, m - 1, 1))
-        .toLocaleDateString(undefined, { month: 'long', year: 'numeric', timeZone: 'UTC' });
+        .toLocaleDateString('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' });
     }
 
     return h('div', { className: 'timeline-scroll' },

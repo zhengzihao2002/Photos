@@ -85,7 +85,7 @@
   function addLegal(container) {
     const el = document.createElement('div');
     el.className = 'places-legal';
-    const label = /^zh/i.test(navigator.language || '') ? '\u6CD5\u5F8B\u4FE1\u606F' : 'Legal';
+    const label = false /* M8c.2 (U13): English UI */ ? '\u6CD5\u5F8B\u4FE1\u606F' : 'Legal';
     const full = '\u00A9 OpenStreetMap contributors \u00B7 \u00A9 OpenMapTiles \u00B7 OpenFreeMap \u00B7 Place names: GeoNames';
     el.textContent = label;
     el.addEventListener('click', (ev) => { ev.stopPropagation(); el.textContent = el.textContent === label ? full : label; });
@@ -168,7 +168,7 @@
 
       function placeTitle(item) {
         if (!item) return null;
-        const zh = /^zh/i.test(navigator.language || '');
+        const zh = false /* M8c.2 (U13): English UI */;
         return (zh && item.place_locality_zh) || item.place_locality_en
           || (zh && item.place_region_zh) || item.place_region_en || null;
       }
@@ -339,7 +339,7 @@
     return h('div', { class: 'places-page', style: { height: focus ? '100%' : height + 'px' } },
       h('div', { class: 'places-map', ref: elRef }),
       !online && h('div', { class: 'places-note is-top' },
-        /^zh/i.test(navigator.language || '') ? '\u79BB\u7EBF\u65F6\u65E0\u6CD5\u663E\u793A\u5730\u56FE' : 'Map unavailable offline'),
+        false /* M8c.2 (U13): English UI */ ? '\u79BB\u7EBF\u65F6\u65E0\u6CD5\u663E\u793A\u5730\u56FE' : 'Map unavailable offline'),
       !focus && count === 0 && h('div', { class: 'places-note is-center' },
         h('strong', null, 'No Places'),
         h('span', null, 'Photos and videos with location information will appear here.')),
@@ -362,7 +362,7 @@
       setLeaving(true);
       setTimeout(() => { setArea(null); setLeaving(false); }, 170);
     };
-    const zh = /^zh/i.test(navigator.language || '');
+    const zh = false /* M8c.2 (U13): English UI */;
     const AreaView = window.__PhotosPlacesAreaView;
     const step = (d) => S.columnsStore.set(S.columnsStore.get() + d);
     return h('div', { class: 'places-overlay-inner' },
@@ -511,7 +511,7 @@
   ].join('\n');
   document.head.appendChild(css);
 
-  const isZh = () => /^zh/i.test(navigator.language || '');
+  const isZh = () => false /* M8c.2 (U13): English UI */;
   const placeName = (s) => (isZh() && s.localityZh) || s.localityEn || '';
   function parseDay(text) {
     const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(text || '');
@@ -520,7 +520,7 @@
   function dateText(s) {
     const a = parseDay(s.startDate); const b = parseDay(s.endDate);
     if (!a) return '';
-    const fmt = new Intl.DateTimeFormat(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+    const fmt = new Intl.DateTimeFormat('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
     try { return b && s.endDate !== s.startDate ? fmt.formatRange(a, b) : fmt.format(a); } catch (err) { return fmt.format(a); }
   }
   // Same format as the grid's badge (renderer.js formatDuration): m:ss.
@@ -676,7 +676,7 @@
   const S = window.__PhotosStores;
   const WORKER_URL = 'vendor/maplibre/maplibre-gl-csp-worker.js';
   const NEARBY_DEGREES = 0.005; // about 550 m of latitude
-  const isZh = () => /^zh/i.test(navigator.language || '');
+  const isZh = () => false /* M8c.2 (U13): English UI */;
 
   function placeLine(item) {
     if (!item) return null;
@@ -685,7 +685,7 @@
     const region = (zh && item.place_region_zh) || item.place_region_en || null;
     let country = null;
     if (item.place_country_code) {
-      try { country = new Intl.DisplayNames([navigator.language || 'en'], { type: 'region' }).of(item.place_country_code); }
+      try { country = new Intl.DisplayNames(['en-US'], { type: 'region' }).of(item.place_country_code); }
       catch (err) { country = item.place_country_code; }
     }
     const parts = [locality, region !== locality ? region : null, country].filter(Boolean);

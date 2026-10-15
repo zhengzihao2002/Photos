@@ -298,7 +298,7 @@
 
     const shown = list || [];
     const active = sheet > 0 && shown.length > 0;
-    const zh = /^zh/i.test(navigator.language || '');
+    const zh = false /* M8c.2 (U13): English UI */;
     const open = (personId) => {
       S.viewerStore.close();
       S.sectionStore.set('people');
