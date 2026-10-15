@@ -131,7 +131,9 @@ async function run() {
       markMissing(db, sourceFolderId, now);
       db.pragma('wal_checkpoint(PASSIVE)');
       db.close();
-      parentPort.postMessage({ type: 'missing', taskId, sourceFolderId });
+      // M8b.7: rows processed before the root vanished are already committed.
+      parentPort.postMessage({ type: 'missing', taskId, sourceFolderId,
+        changed: (aggregate.inserted + aggregate.updated) > 0 });
       return;
     }
     const dirErrors = walkErrors.filter((e) => e.kind === 'dir');
@@ -240,7 +242,9 @@ async function runScoped() {
       markMissing(db, sourceFolderId, now);
       db.pragma('wal_checkpoint(PASSIVE)');
       db.close();
-      parentPort.postMessage({ type: 'missing', taskId, sourceFolderId });
+      // M8b.7: rows processed before the root vanished are already committed.
+      parentPort.postMessage({ type: 'missing', taskId, sourceFolderId,
+        changed: (aggregate.inserted + aggregate.updated) > 0 });
       return;
     }
 

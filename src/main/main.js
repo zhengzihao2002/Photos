@@ -203,6 +203,7 @@ app.whenReady().then(() => {
   folderWatcher.reconcileAtLaunch();
   folderWatcher.refresh();
   require('./index/scan-queue').onScanFinished(() => folderWatcher.refresh());
+  require('./index/source-monitor').start(); // M8b.7: automatic missing / found again
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createMainWindow();
@@ -218,6 +219,7 @@ app.on('before-quit', (event) => {
   // before the database closes; the next launch catches up.
   const scanQueue = require('./index/scan-queue');
   require('./index/folder-watcher').stopAll(); // M8b.5
+  require('./index/source-monitor').stop(); // M8b.7
   Promise.all([thumbnailManager.stop(), faceManager.stop(), scanQueue.shutdown()]).then(() => {
     db.close();
     residueCleanup.schedule(); // M8a: remove per-app items macOS wrote outside the data folder

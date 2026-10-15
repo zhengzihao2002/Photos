@@ -167,7 +167,7 @@ function getItemsPage(db, { limit = 100, cursor = null, direction = 'older', fil
   }
 
   const sql = `
-    SELECT id, media_type, width, height, capture_time_local, duration_seconds,
+    SELECT id, source_folder_id, media_type, width, height, capture_time_local, duration_seconds, -- M8b.7: source id for the unavailable badge
            is_live_photo, burst_id, is_burst_cover
     FROM items
     WHERE ${whereFilter} ${cursorClause}

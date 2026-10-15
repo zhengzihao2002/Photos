@@ -27,6 +27,12 @@ contextBridge.exposeInMainWorld('api', {
     ipcRenderer.on('scan:queue-state', listener);
     return () => ipcRenderer.removeListener('scan:queue-state', listener);
   },
+  // M8b.7: a source folder went missing or came back: [{ sourceFolderId, status }].
+  onSourceStatusChanged: (callback) => {
+    const listener = (_event, payload) => callback(payload);
+    ipcRenderer.on('source:status-changed', listener);
+    return () => ipcRenderer.removeListener('source:status-changed', listener);
+  },
 
   addSource: (payload) => ipcRenderer.invoke('source:add', payload),
   listSources: () => ipcRenderer.invoke('source:list'),

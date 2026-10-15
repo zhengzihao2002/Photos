@@ -1528,3 +1528,20 @@ body.drop-active::after {
 .tile-video-badge .tile-play-icon {
   display: none;
 }
+
+/* M8b.7: the item's source folder is unavailable (missing, renamed,
+   unplugged). Subtle: small, top-right, photo left undimmed. */
+.tile-unavailable-badge {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font: 700 11px/16px -apple-system, BlinkMacSystemFont, sans-serif;
+  text-align: center;
+  pointer-events: none;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.35);
+}

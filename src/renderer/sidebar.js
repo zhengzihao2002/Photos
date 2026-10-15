@@ -111,7 +111,10 @@
         .catch((err) => console.error('Loading albums failed:', err));
       load();
       const unsubscribe = S.libraryChangeStore.subscribe(load);
-      return () => { alive = false; unsubscribe(); };
+      // M8b.7: a folder going missing or returning updates the warning
+      // without a library bump (which would reload every grid).
+      const unsubMissing = S.missingSourcesStore ? S.missingSourcesStore.subscribe(load) : () => {};
+      return () => { alive = false; unsubscribe(); unsubMissing(); };
     }, []);
 
     useEffect(() => S.sectionStore.subscribe(setSection), []);

@@ -51,6 +51,9 @@ function runScan({ dbPath, sourceFolderId, sourceRootPath, dirs }) {
         total: result.total || 0,
         message: terminalMessage,
         sourceFolderId,
+        // M8b.7: false when no row changed, so the renderer can skip the
+        // library bump (which reloads every grid).
+        changed: result.changed !== false,
       });
       resolve({ taskId, ...result });
     }
@@ -78,9 +81,11 @@ function runScan({ dbPath, sourceFolderId, sourceRootPath, dirs }) {
           taskId, current: msg.current, total: msg.total, message: msg.message, sourceFolderId,
         });
       } else if (msg.type === 'done') {
-        finish({ status: 'done', total: msg.total, summary: msg.summary, errors: msg.errors }, 'Scan complete');
+        const sm = msg.summary || {};
+        const changed = ((sm.inserted || 0) + (sm.updated || 0) + (sm.deleted || 0)) > 0;
+        finish({ status: 'done', total: msg.total, summary: msg.summary, errors: msg.errors, changed }, 'Scan complete');
       } else if (msg.type === 'missing') {
-        finish({ status: 'missing' }, 'Source folder not found');
+        finish({ status: 'missing', changed: msg.changed === true }, 'Source folder not found');
       } else if (msg.type === 'fatal') {
         finish({ status: 'failed', message: msg.message }, `Scan failed: ${msg.message}`);
       }

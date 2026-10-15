@@ -62,6 +62,10 @@
     const resolved = typeof thumbPath === 'string';
     const isError = thumbPath === 'error';
     const className = 'tile' + (isSelected ? ' tile-selected' : '');
+    // M8b.7: subtle badge when this item's source folder is unavailable.
+    const [missingSources, setMissingSources] = useState(missingSourcesStore.get());
+    useEffect(() => missingSourcesStore.subscribe(setMissingSources), []);
+    const unavailable = !isPlaceholderItem && item.source_folder_id != null && missingSources.has(item.source_folder_id);
 
     function handleClick() {
       if (isPlaceholderItem) return;
@@ -88,7 +92,8 @@
         h('span', { className: 'tile-play-icon' }, '\u25B6'),
         item.duration_seconds != null ? h('span', null, formatDuration(item.duration_seconds)) : null
       ),
-      !isPlaceholderItem && item.is_live_photo === 1 && h('div', { className: 'tile-live-badge' }, 'LIVE')
+      !isPlaceholderItem && item.is_live_photo === 1 && h('div', { className: 'tile-live-badge' }, 'LIVE'),
+      unavailable && h('div', { className: 'tile-unavailable-badge', title: 'Original unavailable' }, '!')
     );
   }
 
@@ -736,7 +741,10 @@
       if (!payload || typeof payload.taskId !== 'string' || !payload.taskId.startsWith('scan-')) return;
       if (isTerminal(payload.message)) {
         progressStore.set(null);
-        libraryChangeStore.bump(); // once per finished scan
+        // M8b.7: only when the scan changed rows; an unchanged scan (launch
+        // reconcile, a folder returning, a folder going missing) must not
+        // reload every grid.
+        if (payload.changed !== false) libraryChangeStore.bump();
       } else {
         progressStore.set({ current: payload.current, total: payload.total });
       }
@@ -752,6 +760,36 @@
           .then((res) => { if (!res || !res.queued) console.warn('Scan not queued:', res && res.reason); })
           .catch((err) => noticeStore.set('Could not start a scan: ' + err.message));
       },
+    };
+  })();
+
+  /**
+   * M8b.7: ids of source folders that are currently unavailable (status not
+   * 'ok'). Tiles of those sources show a small badge. The main process
+   * reports folders going missing or coming back on 'source:status-changed';
+   * that bumps the library, which refreshes the sidebar warning and this set.
+   */
+  const missingSourcesStore = (function () {
+    let value = new Set();
+    const listeners = new Set();
+    function set(ids) {
+      const next = new Set(ids);
+      if (next.size === value.size && Array.from(next).every((id) => value.has(id))) return;
+      value = next;
+      listeners.forEach((fn) => fn(value));
+    }
+    function load() {
+      window.api.listSources()
+        .then((rows) => set((rows || []).filter((r) => r.status !== 'ok').map((r) => r.id)), () => {});
+    }
+    load();
+    libraryChangeStore.subscribe(load);
+    // A status change alters no items: reload only this set (tiles and the
+    // sidebar subscribe to it), never a library bump that reloads grids.
+    window.api.onSourceStatusChanged(load);
+    return {
+      get: () => value,
+      subscribe(fn) { listeners.add(fn); return () => listeners.delete(fn); },
     };
   })();
 
@@ -2538,7 +2576,7 @@
 
   window.__PhotosGrid = Grid;
   // M5: viewer.js (a separate script loaded after this one) uses the shared stores.
-  window.__PhotosStores = { selectionStore, viewerStore, navigationStore, modeStore, libraryChangeStore, sectionStore, filterStore, sidebarVisibleStore, scanStatusStore, noticeStore, progressStore, columnsStore, searchStore, kindStore, mapAreaStore, personStore, peopleChangeStore, personViewStore, faceDisplayStore, addPeopleStore, groupStore, peopleEnabledStore };
+  window.__PhotosStores = { selectionStore, viewerStore, navigationStore, modeStore, libraryChangeStore, sectionStore, filterStore, sidebarVisibleStore, scanStatusStore, noticeStore, progressStore, columnsStore, searchStore, kindStore, mapAreaStore, missingSourcesStore, personStore, peopleChangeStore, personViewStore, faceDisplayStore, addPeopleStore, groupStore, peopleEnabledStore };
   /**
    * M6 (B.5): drop folders from Finder onto the window to add them as
    * albums. Only paths are registered -- nothing is copied or moved. The
