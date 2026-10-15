@@ -644,6 +644,35 @@
       };
     }, [isOpen]);
 
+    // M8b.8: the library can change while the viewer is open (watcher).
+    // Every bump drops cached cursors and re-resolves the neighbors; if the
+    // current item is gone, move to the next item (then previous), else
+    // close. Runs before the neighbor effect, so it still sees the old ones.
+    const [libVersion, setLibVersion] = useState(0);
+    useEffect(() => S.libraryChangeStore.subscribe((v) => {
+      cursorsRef.current.clear();
+      setLibVersion(v);
+    }), []);
+    useEffect(() => {
+      if (libVersion === 0 || itemId == null) return;
+      let live = true;
+      const before = nbrsRef.current;
+      const candidates = [before.next, before.prev].filter((x) => x != null);
+      (async () => {
+        const f = currentFilter();
+        const exists = async (id) => {
+          try { return (await window.api.getItemIndex({ id, filter: f })) != null; } catch (e) { return true; }
+        };
+        if (await exists(itemId)) return;
+        for (const id of candidates) {
+          if (!live) return;
+          if (await exists(id)) { if (live) S.viewerStore.open(id); return; }
+        }
+        if (live) S.viewerStore.close();
+      })();
+      return () => { live = false; };
+    }, [libVersion]);
+
     // Neighbors (M5.5): resolved on every item change.
     useEffect(() => {
       const empty = { prev: null, next: null, ready: false };
@@ -678,7 +707,7 @@
         }, NEIGHBOR_PRELOAD_MS);
       })();
       return () => { live = false; clearTimeout(timer); };
-    }, [itemId]);
+    }, [itemId, libVersion]); // M8b.8: also after library changes
 
     function go(dir) {
       const v = nbrsRef.current;

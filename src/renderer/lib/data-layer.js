@@ -29,6 +29,7 @@
     let totalCount = null;
     let dateSections = []; // [{ date, count, startIndex }], newest-first
     let lastEnsureCenter = 0;
+    let lastEnsure = null; // M8b.8: last range the grid asked for (visible + overscan)
 
     const itemCache = new Map();      // index -> item row
     const loadedRanges = new window.RangeSet();
@@ -171,6 +172,7 @@
       end = Math.min(totalCount - 1, end);
       if (end < start) return;
       lastEnsureCenter = Math.floor((start + end) / 2);
+      lastEnsure = { start, end };
 
       for (const [gapStart, gapEnd] of loadedRanges.findGaps(start, end)) {
         for (const [fStart, fEnd] of inFlightRanges.findGaps(gapStart, gapEnd)) {
@@ -211,8 +213,71 @@
     }
 
     /** Reloads the library without changing the active filter (used on library-changed). */
+    /**
+     * M8b.8: soft refresh for library changes (the watcher can cause many).
+     * The current items stay on screen while new totals, sections and the
+     * range the grid last asked for are fetched into locals; then everything
+     * is swapped in at once with a single reset, so the grid never renders an
+     * empty frame. setFilter (a different section) keeps the hard reload().
+     */
+    async function fetchInto(target, sections, start, end, myToken) {
+      let si = -1;
+      for (let i = 0; i < sections.length; i++) {
+        const sec = sections[i];
+        if (start >= sec.startIndex && start < sec.startIndex + sec.count) { si = i; break; }
+      }
+      if (si === -1) return null;
+      let cursor = null;
+      if (si > 0) cursor = { captureTimeLocal: sections[si - 1].date + ' 00:00:00', id: 0 };
+      let skip = start - sections[si].startIndex;
+      let through = start - 1;
+      let guard = 0;
+      while (through < end && guard < 200) {
+        guard++;
+        const page = await api.getItemsPage({ limit: DEFAULT_PAGE_LIMIT, cursor, direction: 'older', filter });
+        if (destroyed || myToken !== refreshToken) return null;
+        for (const item of page.items) {
+          if (skip > 0) { skip--; continue; }
+          through++;
+          target.set(through, item);
+        }
+        if (!page.hasMore || !page.nextCursor) break;
+        cursor = page.nextCursor;
+      }
+      return through >= start ? { start, end: through } : null;
+    }
+
+    async function softRefresh() {
+      if (destroyed) return;
+      refreshToken++;
+      const myToken = refreshToken;
+      const [count, rawCounts] = await Promise.all([
+        api.getTotalCount({ filter }),
+        api.getCountsByDate({ filter }),
+      ]);
+      if (destroyed || myToken !== refreshToken) return;
+      const sections = buildDateSections(rawCounts);
+      const fresh = new Map();
+      let got = null;
+      if (lastEnsure && count > 0) {
+        const s0 = Math.max(0, lastEnsure.start);
+        const e0 = Math.min(count - 1, lastEnsure.end);
+        if (e0 >= s0) got = await fetchInto(fresh, sections, s0, e0, myToken);
+        if (destroyed || myToken !== refreshToken) return;
+      }
+      totalCount = count;
+      dateSections = sections;
+      itemCache.clear();
+      for (const [k, v] of fresh) itemCache.set(k, v);
+      loadedRanges.clear();
+      activeFetches.length = 0;
+      inFlightRanges.clear();
+      if (got) loadedRanges.addRange(got.start, got.end);
+      notifyRangeLoaded(0, -1, { reset: true });
+    }
+
     async function refresh() {
-      await reload();
+      await softRefresh();
     }
 
     function destroy() {

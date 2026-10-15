@@ -661,9 +661,21 @@
   const libraryChangeStore = (function () {
     let version = 0;
     const listeners = new Set();
+    // M8b.8: at most one refresh per second during bursts (many watcher
+    // scans finishing). The first bump fires at once; later ones within the
+    // window collapse into one trailing bump, so the final state always shows.
+    const MIN_GAP_MS = 1000;
+    let lastFire = 0;
+    let trailing = null;
+    function fire() { lastFire = Date.now(); version++; listeners.forEach((fn) => fn(version)); }
     return {
       get: () => version,
-      bump() { version++; listeners.forEach((fn) => fn(version)); },
+      bump() {
+        if (trailing) return;
+        const wait = MIN_GAP_MS - (Date.now() - lastFire);
+        if (wait <= 0) { fire(); return; }
+        trailing = setTimeout(() => { trailing = null; fire(); }, wait);
+      },
       subscribe(fn) { listeners.add(fn); return () => listeners.delete(fn); },
     };
   })();
