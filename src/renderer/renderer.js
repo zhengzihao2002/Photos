@@ -573,7 +573,8 @@
 
   function navigateToPeriod(target) {
     navigationStore.goTo(target);
-    modeStore.set('all');
+    periodJump = true; // M8c.3: a Years / Months click goes to its period, not the remembered spot
+    try { modeStore.set('all'); } finally { periodJump = false; }
   }
 
   /**
@@ -1522,9 +1523,30 @@
     );
   }
 
+  // M8c.3 (K7): Years and Months remember their scroll position for the
+  // session, like All Photos. Saved while scrolling; restored once the tiles
+  // are on screen (square tiles: the height is final at that point).
+  const timelineScroll = { years: null, months: null };
+  function useRememberedScroll(key, ready) {
+    const ref = useRef(null);
+    useEffect(() => {
+      const inner = ref.current;
+      if (!ready || !inner) return;
+      // The box that actually scrolls: the timeline box if it has its own
+      // scrolling, otherwise the main scroll area it sits in (#grid-scroll).
+      const el = inner.scrollHeight > inner.clientHeight + 1 ? inner : (document.getElementById('grid-scroll') || inner);
+      if (timelineScroll[key] != null) el.scrollTop = timelineScroll[key];
+      const onScroll = () => { timelineScroll[key] = el.scrollTop; };
+      el.addEventListener('scroll', onScroll, { passive: true });
+      return () => el.removeEventListener('scroll', onScroll);
+    }, [ready]);
+    return ref;
+  }
+
   function YearsView() {
     const [years, setYears] = useState(null);
     const [thumbs, setThumbs] = useState({});
+    const scrollRef = useRememberedScroll('years', !!years && years.length > 0);
 
     useEffect(() => {
       let cancelled = false;
@@ -1543,7 +1565,7 @@
     if (years === null) return h('div', { className: 'timeline-loading' }, 'Loading years\u2026');
     if (years.length === 0) return h('div', { className: 'timeline-loading' }, 'No photos yet.');
 
-    return h('div', { className: 'timeline-scroll' },
+    return h('div', { className: 'timeline-scroll', ref: scrollRef },
       h('div', { className: 'timeline-grid is-years' }, // M6 (B.6c): bigger Year tiles
         years.map((y) => h(YearTile, { key: y.year, year: y, thumbPath: thumbs[y.coverItemId] }))
       )
@@ -1565,6 +1587,7 @@
   function MonthsView() {
     const [months, setMonths] = useState(null);
     const [thumbs, setThumbs] = useState({});
+    const scrollRef = useRememberedScroll('months', !!months && months.length > 0);
 
     useEffect(() => {
       let cancelled = false;
@@ -1590,7 +1613,7 @@
       else groups.push({ year: m.year, months: [m] });
     }
 
-    return h('div', { className: 'timeline-scroll' },
+    return h('div', { className: 'timeline-scroll', ref: scrollRef },
       groups.map((g) => h('div', { key: g.year, className: 'timeline-year-group' },
         h('div', { className: 'timeline-year-header' }, String(g.year)),
         h('div', { className: 'timeline-grid' },
@@ -1778,6 +1801,30 @@
     modeStore.set(nextMode);
   });
 
+  // M8c.3 (K7): Library's All Photos also remembers its position across the
+  // Years / Months / All Photos switch (session only). Leaving All Photos
+  // records its top item; returning queues it as the anchor. Mode changes made
+  // by a section change are skipped (sections keep their own memory, so an
+  // album's position never leaks in), as are searched or filtered grids.
+  let allPhotosAnchor = null;
+  let periodJump = false; // set while a Years / Months tile switches to All Photos
+  let modeSeenMode = modeStore.get();
+  let modeSeenSection = sectionStore.get();
+  modeStore.subscribe((m) => {
+    const prevMode = modeSeenMode;
+    const sameSection = sectionStore.get() === modeSeenSection;
+    modeSeenMode = m;
+    if (!sameSection || sectionStore.get() !== 'library' || prevMode === m) return;
+    if (prevMode === 'all') {
+      const idx = gridTopItemIndexGetter ? gridTopItemIndexGetter() : null;
+      if (idx != null && !searchStore.get() && kindStore.get() === 'all') allPhotosAnchor = idx;
+    } else if (m === 'all' && !periodJump && pendingSectionAnchor == null && allPhotosAnchor != null
+        && !searchStore.get() && kindStore.get() === 'all') {
+      pendingSectionAnchor = allPhotosAnchor;
+    }
+  });
+  sectionStore.subscribe(() => { modeSeenSection = sectionStore.get(); modeSeenMode = modeStore.get(); });
+
   // M7.6: switching between the map and a map-area grid (same section).
   mapAreaStore.subscribe(() => {
     if (searchStore.get()) searchStore.set('');
@@ -1906,6 +1953,9 @@
         const scrollEl = document.getElementById(SCROLL_EL_ID);
         const layout = layoutRef.current;
         if (!layout || !scrollEl) return null;
+        // M8c.3: at the bottom, remember the newest item (index 0), which returns
+        // to the true bottom with the footer visible (U4), not a row short.
+        if (scrollEl.scrollTop >= scrollEl.scrollHeight - scrollEl.clientHeight - 2) return 0;
         const row = layout.getRowAt(layout.findRowContainingOffset(scrollEl.scrollTop));
         return row && row.type === 'items' ? row.itemIndices[0] : null;
       };
@@ -1969,6 +2019,24 @@
       }
 
       function refreshVisibleRange() {
+        // M8c.3 (U5): Apple-style alignment. A grid that fits on screen is
+        // top-aligned; a longer one is top-aligned while the view centre is in
+        // the upper part and bottom-aligned in the lower part, so both ends always
+        // show full rows. Same row count and height either way, so the scroll
+        // position is untouched; a still grid never switches (its centre does not
+        // move). 45/55 % dead zone against flicker. Filtered grids stay top-aligned.
+        {
+          const lay = layoutRef.current;
+          if (lay && lay.setAlignTop && scrollEl && !/::(kind|search):|^geo:/.test(filterStore.get() || '')) {
+            const H = lay.getTotalHeight();
+            let want = true;
+            if (H > scrollEl.clientHeight) {
+              const mid = (scrollEl.scrollTop + scrollEl.clientHeight / 2) / H;
+              want = lay.getAlignTop() ? mid < 0.55 : mid < 0.45;
+            }
+            if (lay.setAlignTop(want)) bump();
+          }
+        }
         if (!layoutRef.current || !scrollEl) return;
         setVisibleRange(computeVisibleRange(layoutRef.current, scrollEl.scrollTop, scrollEl.clientHeight));
       }
@@ -1983,6 +2051,11 @@
 
       function scrollToItemIndex(itemIndex) {
         if (!layoutRef.current || !scrollEl) return false;
+        // M8c.3 (U4): index 0 is the newest item, shown at the very bottom with
+        // the footer fully visible, as in Apple Photos. Putting its row at the top
+        // relied on the browser capping the scroll; after the final layout that
+        // left the view 75 px short. Re-anchors after a resize land here too.
+        if (itemIndex === 0) { scrollEl.scrollTop = scrollEl.scrollHeight; return true; }
         const rowIdx = layoutRef.current.getRowIndexForItem(itemIndex);
         if (rowIdx === -1) return false;
         const itemsRow = layoutRef.current.getRowAt(rowIdx);

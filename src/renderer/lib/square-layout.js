@@ -6,11 +6,15 @@
  * row list), so memory does not grow with library size.
  *
  * ORDER: data indices are newest-first (index 0 = newest). Visually the
- * grid runs OLDEST at top-left to NEWEST at the bottom. As in Apple Photos,
- * the bottom row is FULL at the column count the grid opened with (newest at
- * bottom-right); a zoom keeps that alignment, so at other zoom levels the
- * last row may be partial. Any leading empty slots are in the first row,
- * expressed as row.leadingOffset (px). Rows list data indices in visual order,
+ * grid runs OLDEST at top-left to NEWEST at the bottom.
+ *
+ * ALIGNMENT (M8c.3, U5): as in Apple Photos, both ends of a long grid look
+ * full. Bottom-aligned, the last row is full (newest at bottom-right) and any
+ * empty slots lead the first row; top-aligned, the first row is full (oldest
+ * at top-left) and the last row may be short. Both give the SAME row count
+ * and height, so the Grid switches alignment by scroll position (top half:
+ * top, bottom half: bottom) while scrolling, without moving the scroll
+ * position. Leading slots are row.leadingOffset (px). Rows list data indices in visual order,
  * so everything downstream (fetching, thumbnails, selection) keeps speaking
  * data indices unchanged.
  *
@@ -24,7 +28,7 @@
   function createSquareLayout({ dataLayer, containerWidth, columns, gapSize, alignTop = false }) {
     let width = Math.max(0, containerWidth || 0);
     let cols = clampColumns(columns);
-    const refCols = cols; // reference: the bottom row is full at this column count
+    let topAligned = !!alignTop; // M8c.3 (U5): switched by the Grid while scrolling
     const gap = gapSize || 0;
     let total = 0;
     let tile = 1;
@@ -40,12 +44,10 @@
     function computeLayout() {
       total = Math.max(0, dataLayer.getTotalCount() || 0);
       tile = Math.max(1, Math.floor((width - (cols - 1) * gap) / cols));
-      // Apple-style: the bottom row is full at the column count the grid
-      // opened with (refCols). Zooming keeps that alignment, so at other zoom
-      // levels the last row may be partial.
-      const refLead = total % refCols === 0 ? 0 : refCols - (total % refCols);
-      // alignTop (filtered views): fill from the top-left, no leading slots.
-      lead = alignTop ? 0 : refLead % cols;
+      // Bottom-aligned: the last row is full at the CURRENT column count, so it
+      // stays full at every zoom level; the leftover slots lead the first row.
+      // Top-aligned: the first row is full, no leading slots.
+      lead = topAligned || total % cols === 0 ? 0 : cols - (total % cols);
       rowCount = total === 0 ? 0 : Math.ceil((total + lead) / cols);
       rowCache = new Map();
     }
@@ -105,6 +107,9 @@
     function setColumns(c) { cols = clampColumns(c); computeLayout(); }
     function getColumns() { return cols; }
     function getTileSize() { return tile; }
+    /** Returns true when the alignment changed (rows were recomputed). */
+    function setAlignTop(v) { const t = !!v; if (t === topAligned) return false; topAligned = t; computeLayout(); return true; }
+    function getAlignTop() { return topAligned; }
 
     computeLayout();
 
@@ -121,6 +126,8 @@
       setColumns,
       getColumns,
       getTileSize,
+      setAlignTop,
+      getAlignTop,
     };
   }
 
