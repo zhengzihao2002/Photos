@@ -34,7 +34,6 @@ const isExcluded = (p) => excluded.some((e) => p === e || p.startsWith(e + path.
 let stopped = false;
 let refreshChain = Promise.resolve();
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-const diag = (...a) => console.log('[M8b-diag]', ...a); // M8b.9: remove
 
 function mountTable() {
   return new Promise((resolve) => {
@@ -84,7 +83,6 @@ async function flush(entry) {
   entry.firstAt = 0;
   try {
     if ((await ev.classify(entry.root)) !== 'dir') {
-      diag('watch root gone', entry.id);
       stopOne(entry.id);
       scanQueue.enqueue({ sourceFolderId: entry.id, kind: 'full' });
       return;
@@ -102,7 +100,6 @@ async function flush(entry) {
       if ((await ev.signature(x.p, x.kind)) !== x.sig) { x.held = true; held += 1; entry.buf.add(x.p); }
     }
     const scopes = items.filter((x) => !x.held).flatMap((x) => ev.scopesFor(x.p, x.kind));
-    diag('watch flush', entry.id, 'paths', paths.length, 'scopes', scopes.length, 'held', held);
     if (scopes.length) scanQueue.enqueue({ sourceFolderId: entry.id, kind: 'dirs', dirs: scopes });
   } catch (err) {
     console.warn('watcher flush failed:', err.message);
@@ -115,7 +112,7 @@ async function flush(entry) {
 function usePolling(entry, why) {
   if (entry.watcher) { try { entry.watcher.close(); } catch (e) { /* already closed */ } entry.watcher = null; }
   if (entry.pollTimer) return;
-  diag('watch fallback to polling', entry.id, why);
+  console.warn('Folder watcher: polling', entry.root, 'every 10 min:', why);
   entry.mode = 'poll';
   entry.pollTimer = setInterval(() => scanQueue.enqueue({ sourceFolderId: entry.id, kind: 'full' }), FALLBACK_MS);
 }
@@ -129,7 +126,6 @@ function startOne(row, table) {
   try {
     entry.watcher = fs.watch(row.root_path, { recursive: true }, (t, name) => onEvent(entry, name));
     entry.watcher.on('error', (err) => usePolling(entry, err && err.message));
-    diag('watch start', row.id, row.root_path, type || '?');
   } catch (err) {
     usePolling(entry, err.message);
   }
@@ -142,7 +138,6 @@ function stopOne(id) {
   clearTimeout(entry.quietTimer);
   clearInterval(entry.pollTimer);
   if (entry.watcher) { try { entry.watcher.close(); } catch (e) { /* already closed */ } }
-  diag('watch stop', id);
 }
 
 /** Sync watchers with source_folders: watch every 'ok' and reachable source. */

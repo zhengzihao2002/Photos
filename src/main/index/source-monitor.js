@@ -25,7 +25,6 @@ const lastSeen = new Map(); // sourceFolderId -> boolean reachable
 let timer = null;
 let checking = false;
 let stopped = false;
-const diag = (...a) => console.log('[M8b-diag]', ...a); // M8b.9: remove
 
 async function isReachable(rootPath) {
   try { return (await fs.promises.stat(rootPath)).isDirectory(); } catch (err) { return false; }
@@ -55,7 +54,6 @@ async function checkNow(reason) {
     }
 
     if (changes.length > 0) {
-      diag('source status', reason, JSON.stringify(changes));
       require('./folder-watcher').refresh();
       bus.send('source:status-changed', changes);
     }

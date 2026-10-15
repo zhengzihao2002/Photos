@@ -812,9 +812,11 @@
         }, h(Icon, { name: 'live', size: 15 }), h('span', null, 'LIVE')),
         !img && notice && h('div', { className: 'viewer-empty' }, notice),
         img && notice && h('div', { className: 'viewer-notice' }, notice),
-        nbrs.prev && h('button', { className: 'viewer-chev viewer-chev-prev', 'aria-label': 'Previous',
+        // M8b.9 fix: '<' goes older (next), '>' goes newer (prev), as the
+        // arrow keys do; each is shown only when that neighbor exists.
+        nbrs.next && h('button', { className: 'viewer-chev viewer-chev-prev', 'aria-label': 'Previous',
           onClick: () => goRef.current('next'), onDblClick: (e) => e.stopPropagation() }, h(Icon, { name: 'back', size: 26 })),
-        nbrs.next && h('button', { className: 'viewer-chev viewer-chev-next', 'aria-label': 'Next',
+        nbrs.prev && h('button', { className: 'viewer-chev viewer-chev-next', 'aria-label': 'Next',
           onClick: () => goRef.current('prev'), onDblClick: (e) => e.stopPropagation() }, h(Icon, { name: 'fwd', size: 26 }))),
       window.__PhotosViewerPeople && peopleH > 0 && h(window.__PhotosViewerPeople, {
         item, sheet, height: PEOPLE_H, list: peopleList,
