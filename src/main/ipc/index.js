@@ -24,6 +24,7 @@ const mediaHandlers = require('./handlers/media');
 const menuHandlers = require('./handlers/menu');
 const mapHandlers = require('./handlers/map');
 const peopleHandlers = require('./handlers/people'); // M10
+const infoHandlers = require('./handlers/info'); // M8c.2b
 
 const handlers = [
   ...systemHandlers,
@@ -37,6 +38,7 @@ const handlers = [
   ...menuHandlers,
   ...mapHandlers,
   ...peopleHandlers,
+  ...infoHandlers,
 ];
 
 function registerIpcHandlers() {

@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <!-- M8c.2b: the Info window. Same CSP as index.html (map tiles for the
+       location map; no remote scripts). -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' photos-media: data: blob:; media-src 'self' photos-media:; connect-src 'self' https://tiles.openfreemap.org; worker-src 'self';" />
+  <title>Info</title>
+  <link rel="stylesheet" href="vendor/maplibre/maplibre-gl.css" />
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="info.css" />
+</head>
+<body class="info-window">
+  <div id="info-root"></div>
+  <script src="vendor/preact-bundle.js"></script>
+  <script src="vendor/maplibre/maplibre-gl-csp.js"></script>
+  <script src="vendor/map-styles/styles.js"></script>
+  <script src="lib/info-format.js"></script>
+  <script src="info.js"></script>
+</body>
+</html>

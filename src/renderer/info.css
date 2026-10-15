@@ -1,0 +1,122 @@
+/* info.css (M8c.2b) -- the Info window, laid out after Apple Photos' Info.
+   Loaded after styles.css for the shared colour tokens (light/dark). */
+
+body.info-window {
+  display: block;            /* styles.css makes body a flex row for the main window */
+  margin: 0;
+  background: transparent;   /* the window's native material shows through */
+  font-size: 12px;
+  color: var(--text-primary);
+  overflow: hidden;
+}
+#info-root { user-select: text; }
+#info-root button { user-select: none; }
+
+.info-head {
+  display: flex;
+  gap: 8px;
+  padding: 8px 12px 10px;
+}
+.info-head-text { flex: 1; min-width: 0; line-height: 1.4; }
+.info-title-field { color: var(--text-secondary); }
+.info-name, .info-date {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.info-note { font-size: 11px; color: var(--text-secondary); font-style: italic; }
+.info-heart {
+  flex-shrink: 0;
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  opacity: 0.6;
+}
+
+.info-card {
+  margin: 0 10px 10px;
+  padding: 10px 12px 8px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--text-primary) 7%, transparent);
+  line-height: 1.45;
+}
+.info-camera { font-weight: 500; }
+.info-file-row { display: flex; align-items: center; gap: 12px; }
+.info-file-row .info-size { flex: 1; }
+.info-badge {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  padding: 1px 5px;
+  border-radius: 4px;
+  color: var(--content-bg);
+  background: var(--text-secondary);
+}
+.info-exposure {
+  display: flex;
+  margin-top: 8px;
+  padding-top: 7px;
+  border-top: 1px solid var(--divider);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.info-exposure span { flex: 1; text-align: center; white-space: nowrap; }
+
+.info-field {
+  padding: 7px 12px;
+  border-top: 1px solid var(--divider);
+  color: var(--text-secondary);
+}
+.info-faces {
+  display: flex;
+  flex-wrap: wrap;  /* group photos: more rows */
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  border-top: 1px solid var(--divider);
+}
+.info-face {
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--grid-placeholder-bg);
+}
+.info-place {
+  padding: 7px 12px;
+  border-top: 1px solid var(--divider);
+}
+.info-place.is-empty { color: var(--text-secondary); }
+.info-coords { font-size: 11px; color: var(--text-secondary); }
+.info-map { position: relative; height: 220px; border-top: 1px solid var(--divider); }
+.info-map-canvas { position: absolute; inset: 0; }
+/* Keep in step with .places-legal in places.js. */
+.info-legal { position: absolute; left: 8px; bottom: 6px; z-index: 3; max-width: 80%; font-size: 10px;
+  color: var(--text-primary); opacity: .65; text-decoration: underline; cursor: pointer; }
+.info-map-offline { position: absolute; inset: 0; z-index: 4; display: flex; align-items: center;
+  justify-content: center; background: var(--content-bg); color: var(--text-secondary); font-size: 12px; }
+
+.info-footer {
+  padding: 8px 12px 10px;
+  border-top: 1px solid var(--divider);
+}
+.info-finder {
+  width: 100%;
+  appearance: none;
+  border: 1px solid var(--divider);
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 12px;
+  padding: 4px 0;
+  border-radius: 6px;
+}
+.info-empty {
+  padding: 40px 12px;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 13px;
+}

@@ -45,6 +45,22 @@ contextBridge.exposeInMainWorld('api', {
   getCountsByDate: (payload) => ipcRenderer.invoke('library:get-counts-by-date', payload),
   getItemById: (payload) => ipcRenderer.invoke('library:get-item-by-id', payload),
   getItemIndex: (payload) => ipcRenderer.invoke('library:get-item-index', payload),
+  // M8c.2b: Info window (see src/main/ipc/handlers/info.js).
+  toggleInfo: () => ipcRenderer.invoke('info:toggle'),
+  setInfoOpen: (open) => ipcRenderer.invoke('info:set-open', { open: open === true }),
+  getInfoState: () => ipcRenderer.invoke('info:get-state'),
+  setInfoItem: (id) => ipcRenderer.invoke('info:set-item', { id: Number.isInteger(id) ? id : null }),
+  setInfoHeight: (height) => ipcRenderer.invoke('info:set-height', { height: Number(height) }),
+  onInfoVisibility: (callback) => {
+    const listener = (event, payload) => callback(payload);
+    ipcRenderer.on('info:visibility', listener);
+    return () => ipcRenderer.removeListener('info:visibility', listener);
+  },
+  onInfoItem: (callback) => {
+    const listener = (event, payload) => callback(payload);
+    ipcRenderer.on('info:item', listener);
+    return () => ipcRenderer.removeListener('info:item', listener);
+  },
   getReextractionCounts: () => ipcRenderer.invoke('library:get-reextraction-counts'),
   getMediaTypeCounts: () => ipcRenderer.invoke('library:get-media-type-counts'),
   getPhotoVideoCounts: (payload) => ipcRenderer.invoke('library:get-photo-video-counts', payload),

@@ -51,10 +51,6 @@
   }
 
   // ── date title: capture_time_local is wall-clock 'YYYY-MM-DD HH:MM:SS' ─
-  // M8c.2 (U3): Info panel open/closed is remembered for this session only,
-  // as in Apple Photos (kept across photos and reopening; closed at launch).
-  let sessionInfoOpen = false;
-
   // M8c.1 (U7): one line, date and time with seconds, in the system language
   // and 12-hour form, as Apple's viewer title (e.g. 2026年5月9日 上午11:22:15).
   function formatTitle(s) {
@@ -216,97 +212,6 @@
   }
 
   // ── Info panel (M5.8) ───────────────────────────────────────────────
-  const DATE_SOURCE_NOTE = {
-    file_mtime: "Date from the file's modification time",
-    filename_pattern: 'Date from the filename',
-  };
-  const FORMAT_NAME = { jpg: 'JPEG', jpeg: 'JPEG', tif: 'TIFF', tiff: 'TIFF', heif: 'HEIF' };
-
-  function fullDateTime(s) {
-    const m = /^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})/.exec(s || '');
-    if (!m) return null;
-    const d = new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]);
-    return d.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) +
-      ' at ' + d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-  }
-  function cameraName(make, model) {
-    make = (make || '').trim(); model = (model || '').trim();
-    if (!make && !model) return null;
-    if (!model) return make;
-    if (!make || model.toLowerCase().startsWith(make.toLowerCase().split(' ')[0])) return model;
-    return make + ' ' + model;
-  }
-  function fmtExposure(t) {
-    if (!(t > 0)) return null;
-    return t >= 1 ? (Math.round(t * 10) / 10) + ' s' : '1/' + Math.round(1 / t) + ' s';
-  }
-  function fmtBytes(b) { // decimal units, like Finder / Preview
-    if (!(b > 0)) return null;
-    if (b < 1e3) return b + ' bytes';
-    if (b < 1e6) return Math.round(b / 1e3) + ' KB';
-    if (b < 1e9) return (b / 1e6).toFixed(1) + ' MB';
-    return (b / 1e9).toFixed(2) + ' GB';
-  }
-  function fmtCoords(lat, lon) {
-    if (lat == null || lon == null) return null;
-    const f = (v, pos, neg) => Math.abs(v).toFixed(4) + '° ' + (v >= 0 ? pos : neg);
-    return f(lat, 'N', 'S') + ', ' + f(lon, 'E', 'W');
-  }
-
-  function InfoPanel({ item, fullDims, top, onClose }) {
-    const [finderMsg, setFinderMsg] = useState(null);
-    useEffect(() => setFinderMsg(null), [item.id]);
-    const ext = String(item.extension || '').replace(/^\./, '').toLowerCase();
-    const w = item.width || (fullDims && fullDims.nw) || null;
-    const h2 = item.height || (fullDims && fullDims.nh) || null;
-    const exposure = [
-      item.iso ? 'ISO ' + item.iso : null,
-      item.focal_length_mm ? (Math.round(item.focal_length_mm * 100) / 100) + ' mm' : null,
-      item.f_number ? 'ƒ/' + (Math.round(item.f_number * 10) / 10) : null,
-      fmtExposure(item.exposure_time_seconds),
-    ].filter(Boolean);
-    const camera = cameraName(item.camera_make, item.camera_model);
-    const fileRows = [
-      w && h2 ? ['Dimensions', w + ' × ' + h2 + ' · ' + (w * h2 / 1e6).toFixed(1) + ' MP'] : null,
-      fmtBytes(item.file_size_bytes) ? ['Size', fmtBytes(item.file_size_bytes)] : null,
-      ext ? ['Format', FORMAT_NAME[ext] || ext.toUpperCase()] : null,
-      item.media_type === 'video' && item.duration_seconds > 0 ? ['Duration', fmtTime(item.duration_seconds)] : null,
-    ].filter(Boolean);
-    const coords = item.has_gps ? fmtCoords(item.gps_latitude, item.gps_longitude) : null;
-    const placeLine = coords && window.__PhotosPlaceLine ? window.__PhotosPlaceLine(item) : null; // M7.7
-    const badges = [
-      item.is_raw && 'RAW', item.is_live_photo && 'Live', item.burst_id && 'Burst',
-      item.is_panorama && 'Panorama', item.is_gif && 'GIF',
-    ].filter(Boolean);
-    const when = fullDateTime(item.capture_time_local);
-    const note = DATE_SOURCE_NOTE[item.capture_time_source];
-    async function reveal() {
-      const r = await window.api.showInFinder({ id: item.id });
-      if (!r || !r.ok) setFinderMsg(r && r.code === 'source_missing' ? 'Original unavailable' : 'Not found');
-    }
-    return h('div', { className: 'viewer-info', style: { top: top + 'px' } },
-      h('div', { className: 'viewer-info-head' },
-        h('div', { className: 'viewer-info-name', title: item.filename }, item.filename),
-        h('button', { className: 'viewer-info-close', 'aria-label': 'Close Info', onMouseDown: noFocus, onClick: onClose }, '✕')),
-      when && h('div', { className: 'viewer-info-date' }, when),
-      note && h('div', { className: 'viewer-info-note' }, note),
-      (camera || item.lens_model || exposure.length > 0) && h('div', { className: 'viewer-info-section' },
-        camera && h('div', { className: 'viewer-info-camera' }, camera),
-        item.lens_model && h('div', { className: 'viewer-info-sub' }, item.lens_model),
-        exposure.length > 0 && h('div', { className: 'viewer-info-exposure' },
-          exposure.map((x, i) => h('span', { key: i }, x)))),
-      fileRows.length > 0 && h('div', { className: 'viewer-info-section' },
-        fileRows.map(([k, v]) => h('div', { key: k, className: 'viewer-info-row' },
-          h('span', { className: 'viewer-info-key' }, k), h('span', { className: 'viewer-info-val' }, v)))),
-      coords && h('div', { className: 'viewer-info-section' },
-        placeLine && h('div', { className: 'viewer-info-row' },
-          h('span', { className: 'viewer-info-key' }, 'Location'), h('span', { className: 'viewer-info-val' }, placeLine)),
-        h('div', { className: 'viewer-info-row' },
-          h('span', { className: 'viewer-info-key' }, placeLine ? 'Coordinates' : 'Location'), h('span', { className: 'viewer-info-val' }, coords))),
-      badges.length > 0 && h('div', { className: 'viewer-info-badges' },
-        badges.map((b) => h('span', { key: b, className: 'viewer-info-badge' }, b))),
-      h('button', { className: 'viewer-info-finder', onMouseDown: noFocus, onClick: reveal }, finderMsg || 'Show in Finder'));
-  }
 
   // Return to grid (M5.9): select the last viewed item; if the user moved
   // away from the item they opened, scroll the grid to it by exact index
@@ -337,7 +242,7 @@
     const [item, setItem] = useState(null);
     const [img, setImg] = useState(null);        // { url, rank } rank: 1 sm, 2 md, 3 full
     const [notice, setNotice] = useState(null);  // string | null
-    const [infoOpen, setInfoOpen] = useState(() => sessionInfoOpen);
+    const [infoOpen, setInfoOpen] = useState(false); // M8c.2b: mirrors the Info window
     // M7.7: Places section below the photo (places.js), slid into view by
     // scrolling at fit size. sheet = how far the stage is shifted up, in px.
     const [sheet, setSheet] = useState(0);
@@ -497,13 +402,17 @@
     // M6 (B.6g): 'Get Info' from the photo right-click menu asks for the
     // Info panel to be shown.
     useEffect(() => {
-      const showInfo = () => setInfoOpen(true);
+      const showInfo = () => { window.api.setInfoOpen(true).catch(() => {}); };
       window.addEventListener('photos:show-info', showInfo);
       return () => window.removeEventListener('photos:show-info', showInfo);
     }, []);
 
-    // M8c.2 (U3): remember Info visibility for the session (not config.json).
-    useEffect(() => { sessionInfoOpen = infoOpen; }, [infoOpen]);
+    // M8c.2b: the Info window's open state lives in the main process (session
+    // only); the i button mirrors it, also when Info is closed with its own button.
+    useEffect(() => {
+      window.api.getInfoState().then((st) => setInfoOpen(!!(st && st.open))).catch(() => {});
+      return window.api.onInfoVisibility((p) => setInfoOpen(!!(p && p.open)));
+    }, []);
 
     // Match the grid toolbar's real height so switching views doesn't shift.
     const requestId = state ? state.requestId : null;
@@ -779,7 +688,7 @@
         if (e.metaKey && (e.key === '=' || e.key === '+')) { e.preventDefault(); if (zoomable()) zoomRef.current.applyZoom((w) => w * 1.25, 0, 0, true); return; }
         if (e.metaKey && (e.key === '-' || e.key === '_')) { e.preventDefault(); if (zoomable()) zoomRef.current.applyZoom((w) => w / 1.25, 0, 0, true); return; }
         if (e.metaKey && e.key === '0') { e.preventDefault(); if (zoomable()) zoomRef.current.applyZoom(() => 0, 0, 0, true); return; }
-        if (e.metaKey && (e.key === 'i' || e.key === 'I')) { e.preventDefault(); setInfoOpen((x) => !x); return; }
+        if (e.metaKey && (e.key === 'i' || e.key === 'I')) { e.preventDefault(); window.api.toggleInfo().catch(() => {}); return; }
         // M6: grid is oldest (left) -> newest (right); data 'prev' is the NEWER photo.
         if (e.key === 'ArrowRight') { e.preventDefault(); goRef.current('prev'); return; }
         if (e.key === 'ArrowLeft') { e.preventDefault(); goRef.current('next'); return; }
@@ -832,7 +741,7 @@
         h('div', { className: 'viewer-toolbar-spacer' }),
         // M8c.1 (U7): Apple's order. Trash stays visible and disabled (write feature).
         h('div', { className: 'viewer-group' },
-          h(ToolButton, { icon: 'info', label: 'Info', active: infoOpen, onClick: () => setInfoOpen((x) => !x) }),
+          h(ToolButton, { icon: 'info', label: 'Info', active: infoOpen, onClick: () => window.api.toggleInfo().catch(() => {}) }),
           h(ToolButton, { icon: 'share', label: 'Share', disabled: true }),
           h(ToolButton, { icon: 'heart', label: 'Favorite', disabled: true }),
           h(ToolButton, { icon: 'rotate', label: 'Rotate', disabled: true }),
@@ -882,11 +791,7 @@
         item, sheet: sheet - peopleH, height: PLACES_H, pinUrl: img ? img.url : null,
         onWheel: (e) => sheetWheelRef.current(e),
       }),
-      infoOpen && item && h(InfoPanel, {
-        item, top: toolbarH + 12,
-        fullDims: dims && dims.rank === 3 && !isVideo ? dims : null,
-        onClose: () => setInfoOpen(false),
-      }));
+      null); // M8c.2b: Info is its own window (info-window.js / info.js)
   }
 
   window.addEventListener('DOMContentLoaded', () => {

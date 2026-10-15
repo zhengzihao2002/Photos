@@ -118,6 +118,8 @@ function createMainWindow() {
   mainWindow.on('closed', () => {
     mainWindow = null;
   });
+  // M8c.2b: the Info window is a child of the current main window.
+  require('./info-window').attach(mainWindow);
 
   mainWindow.loadFile(path.join(__dirname, '..', 'renderer', 'index.html'));
 }
@@ -206,7 +208,7 @@ app.whenReady().then(() => {
   require('./index/source-monitor').start(); // M8b.7: automatic missing / found again
 
   app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createMainWindow();
+    if (!mainWindow) createMainWindow(); // M8c.2b: the Info window is a second window
   });
 });
 

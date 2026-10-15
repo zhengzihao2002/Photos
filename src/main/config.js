@@ -17,7 +17,9 @@
  *       "zoomLevel": number         // target row height in px (M3's grid zoom slider)
  *     },
  *     "viewer": {                   // added M5 (additive; old files fall back to defaults)
- *       "infoOpen": boolean         // Info panel visibility, remembered across launches
+ *       "infoOpen": boolean,        // unused since M8c.2 (Info is session-only); kept so old files load
+ *       "infoX": number | null,     // M8c.2b: Info window position (null = beside the main window)
+ *       "infoY": number | null
  *     }
  *   }
  *
@@ -62,7 +64,9 @@ function defaultConfig() {
       zoomLevel: 160, // target row height in px; see M3 renderer.js
     },
     viewer: {
-      infoOpen: false, // M5 Info panel visibility
+      infoOpen: false, // unused since M8c.2 (Info open state is session-only)
+      infoX: null,     // M8c.2b: Info window position, remembered across launches
+      infoY: null,
     },
     sidebar: {
       section: 'library', // M6: last selected sidebar section
@@ -116,6 +120,8 @@ function normalize(raw) {
       ...defaults.viewer,
       ...(raw.viewer && typeof raw.viewer === 'object' ? raw.viewer : {}),
       infoOpen: typeof raw.viewer?.infoOpen === 'boolean' ? raw.viewer.infoOpen : defaults.viewer.infoOpen,
+      infoX: Number.isFinite(raw.viewer?.infoX) ? raw.viewer.infoX : null,
+      infoY: Number.isFinite(raw.viewer?.infoY) ? raw.viewer.infoY : null,
     },
     sidebar: normalizeSidebar(raw.sidebar, defaults.sidebar),
     people: {

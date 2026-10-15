@@ -78,13 +78,6 @@ body {
 input, textarea, [contenteditable] {
   user-select: text;
 }
-/* The viewer's Info panel text can be selected and copied. */
-.viewer-info {
-  user-select: text;
-}
-.viewer-info button {
-  user-select: none;
-}
 
 .drag-region {
   position: absolute;
@@ -861,109 +854,6 @@ body.sidebar-hidden .viewer-toolbar {
 }
 .viewer-live-badge.is-playing { background: rgba(0, 0, 0, 0.65); }
 .viewer-live-video { position: absolute; inset: 0; pointer-events: none; }
-
-/* M5.8: Info panel — floating, translucent, follows system appearance */
-.viewer-info {
-  position: absolute;
-  right: 14px;
-  width: 280px;
-  max-height: calc(100% - 100px);
-  overflow-y: auto;
-  box-sizing: border-box;
-  padding: 12px 14px 14px;
-  border-radius: 12px;
-  font-size: 12px;
-  color: var(--text-primary);
-  background: rgba(246, 246, 246, 0.86);
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.18);
-  -webkit-backdrop-filter: blur(20px) saturate(1.4);
-  backdrop-filter: blur(20px) saturate(1.4);
-  -webkit-app-region: no-drag;
-  z-index: 4;
-  animation: viewer-in 140ms ease-out;
-}
-@media (prefers-color-scheme: dark) {
-  .viewer-info {
-    background: rgba(40, 40, 42, 0.86);
-    border-color: rgba(255, 255, 255, 0.1);
-    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
-  }
-}
-.viewer-info-head { display: flex; align-items: center; gap: 8px; }
-.viewer-info-name {
-  flex: 1;
-  min-width: 0;
-  font-size: 13px;
-  font-weight: 600;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.viewer-info-close {
-  appearance: none;
-  border: 0;
-  background: transparent;
-  color: var(--text-secondary);
-  font-size: 12px;
-  width: 22px;
-  height: 22px;
-  border-radius: 6px;
-  padding: 0;
-  cursor: default;
-}
-.viewer-info-close:hover { background: var(--divider); }
-.viewer-info-date { margin-top: 4px; }
-.viewer-info-note { margin-top: 2px; font-size: 11px; color: var(--text-secondary); font-style: italic; }
-.viewer-info-section {
-  margin-top: 10px;
-  padding-top: 10px;
-  border-top: 1px solid var(--divider);
-}
-.viewer-info-camera { font-weight: 600; }
-.viewer-info-sub { margin-top: 2px; color: var(--text-secondary); }
-.viewer-info-exposure {
-  margin-top: 8px;
-  display: flex;
-  border: 1px solid var(--divider);
-  border-radius: 7px;
-  overflow: hidden;
-}
-.viewer-info-exposure span {
-  flex: 1;
-  padding: 4px 2px;
-  text-align: center;
-  font-size: 11px;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-.viewer-info-exposure span + span { border-left: 1px solid var(--divider); }
-.viewer-info-row { display: flex; justify-content: space-between; gap: 12px; padding: 2px 0; }
-.viewer-info-key { color: var(--text-secondary); flex-shrink: 0; }
-.viewer-info-val { text-align: right; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
-.viewer-info-badges { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 6px; }
-.viewer-info-badge {
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.03em;
-  padding: 2px 7px;
-  border-radius: 999px;
-  background: var(--grid-placeholder-bg);
-  color: var(--text-secondary);
-}
-.viewer-info-finder {
-  margin-top: 12px;
-  width: 100%;
-  appearance: none;
-  border: 1px solid var(--divider);
-  background: transparent;
-  color: var(--text-primary);
-  font-size: 12px;
-  padding: 5px 0;
-  border-radius: 7px;
-  cursor: default;
-}
-.viewer-info-finder:hover { background: var(--grid-placeholder-bg); }
 
 /* ---- M6 (B.5): sidebar header row + album indicators ---------------- */
 .sb-header-row {

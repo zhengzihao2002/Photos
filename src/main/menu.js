@@ -72,7 +72,15 @@ function buildMenu(opts = {}) {
               },
             },
             { type: 'separator' },
-            { role: 'close' },
+            // M8c.2b: Cmd+W closes the Info window first when it is open (it never
+            // takes focus), otherwise the main window.
+            {
+              label: 'Close', accelerator: 'Command+W',
+              click: (menuItem, browserWindow) => {
+                const info = require('./info-window');
+                if (info.isOpen()) info.close(); else if (browserWindow) browserWindow.close();
+              },
+            },
           ],
         }]
       : []),
@@ -120,6 +128,10 @@ function buildMenu(opts = {}) {
       submenu: [
         { role: 'minimize' },
         { role: 'zoom' },
+        // M8c.2b: Window > Info (Cmd+I), as in Apple Photos. Handled here so it
+        // works in every section and whichever window has focus.
+        { type: 'separator' },
+        { label: 'Info', accelerator: 'Command+I', click: () => require('./info-window').toggle() },
         ...(isMac ? [{ type: 'separator' }, { role: 'front' }] : [{ role: 'close' }]),
       ],
     },

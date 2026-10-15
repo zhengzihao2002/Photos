@@ -2589,6 +2589,22 @@
   window.__PhotosGrid = Grid;
   // M5: viewer.js (a separate script loaded after this one) uses the shared stores.
   window.__PhotosStores = { selectionStore, viewerStore, navigationStore, modeStore, libraryChangeStore, sectionStore, filterStore, sidebarVisibleStore, scanStatusStore, noticeStore, progressStore, columnsStore, searchStore, kindStore, mapAreaStore, missingSourcesStore, personStore, peopleChangeStore, personViewStore, faceDisplayStore, addPeopleStore, groupStore, peopleEnabledStore };
+  // M8c.2b: tell the Info window which item to show -- the item open in the
+  // viewer, otherwise the grid selection, otherwise none. Sent only on change.
+  (function () {
+    let last;
+    const sync = () => {
+      const v = viewerStore.get();
+      const id = v && Number.isInteger(v.itemId) ? v.itemId : selectionStore.get();
+      const next = Number.isInteger(id) ? id : null;
+      if (next === last) return;
+      last = next;
+      window.api.setInfoItem(next).catch(() => {});
+    };
+    viewerStore.subscribe(sync);
+    selectionStore.subscribe(sync);
+    sync();
+  })();
   /**
    * M6 (B.5): drop folders from Finder onto the window to add them as
    * albums. Only paths are registered -- nothing is copied or moved. The
