@@ -66,6 +66,22 @@ body {
   flex-direction: row;
 }
 
+/* M8c.1: like a native Mac app, toolbar and grid text is not selectable;
+   text fields stay selectable and editable. */
+body {
+  user-select: none;
+}
+input, textarea, [contenteditable] {
+  user-select: text;
+}
+/* The viewer's Info panel text can be selected and copied. */
+.viewer-info {
+  user-select: text;
+}
+.viewer-info button {
+  user-select: none;
+}
+
 .drag-region {
   position: absolute;
   top: 0;
@@ -551,6 +567,7 @@ body.sidebar-hidden .viewer-toolbar {
   background: var(--content-bg);
   color: var(--text-primary);
   pointer-events: auto;
+  overflow: hidden; /* M8c.1: the stage may pass under the bar, never outside */
   animation: viewer-in 160ms ease-out;
 }
 .viewer.is-closing { animation: viewer-out 160ms ease-in forwards; }
@@ -573,9 +590,24 @@ body.sidebar-hidden .viewer-toolbar {
   display: flex;
   align-items: center;
   gap: 10px;
-  border-bottom: 1px solid var(--divider);
   -webkit-app-region: drag; /* overlay covers #content's drag strip */
   user-select: none;
+  z-index: 5; /* M8c.1 (U7): above the photo, which can pass under it */
+}
+/* M8c.1 (U7): frosted like the library bar (#toolbar::before), limited to the
+   bar's height so a fit-size photo's top edge stays sharp. No app-region
+   rule here: a no-drag rule would cancel window dragging (see U1). */
+.viewer-toolbar::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom,
+    color-mix(in srgb, var(--content-bg) 80%, transparent) 0%,
+    color-mix(in srgb, var(--content-bg) 60%, transparent) 100%);
+  -webkit-backdrop-filter: blur(14px) saturate(1.2);
+  backdrop-filter: blur(14px) saturate(1.2);
+  pointer-events: none;
+  z-index: -1;
 }
 
 .viewer-btn {
@@ -615,16 +647,40 @@ body.sidebar-hidden .viewer-toolbar {
 .viewer-title-time { font-size: 11px; color: var(--text-secondary); }
 .viewer-toolbar-spacer { flex: 1; }
 
+/* M8c.1 (U7): capsules in the library toolbar's pill style (.zoom-pill). */
 .viewer-group {
   -webkit-app-region: no-drag;
   display: inline-flex;
   align-items: center;
   gap: 2px;
-  padding: 2px;
-  border-radius: 9px;
-  background: var(--grid-placeholder-bg);
+  height: 30px;
+  box-sizing: border-box;
+  padding: 0 3px;
+  border-radius: 999px;
+  border: 1px solid var(--seg-border);
+  background: var(--seg-bg);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  backdrop-filter: blur(20px) saturate(1.4);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
-.viewer-group .viewer-btn { min-width: 34px; border-radius: 7px; }
+.viewer-group .viewer-btn { min-width: 34px; height: 24px; border-radius: 999px; }
+.viewer-group.is-round { width: 30px; padding: 0; justify-content: center; }
+.viewer-group.is-round .viewer-btn { min-width: 26px; width: 26px; }
+.viewer-group.is-zoom { gap: 4px; padding: 0 6px; }
+.viewer-zoom-step {
+  -webkit-app-region: no-drag;
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1;
+  width: 16px;
+  height: 24px;
+  padding: 0;
+  cursor: default;
+}
+.viewer-zoom-step:disabled { opacity: 0.45; }
 
 .viewer-zoom {
   -webkit-app-region: no-drag;
@@ -638,7 +694,7 @@ body.sidebar-hidden .viewer-toolbar {
   position: relative;
   flex: 1;
   min-height: 0;
-  overflow: hidden;
+  overflow: visible; /* M8c.1 (U7): a zoomed photo passes under the frosted bar */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1270,7 +1326,8 @@ body.drop-active::after {
   -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 55%, transparent 100%);
   mask-image: linear-gradient(to bottom, #000 0%, #000 55%, transparent 100%);
   pointer-events: none;
-  -webkit-app-region: no-drag;
+  /* M8c.1 (U1): no app-region here. A no-drag rule on this layer cancelled
+     dragging across the whole toolbar; it ignores clicks anyway. */
   z-index: -1; /* behind the controls, above the content (#toolbar is z-index 5) */
 }
 

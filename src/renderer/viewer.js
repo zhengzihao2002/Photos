@@ -51,13 +51,15 @@
   }
 
   // ── date title: capture_time_local is wall-clock 'YYYY-MM-DD HH:MM:SS' ─
+  // M8c.1 (U7): one line, date and time with seconds, in the system language
+  // and 12-hour form, as Apple's viewer title (e.g. 2026年5月9日 上午11:22:15).
   function formatTitle(s) {
-    const m = /^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})/.exec(s || '');
-    if (!m) return { date: '', time: '' };
-    const d = new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]);
+    const m = /^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?/.exec(s || '');
+    if (!m) return { date: '' };
+    const d = new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +(m[6] || 0));
     return {
-      date: d.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }),
-      time: d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }),
+      date: d.toLocaleString(undefined, { year: 'numeric', month: 'long', day: 'numeric',
+        hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true }),
     };
   }
 
@@ -673,6 +675,25 @@
       return () => { live = false; };
     }, [libVersion]);
 
+    // M8c.1 (U7): position line under the title ("998/998"), as in Apple Photos.
+    // getItemIndex is 0-based from the newest item, so position = n - index:
+    // the newest reads n/n and the oldest 1/n (verified against the library).
+    // Uses the same filter the viewer navigates by (trail override included).
+    const [pos, setPos] = useState(null);
+    useEffect(() => {
+      if (itemId == null) { setPos(null); return; }
+      let live = true;
+      const f = currentFilter();
+      Promise.all([
+        window.api.getItemIndex({ id: itemId, filter: f }),
+        window.api.getTotalCount({ filter: f }),
+      ]).then(([i, t]) => {
+        const n = typeof t === 'number' ? t : (t && typeof t.count === 'number' ? t.count : null);
+        if (live) setPos(typeof i === 'number' && n > 0 ? { i: n - i, n } : null);
+      }).catch(() => { if (live) setPos(null); });
+      return () => { live = false; };
+    }, [itemId, libVersion]);
+
     // Neighbors (M5.5): resolved on every item change.
     useEffect(() => {
       const empty = { prev: null, next: null, ready: false };
@@ -759,9 +780,12 @@
         // M6 (B.4): same sidebar toggle as the grid toolbar (renders only while
         // the sidebar is hidden).
         window.__PhotosSidebarToggleButton && h(window.__PhotosSidebarToggleButton),
-        h('div', { className: 'viewer-group' },
+        h('div', { className: 'viewer-group is-round' },
           h(ToolButton, { icon: 'back', label: 'Back', onClick: () => S.viewerStore.close() })),
         // Zoom slider (M5.6): log scale between fit and max.
+        // M8c.1 (U7): slider in a capsule with - / + steps, as in Apple Photos.
+        h('div', { className: 'viewer-group is-zoom' },
+          h('button', { className: 'viewer-zoom-step', 'aria-label': 'Zoom Out', title: 'Zoom Out', disabled: !sliderEnabled, onMouseDown: (e) => e.preventDefault(), onClick: () => { const g = geomRef.current; if (!g) return; const t = Math.max(0, Math.min(100, sliderValue(g) + (-20))) / 100; zoomRef.current.applyZoom(() => g.fitW * Math.pow(g.maxW / g.fitW, t)); } }, '−'),
         h('input', { className: 'viewer-zoom', type: 'range', min: 0, max: 100, step: 1,
           value: sliderValue(geom), disabled: !sliderEnabled, 'aria-label': 'Zoom', title: 'Zoom',
           onInput: (e) => {
@@ -770,19 +794,20 @@
             const t = Number(e.currentTarget.value) / 100;
             zoomRef.current.applyZoom(() => g.fitW * Math.pow(g.maxW / g.fitW, t));
           } }),
+          h('button', { className: 'viewer-zoom-step', 'aria-label': 'Zoom In', title: 'Zoom In', disabled: !sliderEnabled, onMouseDown: (e) => e.preventDefault(), onClick: () => { const g = geomRef.current; if (!g) return; const t = Math.max(0, Math.min(100, sliderValue(g) + (20))) / 100; zoomRef.current.applyZoom(() => g.fitW * Math.pow(g.maxW / g.fitW, t)); } }, '+')),
         h('div', { className: 'viewer-title' },
           h('div', { className: 'viewer-title-date' }, title.date),
-          h('div', { className: 'viewer-title-time' }, title.time)),
+          h('div', { className: 'viewer-title-time' }, pos ? pos.i + '/' + pos.n : '\u00a0')),
         h('div', { className: 'viewer-toolbar-spacer' }),
+        // M8c.1 (U7): Apple's order. Trash stays visible and disabled (write feature).
         h('div', { className: 'viewer-group' },
-          h(ToolButton, { icon: 'info', label: 'Info', active: infoOpen, onClick: () => setInfoOpen((x) => !x) })),
-        h('div', { className: 'viewer-group' },
+          h(ToolButton, { icon: 'info', label: 'Info', active: infoOpen, onClick: () => setInfoOpen((x) => !x) }),
+          h(ToolButton, { icon: 'share', label: 'Share', disabled: true }),
           h(ToolButton, { icon: 'heart', label: 'Favorite', disabled: true }),
           h(ToolButton, { icon: 'rotate', label: 'Rotate', disabled: true }),
-          h(ToolButton, { icon: 'edit', label: 'Edit', disabled: true })),
+          h(ToolButton, { icon: 'trash', label: 'Delete', disabled: true })),
         h('div', { className: 'viewer-group' },
-          h(ToolButton, { icon: 'share', label: 'Share', disabled: true }),
-          h(ToolButton, { icon: 'trash', label: 'Delete', disabled: true }))),
+          h(ToolButton, { icon: 'edit', label: 'Edit', disabled: true }))),
       h('div', { className: 'viewer-stage' + (geom && geom.zoomed ? ' is-zoomed' : '') + (panning ? ' is-panning' : ''), ref: stageRef,
         style: sheet > 0 ? { transform: 'translateY(' + (-sheet) + 'px)' } : undefined },
         isVideo && h(VideoPlayer, {
