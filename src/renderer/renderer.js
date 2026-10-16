@@ -1825,6 +1825,23 @@
   });
   sectionStore.subscribe(() => { modeSeenSection = sectionStore.get(); modeSeenMode = modeStore.get(); });
 
+  // M8c.4 (U15): Library reopens on the view last used (Years / Months /
+  // All Photos), as in Apple Photos. Saved in config.json (grid.libraryMode)
+  // while in Library; restored once at launch.
+  const LIBRARY_MODES = ['years', 'months', 'all'];
+  let libraryModeLoaded = false;
+  window.api.getConfig().then((c) => {
+    const saved = c && c.grid && c.grid.libraryMode;
+    libraryModeLoaded = true;
+    if (!LIBRARY_MODES.includes(saved) || saved === 'all') return;
+    sectionMemory.libraryMode = saved;
+    if (sectionStore.get() === 'library' && modeStore.get() === 'all' && !searchStore.get()) modeStore.set(saved);
+  }).catch(() => { libraryModeLoaded = true; });
+  modeStore.subscribe((m) => {
+    if (!libraryModeLoaded || sectionStore.get() !== 'library' || !LIBRARY_MODES.includes(m)) return;
+    window.api.updateConfig({ patch: { grid: { libraryMode: m } } }).catch(() => {});
+  });
+
   // M7.6: switching between the map and a map-area grid (same section).
   mapAreaStore.subscribe(() => {
     if (searchStore.get()) searchStore.set('');

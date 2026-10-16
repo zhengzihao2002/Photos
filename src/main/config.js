@@ -14,7 +14,8 @@
  *       "y": number | null
  *     },
  *     "grid": {
- *       "zoomLevel": number         // target row height in px (M3's grid zoom slider)
+ *       "zoomLevel": number,        // target row height in px (M3's grid zoom slider)
+ *       "libraryMode": string       // M8c.4: Library view last used: "years" | "months" | "all"
  *     },
  *     "viewer": {                   // added M5 (additive; old files fall back to defaults)
  *       "infoOpen": boolean,        // unused since M8c.2 (Info is session-only); kept so old files load
@@ -62,6 +63,7 @@ function defaultConfig() {
     },
     grid: {
       zoomLevel: 160, // target row height in px; see M3 renderer.js
+      libraryMode: 'all', // M8c.4 (U15): Library reopens on the view last used
     },
     viewer: {
       infoOpen: false, // unused since M8c.2 (Info open state is session-only)
@@ -115,6 +117,7 @@ function normalize(raw) {
       ...defaults.grid,
       ...(raw.grid && typeof raw.grid === 'object' ? raw.grid : {}),
       zoomLevel: typeof raw.grid?.zoomLevel === 'number' ? raw.grid.zoomLevel : defaults.grid.zoomLevel,
+      libraryMode: ['years', 'months', 'all'].includes(raw.grid?.libraryMode) ? raw.grid.libraryMode : defaults.grid.libraryMode,
     },
     viewer: {
       ...defaults.viewer,
