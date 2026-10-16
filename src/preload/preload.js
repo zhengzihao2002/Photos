@@ -162,7 +162,6 @@ contextBridge.exposeInMainWorld('api', {
   ensureDisplay: (payload) => ipcRenderer.invoke('media:ensure-display', payload),
   setDisplayWanted: (payload) => ipcRenderer.invoke('media:set-wanted', payload),
   showInFinder: (payload) => ipcRenderer.invoke('media:show-in-finder', payload),
-  showInFinder: (payload) => ipcRenderer.invoke('media:show-in-finder', payload),
 
   getConfig: () => ipcRenderer.invoke('config:get'),
   updateConfig: (payload) => ipcRenderer.invoke('config:update', payload),

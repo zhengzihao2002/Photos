@@ -185,13 +185,6 @@ app.whenReady().then(() => {
     if (require('fs').existsSync(devIcon)) app.dock.setIcon(devIcon);
   }
   app.setAboutPanelOptions({ applicationName: 'Photos', applicationVersion: app.getVersion() });
-  // M6 (B.9): app identity. In development the Dock icon is set here (the
-  // packaged app gets its name and icon from its own bundle, icon.icns).
-  if (!app.isPackaged && process.platform === 'darwin' && app.dock) {
-    const devIcon = require('path').join(__dirname, '..', '..', 'build', 'icon.png');
-    if (require('fs').existsSync(devIcon)) app.dock.setIcon(devIcon);
-  }
-  app.setAboutPanelOptions({ applicationName: 'Photos', applicationVersion: app.getVersion() });
   registerIpcHandlers();
   mediaProtocol.handle();   // M5: photos-media:// (ids only, Range-capable)
   displayService.init();    // M5: empties display-cache/.tmp, indexes cache (async)

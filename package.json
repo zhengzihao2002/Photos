@@ -11,7 +11,6 @@
     "preinstall": "[ \"$PHOTOS_DEV\" = \"1\" ] || { echo \"Use ./dev setup instead of npm install.\"; exit 1; }"
   },
   "devDependencies": {
-    "@electron/rebuild": "4.2.0",
     "electron": "44.4.1",
     "electron-builder": "26.15.3"
   },
@@ -71,6 +70,6 @@
     "ffmpeg-static": "5.3.0",
     "ffprobe-static": "3.1.0",
     "onnxruntime-node": "1.30.0",
-    "sharp": "0.35.4"
+    "sharp": "0.35.5"
   }
 }

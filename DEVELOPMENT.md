@@ -38,7 +38,7 @@ write to shared caches in the home folder.
   on the Mac is never used.
 - **Caches:** npm, the Electron download, and electron-builder are pointed at
   `.cache/`. Tools that write under the home folder with no setting to change it
-  (`ffmpeg-static`, `@electron/rebuild`) are given a private home folder,
+  (such as `ffmpeg-static`) are given a private home folder,
   `.cache/home/`, during `setup`, `dist`, `npm`, and `node`. `./dev start` uses
   the real home folder so the app behaves normally.
 - **No compiling:** package install steps are skipped for every npm command.

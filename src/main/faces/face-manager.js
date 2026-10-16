@@ -23,7 +23,6 @@ const STOP_TIMEOUT_MS = 8000;
 const bus = require('../window-bus'); // M8b.3
 
 let worker = null;
-let mainWindowRef = null;
 let gateTimer = null;
 let released = false;
 let restarts = 0;
@@ -95,8 +94,8 @@ function handleExit() {
   setTimeout(() => { if (worker == null && stopRequested === false) spawn(); }, RESTART_DELAY_MS);
 }
 
-function start({ mainWindow }) {
-  mainWindowRef = mainWindow || mainWindowRef;
+// M8c.8 (C3): events go through window-bus; any window argument callers pass is ignored.
+function start() {
   if (worker) return;
   stopRequested = false;
   restarts = 0;

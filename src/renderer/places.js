@@ -398,7 +398,6 @@
     const stack = []; // { el, api, hidden, below: { itemId, sheet, filter } }
     let base = null;  // { section, area } when the first layer opened
     let offs = [];
-    const realClose = S.viewerStore.close.bind(S.viewerStore);
     const top = () => stack[stack.length - 1] || null;
 
     function destroy(entry, fade) {
@@ -472,14 +471,16 @@
         S.viewerStore.open(entry.below.itemId);
       }, RESTORE_DELAY_MS);
     }
-    S.viewerStore.close = function () {
+    // M8c.8 (C8): through viewerStore's explicit hook (was: replacing close()).
+    // A photo opened from a layered Places page: closing goes back one step.
+    S.viewerStore.setCloseInterceptor(() => {
       const t = top();
       if (t && t.hidden) {
-        if (base && S.sectionStore.get() === base.section && S.mapAreaStore.get() === base.area) { returnToLayer(t); return undefined; }
+        if (base && S.sectionStore.get() === base.section && S.mapAreaStore.get() === base.area) { returnToLayer(t); return true; }
         clearAll();
       }
-      return realClose();
-    };
+      return false;
+    });
     const visibleTop = () => { const t = top(); return t && !t.hidden ? t : null; };
     return {
       open,

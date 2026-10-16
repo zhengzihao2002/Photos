@@ -22,7 +22,6 @@ const TASK_ID = 'thumbnail-generation';
 const bus = require('../window-bus'); // M8b.3
 
 let worker = null;
-let mainWindowRef = null;
 let restarts = 0;
 let stopRequested = false;
 let latestSnapshot = { current: 0, total: 0, errors: 0, message: null };
@@ -83,8 +82,8 @@ function handleUnexpectedExit() {
   setTimeout(() => { if (!worker && !stopRequested) spawn(); }, RESTART_DELAY_MS);
 }
 
-function start({ mainWindow }) {
-  mainWindowRef = mainWindow || mainWindowRef;
+// M8c.8 (C3): events go through window-bus; any window argument callers pass is ignored.
+function start() {
   if (worker) return;
   stopRequested = false;
   restarts = 0;

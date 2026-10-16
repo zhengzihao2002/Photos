@@ -173,7 +173,7 @@
   })();
 
   /**
-   * Active toolbar view mode: 'years' | 'months' | 'days' | 'all'.
+   * Active toolbar view mode: 'years' | 'months' | 'all' (a saved 'days' from before M8c falls back to 'months').
    * Same get/set/subscribe shape as the other stores.
    */
   const modeStore = (function () {
@@ -642,6 +642,7 @@
   const viewerStore = (function () {
     let value = null;
     let nextRequestId = 1;
+    let closeInterceptor = null; // M8c.8 (C8): see setCloseInterceptor
     const listeners = new Set();
     return {
       get: () => value,
@@ -649,7 +650,12 @@
         value = { itemId, requestId: nextRequestId++ };
         listeners.forEach((fn) => fn(value));
       },
+      // M8c.8 (C8): an explicit, documented close hook (used by the Places
+      // trail in places.js). If it returns true it handled the close (e.g.
+      // went back one step) and the viewer stays open.
+      setCloseInterceptor(fn) { closeInterceptor = typeof fn === 'function' ? fn : null; },
       close() {
+        if (closeInterceptor && closeInterceptor() === true) return;
         if (value === null) return;
         value = null;
         listeners.forEach((fn) => fn(null));
@@ -1645,72 +1651,9 @@
     return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
   }
 
-  function DayTile({ day, thumbPath }) {
-    const resolved = typeof thumbPath === 'string';
-    return h('div', { className: 'timeline-tile', onClick: () => navigateToPeriod({ date: day.date }) },
-      h('div', { className: 'timeline-tile-thumb' },
-        resolved && h('img', { src: 'file://' + thumbPath })),
-      h('div', { className: 'timeline-tile-label' }, formatFullDate(day.date)),
-      h('div', { className: 'timeline-tile-count' }, day.count + (day.count === 1 ? ' item' : ' items'))
-    );
-  }
-
-  /**
-   * Grouped by month (not year) -- keeps each scrollable section to a
-   * browsable size even for months with many distinct days. Not
-   * virtualized: confirmed acceptable at this library's real scale
-   * (a few hundred distinct days at most). Revisit with basic
-   * scroll-position virtualization if a much larger library proves slow.
-   */
-  function DaysView() {
-    const [days, setDays] = useState(null);
-    const [thumbs, setThumbs] = useState({});
-
-    useEffect(() => {
-      let cancelled = false;
-      const tl = window.createTimelineDataLayer({ api: window.api });
-      tl.loadDays().then(async (rows) => {
-        if (cancelled) return;
-        setDays(rows);
-        const ids = rows.map((r) => r.coverItemId).filter((id) => id != null);
-        if (ids.length === 0) return;
-        const result = await window.api.getThumbnailPaths({ ids, size: 'sm' });
-        if (!cancelled) setThumbs(result);
-      });
-      return () => { cancelled = true; tl.destroy(); };
-    }, []);
-
-    if (days === null) return h('div', { className: 'timeline-loading' }, 'Loading days\u2026');
-    if (days.length === 0) return h('div', { className: 'timeline-loading' }, 'No photos yet.');
-
-    const groups = [];
-    for (const d of days) {
-      const monthKey = d.date.slice(0, 7); // 'YYYY-MM'
-      const last = groups[groups.length - 1];
-      if (last && last.monthKey === monthKey) last.days.push(d);
-      else groups.push({ monthKey, days: [d] });
-    }
-
-    function monthLabel(monthKey) {
-      const [y, m] = monthKey.split('-').map(Number);
-      return new Date(Date.UTC(y, m - 1, 1))
-        .toLocaleDateString('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' });
-    }
-
-    return h('div', { className: 'timeline-scroll' },
-      groups.map((g) => h('div', { key: g.monthKey, className: 'timeline-year-group' },
-        h('div', { className: 'timeline-year-header' }, monthLabel(g.monthKey)),
-        h('div', { className: 'timeline-grid' },
-          g.days.map((d) => h(DayTile, { key: d.date, day: d, thumbPath: thumbs[d.coverItemId] }))
-        )
-      ))
-    );
-  }
-
   function TimelineView({ mode }) {
     if (mode === 'years') return h(YearsView);
     if (mode === 'months') return h(MonthsView);
-    if (mode === 'days') return h(DaysView);
     return null;
   }
 
@@ -1759,14 +1702,31 @@
     clearTimeout(viewerSaveTimer);
     const id = v ? v.itemId : null;
     viewerSaveTimer = setTimeout(() => {
-      window.api.updateConfig({ patch: { viewer: { openItemId: id } } })
+      // M8c.8: also the person page the photo is on, so a restart can reopen both.
+      const pid = id != null && sectionStore.get() === 'people' && personStore.get() ? personStore.get().id : null;
+      window.api.updateConfig({ patch: { viewer: { openItemId: id, openPersonId: pid } } })
         .catch((err) => console.error('Saving the open photo failed:', err));
     }, 300);
   });
   let pendingViewerRestore = null; // saved item id to reopen, or null
+  let pendingPersonRestore = null; // M8c.8: the person page that photo was on, or null
   let sectionRestoreDone = false;
   let gridReadyForRestore = false;
+  // K13: the photo is reopened only on the page restored at launch. Pages
+  // without a photo grid there (People list, Map, Years / Months) drop it, as
+  // does any navigation before it opened -- it never fires later elsewhere.
+  function restoredPageHasNoGrid() {
+    const sec = sectionStore.get();
+    return (sec === 'people' && personStore.get() == null) || sec === 'map' || (sec === 'library' && modeStore.get() !== 'all');
+  }
   async function tryRestoreViewer() {
+    // M8c.8: on People, first reopen the person page the photo was on.
+    if (pendingPersonRestore != null && sectionRestoreDone) {
+      const pid = pendingPersonRestore;
+      pendingPersonRestore = null;
+      if (sectionStore.get() === 'people' && personStore.get() == null && pendingViewerRestore != null) personStore.set({ id: pid });
+    }
+    if (pendingViewerRestore != null && sectionRestoreDone && restoredPageHasNoGrid()) { pendingViewerRestore = null; return; }
     if (pendingViewerRestore == null || !sectionRestoreDone || !gridReadyForRestore) return;
     const id = pendingViewerRestore;
     pendingViewerRestore = null; // one attempt only
@@ -1781,6 +1741,8 @@
     }
   }
   window.addEventListener('photos:section-restored', () => { sectionRestoreDone = true; tryRestoreViewer(); });
+  sectionStore.subscribe(() => { if (sectionRestoreDone) pendingViewerRestore = null; }); // K13
+  modeStore.subscribe(() => { if (sectionRestoreDone && restoredPageHasNoGrid()) pendingViewerRestore = null; }); // K13
 
   const sectionMemory = { libraryMode: 'all', topItemIndex: new Map() };
   let gridTopItemIndexGetter = null; // registered by the mounted Grid
@@ -1793,7 +1755,9 @@
     if (searchStore.get()) searchStore.set(''); // B.8: a new section starts unsearched
     if (kindStore.get() !== 'all') kindStore.set('all'); // view filter resets per section
     if (viewerStore.get() !== null) viewerStore.close();
-    if (gridTopItemIndexGetter) {
+    // M8c.8: remember positions only after the launch restore; the automatic
+    // switch at startup would record a grid that has not settled yet (the top).
+    if (sectionRestoreDone && gridTopItemIndexGetter) {
       const idx = gridTopItemIndexGetter();
       if (idx != null) sectionMemory.topItemIndex.set(prev, idx);
     }
@@ -1810,7 +1774,8 @@
     if (scrollEl) scrollEl.scrollTop = 0;
     const nextMode = next === 'library' ? sectionMemory.libraryMode : 'all';
     const remembered = sectionMemory.topItemIndex.get(next);
-    pendingSectionAnchor = nextMode === 'all' && remembered != null ? remembered : null;
+    // M8c.8: no remembered position -> the newest item (index 0 = the true bottom, U4).
+    pendingSectionAnchor = nextMode === 'all' ? (remembered != null ? remembered : 0) : null;
     modeStore.set(nextMode);
   });
 
@@ -2122,6 +2087,11 @@
         const headerRow = rowIdx > 0 ? layoutRef.current.getRowAt(rowIdx - 1) : null;
         const targetRow = (headerRow && headerRow.type === 'header') ? headerRow : itemsRow;
         if (!targetRow) return false;
+        // M8c.8: a target within one row of the bottom means the bottom. Its row
+        // top can sit just below the scroll limit after the layout settles
+        // (resize), which left the view a part-row short of the footer.
+        const maxTop = scrollEl.scrollHeight - scrollEl.clientHeight;
+        if (targetRow.top >= maxTop - targetRow.height) { scrollEl.scrollTop = scrollEl.scrollHeight; return true; }
         scrollEl.scrollTop = targetRow.top;
         return true;
       }
@@ -2247,13 +2217,19 @@
 
       const resizeObserver = new ResizeObserver(() => {
         if (!scrollEl || !layoutRef.current) return;
+        // M8c.8: at (or within a row of) the bottom before the re-layout -> stay at
+        // the true bottom after it; keeping the top row there left a part-row short.
+        const rowAtBottom = layoutRef.current.getRowAt(layoutRef.current.getRowCount() - 1);
+        const wasAtBottom = scrollEl.scrollTop >= scrollEl.scrollHeight - scrollEl.clientHeight - (rowAtBottom ? rowAtBottom.height : 2);
         const currentRowIdx = layoutRef.current.findRowContainingOffset(scrollEl.scrollTop);
         const rowAtTop = layoutRef.current.getRowAt(currentRowIdx);
         const anchorItemIndex = rowAtTop && rowAtTop.type === 'items' ? rowAtTop.itemIndices[0] : null;
 
         computeAndSetLayout(scrollEl.clientWidth);
 
-        if (anchorItemIndex != null) {
+        if (wasAtBottom) {
+          scrollEl.scrollTop = scrollEl.scrollHeight;
+        } else if (anchorItemIndex != null) {
           const newRowIdx = layoutRef.current.getRowIndexForItem(anchorItemIndex);
           const newRow = newRowIdx !== -1 ? layoutRef.current.getRowAt(newRowIdx) : null;
           if (newRow) scrollEl.scrollTop = newRow.top;
@@ -2841,6 +2817,7 @@
         if (cfg && cfg.grid && typeof cfg.grid.columns === 'number') columnsStore.set(cfg.grid.columns, { persist: false });
         if (cfg && cfg.viewer && Number.isInteger(cfg.viewer.openItemId)) {
           pendingViewerRestore = cfg.viewer.openItemId; // B.6h
+          pendingPersonRestore = Number.isInteger(cfg.viewer.openPersonId) ? cfg.viewer.openPersonId : null; // M8c.8
           tryRestoreViewer();
         }
       })

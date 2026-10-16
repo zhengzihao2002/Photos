@@ -48,7 +48,7 @@
  *
  * ── Dev vs. production ─────────────────────────────────────────────────
  *
- * In development (`npm start`, running from source), there is no .app
+ * In development (`./dev start`, running from source), there is no .app
  * bundle. We instead use a `.dev-data` folder inside the project root
  * (app.getAppPath() reliably points at the project root when not packaged).
  * `.dev-data` is git-ignored and never shipped.

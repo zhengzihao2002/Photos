@@ -423,13 +423,6 @@
     const watch = (el) => { if (el && observer.current && el.dataset.watched !== '1') { el.dataset.watched = '1'; observer.current.observe(el); } };
 
     const changed = () => S.peopleChangeStore.bump();
-    async function removeFaces(ids) {
-      const n2 = ids.length;
-      if (window.confirm('Remove ' + (n2 === 1 ? 'this face' : n2 + ' faces') + ' from ' + name + '?') === false) return;
-      try { for (const id of ids) await window.api.removeFaceFromPerson(personId, id); } catch (err) { S.noticeStore.set('Could not remove: ' + err.message); }
-      setSelected([]);
-      changed();
-    }
     async function removeGroup(g) {
       if (window.confirm('These ' + g.faceCount + ' faces are not ' + name + '? They will become a separate person.') === false) return;
       try { await window.api.removeClusterFromPerson(personId, g.clusterId); } catch (err) { S.noticeStore.set('Could not remove the group: ' + err.message); }

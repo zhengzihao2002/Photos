@@ -59,23 +59,9 @@
       return months.map((m, i) => ({ ...m, coverItemId: covers[i] }));
     }
 
-    async function loadDays() {
-      const rows = await api.getCountsByDate({ filter: null });
-      if (destroyed) return [];
-      const days = rows
-        .map((r) => {
-          const [y, m, d] = r.date.split('-').map(Number);
-          return { date: r.date, count: r.count, y, m, d };
-        })
-        .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
-      const covers = await resolveCovers(days.map((x) => ymd(x.y, x.m, x.d + 1)));
-      if (destroyed) return [];
-      return days.map((x, i) => ({ date: x.date, count: x.count, coverItemId: covers[i] }));
-    }
-
     function destroy() { destroyed = true; }
 
-    return { loadYears, loadMonths, loadDays, destroy };
+    return { loadYears, loadMonths, destroy };
   }
 
   window.createTimelineDataLayer = createTimelineDataLayer;
