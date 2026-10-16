@@ -15,6 +15,7 @@
  */
 
 const path = require('path');
+const { buildSelectionClause } = require('./selection-sql'); // M12.2
 
 const BASE_CLAUSE = 'is_deleted = 0 AND is_live_photo_component = 0 AND (burst_id IS NULL OR is_burst_cover = 1)';
 
@@ -116,6 +117,9 @@ function buildFilterSql(filter) {
         const kind = seg.slice('kind:'.length);
         if (!Object.prototype.hasOwnProperty.call(KIND_CLAUSES, kind)) throw new Error(`Unknown kind: ${kind}`);
         sql += ' AND ' + KIND_CLAUSES[kind];
+      } else if (seg.startsWith('sel:')) {
+        // M12.2: grid selection token, strictly validated in selection-sql.js.
+        sql += ' AND ' + buildSelectionClause(seg.slice('sel:'.length));
       } else {
         throw new Error(`Unknown filter segment: ${seg}`);
       }
