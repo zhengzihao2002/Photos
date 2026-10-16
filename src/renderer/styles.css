@@ -1509,10 +1509,20 @@ body.drop-active::after {
   transition: opacity 400ms ease-in;
 }
 
-/* M8c.2 (U9): discrete zoom steps (Cmd +/-/0, the - / + buttons) glide;
-   pinch and slider dragging never set is-zoom-anim, so they stay immediate. */
-.viewer-stage.is-zoom-anim .viewer-img {
-  transition: width 250ms cubic-bezier(0.2, 0.8, 0.2, 1),
-              height 250ms cubic-bezier(0.2, 0.8, 0.2, 1),
-              transform 250ms cubic-bezier(0.2, 0.8, 0.2, 1);
-}
+
+/* U10: open / close zoom (viewer.js runZoom). While the photo grows from or
+   shrinks into its tile, the backdrop and the other viewer parts fade, so the
+   grid shows around the photo. Replaces the plain fade/scale in these cases. */
+@keyframes viewer-bg-in { from { background-color: transparent; } to { background-color: var(--content-bg); } }
+@keyframes viewer-bg-out { from { background-color: var(--content-bg); } to { background-color: transparent; } }
+@keyframes viewer-part-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes viewer-part-out { from { opacity: 1; } to { opacity: 0; } }
+.viewer.is-zoom-open { animation: viewer-bg-in 300ms ease-out; }
+.viewer.is-zoom-open > :not(.viewer-stage),
+.viewer.is-zoom-open .viewer-stage > :not(.viewer-img) { animation: viewer-part-in 300ms ease-out; }
+.viewer.is-zoom-open .viewer-img:not(.is-sized) { visibility: hidden; } /* never flash before the zoom starts */
+.viewer.is-zoom-close { animation: viewer-bg-out 200ms ease-out forwards; }
+/* After the zoom-in: no animation, so the plain viewer-in fade never replays (no flash). */
+.viewer.is-zoom-done:not(.is-zoom-close):not(.is-closing) { animation: none; }
+.viewer.is-zoom-close > :not(.viewer-stage),
+.viewer.is-zoom-close .viewer-stage > :not(.viewer-img) { animation: viewer-part-out 160ms ease-out forwards; }

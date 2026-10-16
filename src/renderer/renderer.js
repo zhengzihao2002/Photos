@@ -2622,6 +2622,7 @@
           key: itemIndex,
           className: 'tile-slot',
           'data-idx': itemIndex,
+          'data-id': item && !item.__placeholder ? item.id : undefined, // U10: the viewer zooms from / to this tile
           onContextMenu: item.__placeholder ? undefined : (e) => openPhotoContextMenu(e, item),
           style: { position: 'absolute', top: row.top + 'px', left: x + 'px', width: w + 'px', height: row.height + 'px' },
         }, h(Tile, {

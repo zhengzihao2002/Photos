@@ -19,7 +19,7 @@
  */
 (function () {
   const { h, render } = window.preact;
-  const { useState, useEffect, useRef } = window.preactHooks;
+  const { useState, useEffect, useRef, useLayoutEffect } = window.preactHooks;
   const S = window.__PhotosStores;
   const CLOSE_ANIM_MS = 160;
   const FULL_DELAY_MS = 150;   // settle time before the full-quality load (keeps rapid flipping cheap)
@@ -51,6 +51,39 @@
   }
 
   // ── date title: capture_time_local is wall-clock 'YYYY-MM-DD HH:MM:SS' ─
+  // U10: open / close zoom, as in Apple Photos. The photo starts over its grid
+  // tile (cropped square like the tile) and grows to its viewer size; on close
+  // it shrinks back into the tile. Only transform and clip-path animate.
+  const ZOOM_EASE = 'cubic-bezier(0.2, 0.8, 0.2, 1)';
+  function canZoom() {
+    return !(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  }
+  // The item's grid tile, if it is on screen below the toolbar; else null.
+  function findTileRect(id) {
+    const sc = document.getElementById('grid-scroll');
+    const t = sc && sc.querySelector('.tile-slot[data-id="' + Number(id) + '"]');
+    if (!t) return null;
+    const r = t.getBoundingClientRect(), b = sc.getBoundingClientRect();
+    if (r.width < 4 || r.bottom <= b.top + 56 || r.top >= b.bottom) return null;
+    return r;
+  }
+  // dir 'in': tile -> viewer; 'out': viewer -> tile (held at the end).
+  function runZoom(el, T, dir, done) {
+    const F = el.getBoundingClientRect();
+    if (!F.width || !F.height) { if (done) done(); return; }
+    const k = Math.max(T.width / F.width, T.height / F.height); // cover the tile
+    const dx = (T.left + T.width / 2) - (F.left + F.width / 2);
+    const dy = (T.top + T.height / 2) - (F.top + F.height / 2);
+    const base = el.style.transform || '';
+    const ix = Math.max(0, (F.width - T.width / k) / 2), iy = Math.max(0, (F.height - T.height / k) / 2);
+    const small = { transform: 'translate(' + dx + 'px,' + dy + 'px) ' + base + ' scale(' + k + ')',
+      clipPath: 'inset(' + iy + 'px ' + ix + 'px round ' + (4 / k) + 'px)' };
+    const big = { transform: base || 'none', clipPath: 'inset(0px 0px round 0px)' };
+    const anim = el.animate(dir === 'in' ? [small, big] : [big, small],
+      { duration: dir === 'in' ? 300 : 260, easing: ZOOM_EASE, fill: dir === 'out' ? 'forwards' : 'none' });
+    anim.onfinish = () => { if (done) done(); };
+  }
+
   // M8c.1 (U7): one line, date and time with seconds, in the system language
   // and 12-hour form, as Apple's viewer title (e.g. 2026年5月9日 上午11:22:15).
   function formatTitle(s) {
@@ -238,7 +271,12 @@
 
   function Viewer() {
     const [state, setState] = useState(null);          // { itemId, requestId } | null
-    const [closing, setClosing] = useState(false);
+    const [closing, setClosing] = useState(false); // false | true (fade) | 'zoom' (U10)
+    const [zoomOpen, setZoomOpen] = useState(false); // U10: opening by zooming from the tile
+    const imgElRef = useRef(null);
+    const zoomFromRef = useRef(null);  // { id, rect } until the open zoom has started
+    const zoomTokenRef = useRef(0);    // invalidates pending close-zoom frames
+    const zoomOpenTimer = useRef(null);
     const [item, setItem] = useState(null);
     const [img, setImg] = useState(null);        // { url, rank } rank: 1 sm, 2 md, 3 full
     const [notice, setNotice] = useState(null);  // string | null
@@ -278,16 +316,39 @@
     // Open/close from the store.
     useEffect(() => S.viewerStore.subscribe((v) => {
       clearTimeout(closeTimer.current);
+      zoomTokenRef.current += 1;
+      const imgEl = imgElRef.current;
+      if (imgEl && imgEl.getAnimations) imgEl.getAnimations().forEach((a) => a.cancel());
       const sess = sessionRef.current;
       if (v) {
-        if (sess.openedId == null) sess.openedId = v.itemId; // first open of a session
+        if (sess.openedId == null) {                          // first open of a session
+          sess.openedId = v.itemId;
+          const rect = canZoom() ? findTileRect(v.itemId) : null; // U10: zoom from the tile
+          zoomFromRef.current = rect ? { id: v.itemId, rect } : null;
+          setZoomOpen(rect ? 'zooming' : false); // false | 'zooming' | 'done'
+          clearTimeout(zoomOpenTimer.current);
+          if (rect) zoomOpenTimer.current = setTimeout(() => { zoomFromRef.current = null; setZoomOpen('done'); }, 1200);
+        }
         sess.lastId = v.itemId;                              // arrows also arrive as open()
         setClosing(false); setState(v); return;
       }
+      const closingId = sess.lastId;
       returnToGrid(sess.openedId, sess.lastId);
       sessionRef.current = { openedId: null, lastId: null };
-      setClosing(true);
-      closeTimer.current = setTimeout(() => { setState(null); setClosing(false); }, CLOSE_ANIM_MS);
+      const finish = () => { setState(null); setClosing(false); };
+      const fade = () => { setClosing(true); closeTimer.current = setTimeout(finish, CLOSE_ANIM_MS); };
+      // U10: shrink back into the tile once the grid has scrolled it into view.
+      if (!imgEl || !imgEl.classList.contains('is-sized') || !canZoom()) { fade(); return; }
+      setClosing('zoom');
+      const token = zoomTokenRef.current;
+      let tries = 0;
+      const step = () => {
+        if (token !== zoomTokenRef.current) return;
+        const rect = findTileRect(closingId);
+        if (rect) { runZoom(imgEl, rect, 'out', () => { if (token === zoomTokenRef.current) finish(); }); return; }
+        if (++tries < 10) requestAnimationFrame(step); else fade();
+      };
+      requestAnimationFrame(step);
     }), []);
 
     // Progressive load: sm (instant) -> md (1536px) -> full quality.
@@ -438,19 +499,16 @@
     }, [isOpen]);
 
     // Zoom toward an anchor point (stage-centre-relative px), clamped.
-    // M8c.2 (U9): discrete zoom steps glide (see .is-zoom-anim in styles.css);
-    // pinch and slider dragging stay immediate. Kept in state so a re-render
-    // (e.g. fit <-> zoomed) cannot strip the class mid-animation.
-    const [zoomAnim, setZoomAnim] = useState(false);
-    const zoomAnimTimerRef = useRef(null);
+    // M8c.2 (U9): discrete zoom steps (Cmd +/-/0, the - / + buttons) glide;
+    // pinch and slider dragging stay immediate. FLIP: remember the photo's
+    // rect here; after the re-render a transform-only animation eases it from
+    // there (see the layout effect below). Animating width/height instead made
+    // the photo shake (whole-pixel layout vs fractional position).
+    const zoomFlipRef = useRef(null);
     function applyZoom(targetFn, ax = 0, ay = 0, animate = false) {
       const g = geomRef.current;
       if (!g) return;
-      if (animate) {
-        clearTimeout(zoomAnimTimerRef.current);
-        setZoomAnim(true);
-        zoomAnimTimerRef.current = setTimeout(() => setZoomAnim(false), 300);
-      }
+      if (animate && imgElRef.current && canZoom()) zoomFlipRef.current = imgElRef.current.getBoundingClientRect();
       setView((v) => {
         const curW = v.fit ? g.fitW : Math.min(Math.max(v.dw, g.fitW), g.maxW);
         const curPx = v.fit ? 0 : v.px, curPy = v.fit ? 0 : v.py;
@@ -473,6 +531,31 @@
     }
     zoomRef.current = { applyZoom, panBy };
     itemRef.current = item;
+    // U10: start the open zoom on the first commit where the photo is sized.
+    useLayoutEffect(() => {
+      const z = zoomFromRef.current, el = imgElRef.current;
+      if (!z || !el || !itemRef.current || itemRef.current.id !== z.id || !el.classList.contains('is-sized')) return;
+      zoomFromRef.current = null;
+      clearTimeout(zoomOpenTimer.current);
+      runZoom(el, z.rect, 'in', () => setZoomOpen('done')); // 'done': no animation left to replay
+    });
+    // U9: play a pending zoom step as a transform-only animation (FLIP).
+    useLayoutEffect(() => {
+      const old = zoomFlipRef.current, el = imgElRef.current;
+      if (!old) return;
+      zoomFlipRef.current = null;
+      if (!el) return;
+      const neu = el.getBoundingClientRect();
+      if (!neu.width || !old.width) return;
+      const k = old.width / neu.width;
+      const dx = (old.left + old.width / 2) - (neu.left + neu.width / 2);
+      const dy = (old.top + old.height / 2) - (neu.top + neu.height / 2);
+      if (Math.abs(k - 1) < 0.001 && Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) return;
+      const base = el.style.transform || '';
+      el.getAnimations().forEach((a) => a.cancel());
+      el.animate([{ transform: 'translate(' + dx + 'px,' + dy + 'px) ' + base + ' scale(' + k + ')' },
+        { transform: base || 'none' }], { duration: 250, easing: ZOOM_EASE });
+    });
     const zoomable = () => !!geomRef.current && !(itemRef.current && itemRef.current.media_type === 'video');
 
     // M7.7: scroll rule shared by the stage and the Places panel. Returns true
@@ -714,7 +797,7 @@
     } : null;
     const sliderEnabled = !!geom && geom.maxW > geom.fitW + 1 && !(item && item.media_type === 'video');
 
-    return h('div', { className: 'viewer' + (closing ? ' is-closing' : '') },
+    return h('div', { className: 'viewer' + (closing === 'zoom' ? ' is-zoom-close' : closing ? ' is-closing' : '') + (zoomOpen === 'zooming' ? ' is-zoom-open' : zoomOpen === 'done' ? ' is-zoom-done' : '') },
       h('div', { className: 'viewer-toolbar', style: { height: toolbarH + 'px' } },
         // M6 (B.4): same sidebar toggle as the grid toolbar (renders only while
         // the sidebar is hidden).
@@ -748,13 +831,14 @@
           h(ToolButton, { icon: 'trash', label: 'Delete', disabled: true })),
         h('div', { className: 'viewer-group' },
           h(ToolButton, { icon: 'edit', label: 'Edit', disabled: true }))),
-      h('div', { className: 'viewer-stage' + (geom && geom.zoomed ? ' is-zoomed' : '') + (panning ? ' is-panning' : '') + (zoomAnim ? ' is-zoom-anim' : ''), ref: stageRef,
+      h('div', { className: 'viewer-stage' + (geom && geom.zoomed ? ' is-zoomed' : '') + (panning ? ' is-panning' : ''), ref: stageRef,
         style: sheet > 0 ? { transform: 'translateY(' + (-sheet) + 'px)' } : undefined },
         isVideo && h(VideoPlayer, {
           key: media.url, url: media.url, poster: img ? img.url : null, apiRef: videoApiRef,
           onError: () => { setMedia((m) => (m ? { ...m, kind: 'unplayable-video' } : m)); setNotice("This video format can't be played"); },
         }),
         img && !isVideo && h('img', {
+          ref: imgElRef,
           className: 'viewer-img' + (geom ? ' is-sized' : ''),
           src: img.url, 'data-rank': img.rank, 'data-scale': geom ? geom.scale.toFixed(3) : '',
           draggable: false, alt: '',
