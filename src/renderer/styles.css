@@ -1534,13 +1534,17 @@ body.drop-active::after {
 @keyframes viewer-part-out { from { opacity: 1; } to { opacity: 0; } }
 .viewer.is-zoom-open { animation: viewer-bg-in 300ms ease-out; }
 .viewer.is-zoom-open > :not(.viewer-stage),
-.viewer.is-zoom-open .viewer-stage > :not(.viewer-img) { animation: viewer-part-in 300ms ease-out; }
+.viewer.is-zoom-open .viewer-stage > :not(.viewer-img):not(.viewer-video-wrap),
+.viewer.is-zoom-open .viewer-vbar { animation: viewer-part-in 300ms ease-out; }
+/* U10 (video): the video zooms like a photo; hidden until its zoom starts. */
+.viewer.is-zoom-open .viewer-video:not(.is-zoom-run) { visibility: hidden; }
 .viewer.is-zoom-open .viewer-img:not(.is-sized) { visibility: hidden; } /* never flash before the zoom starts */
 .viewer.is-zoom-close { animation: viewer-bg-out 200ms ease-out forwards; }
 /* After the zoom-in: no animation, so the plain viewer-in fade never replays (no flash). */
 .viewer.is-zoom-done:not(.is-zoom-close):not(.is-closing) { animation: none; }
 .viewer.is-zoom-close > :not(.viewer-stage),
-.viewer.is-zoom-close .viewer-stage > :not(.viewer-img) { animation: viewer-part-out 160ms ease-out forwards; }
+.viewer.is-zoom-close .viewer-stage > :not(.viewer-img):not(.viewer-video-wrap),
+.viewer.is-zoom-close .viewer-vbar { animation: viewer-part-out 160ms ease-out forwards; }
 
 /* U16: Apple-style Live badge (pill). */
 .tile-live-badge, .viewer-live-badge {
@@ -1565,3 +1569,10 @@ body.drop-active::after {
 
 /* M8c.7 (K8): Years / Months views fade in like the grids (no pop). */
 .timeline-scroll { animation: tileFadeIn 180ms ease-out; }
+
+/* U10: waiting for the zoom to start (a video arrives ~0.2 s after opening):
+   nothing fades yet, so the grid does not darken before the zoom begins. */
+.viewer.is-zoom-wait { animation: none; background-color: transparent; }
+.viewer.is-zoom-wait > :not(.viewer-stage),
+.viewer.is-zoom-wait .viewer-stage > :not(.viewer-img):not(.viewer-video-wrap),
+.viewer.is-zoom-wait .viewer-vbar { animation: none; opacity: 0; }

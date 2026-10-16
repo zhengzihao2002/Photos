@@ -72,20 +72,41 @@
     return null;
   }
   // dir 'in': tile -> viewer; 'out': viewer -> tile (held at the end).
-  function runZoom(el, T, dir, done) {
-    const F = el.getBoundingClientRect();
-    if (!F.width || !F.height) { if (done) done(); return; }
+  // F0 (optional): the visible picture inside el -- a video's fitted frame
+  // (object-fit: contain, centred); defaults to el's own box (photos).
+  function runZoom(el, T, dir, done, F0) {
+    const E = el.getBoundingClientRect();
+    const F = F0 || E;
+    if (!F.width || !F.height || !E.width || !E.height) { if (done) done(); return null; }
     const k = Math.max(T.width / F.width, T.height / F.height); // cover the tile
     const dx = (T.left + T.width / 2) - (F.left + F.width / 2);
     const dy = (T.top + T.height / 2) - (F.top + F.height / 2);
     const base = el.style.transform || '';
-    const ix = Math.max(0, (F.width - T.width / k) / 2), iy = Math.max(0, (F.height - T.height / k) / 2);
+    const ix = Math.max(0, (E.width - T.width / k) / 2), iy = Math.max(0, (E.height - T.height / k) / 2); // in el's own box
     const small = { transform: 'translate(' + dx + 'px,' + dy + 'px) ' + base + ' scale(' + k + ')',
       clipPath: 'inset(' + iy + 'px ' + ix + 'px round ' + (4 / k) + 'px)' };
     const big = { transform: base || 'none', clipPath: 'inset(0px 0px round 0px)' };
     const anim = el.animate(dir === 'in' ? [small, big] : [big, small],
       { duration: dir === 'in' ? 300 : 260, easing: ZOOM_EASE, fill: dir === 'out' ? 'forwards' : 'none' });
     anim.onfinish = () => { if (done) done(); };
+    return anim;
+  }
+  // U10: what to zoom -- the sized photo, or the video with its fitted frame
+  // (from the video's own size, or the item's before it has loaded).
+  function zoomTarget(imgEl, stageEl, item) {
+    // A video item is shown first as its thumbnail (a photo), then replaced by
+    // the <video> about 0.2 s later: the thumbnail starts the zoom at once and
+    // the video continues it from the same point (hand-off, see the layout effect).
+    const isVideo = !!item && item.media_type === 'video';
+    const sizedImg = imgEl && imgEl.isConnected && imgEl.classList.contains('is-sized') ? imgEl : null;
+    if (!isVideo) return sizedImg ? { el: sizedImg, F: null } : null;
+    const v = stageEl && stageEl.querySelector('video.viewer-video');
+    if (!v) return sizedImg ? { el: sizedImg, F: null, standIn: true } : null;
+    const E = v.getBoundingClientRect();
+    const vw = v.videoWidth || (item && item.width) || 0, vh = v.videoHeight || (item && item.height) || 0;
+    if (!E.width || !E.height || !vw || !vh) return null;
+    const s = Math.min(E.width / vw, E.height / vh), w = vw * s, hh = vh * s;
+    return { el: v, F: { left: E.left + (E.width - w) / 2, top: E.top + (E.height - hh) / 2, width: w, height: hh } };
   }
 
   // M8c.1 (U7): one line, date and time with seconds, in the system language
@@ -276,9 +297,12 @@
   function Viewer() {
     const [state, setState] = useState(null);          // { itemId, requestId } | null
     const [closing, setClosing] = useState(false); // false | true (fade) | 'zoom' (U10)
+    const closingRef = useRef(false);
+    closingRef.current = closing;
     const [zoomOpen, setZoomOpen] = useState(false); // U10: opening by zooming from the tile
     const imgElRef = useRef(null);
     const zoomFromRef = useRef(null);  // { id, rect } until the open zoom has started
+    const zoomHandoffRef = useRef(null); // { id, rect, anim } while a video's thumbnail is zooming
     const zoomTokenRef = useRef(0);    // invalidates pending close-zoom frames
     const zoomOpenTimer = useRef(null);
     const [item, setItem] = useState(null);
@@ -321,8 +345,10 @@
     useEffect(() => S.viewerStore.subscribe((v) => {
       clearTimeout(closeTimer.current);
       zoomTokenRef.current += 1;
+      zoomHandoffRef.current = null;
       const imgEl = imgElRef.current;
-      if (imgEl && imgEl.getAnimations) imgEl.getAnimations().forEach((a) => a.cancel());
+      const vidEl = stageRef.current ? stageRef.current.querySelector('video.viewer-video') : null;
+      for (const el of [imgEl, vidEl]) if (el && el.getAnimations) el.getAnimations().forEach((a) => a.cancel());
       const sess = sessionRef.current;
       if (v) {
         if (sess.openedId == null) {                          // first open of a session
@@ -350,7 +376,8 @@
       const finish = () => { setState(null); setClosing(false); };
       const fade = () => { setClosing(true); closeTimer.current = setTimeout(finish, CLOSE_ANIM_MS); };
       // U10: shrink back into the tile once the grid has scrolled it into view.
-      if (!imgEl || !imgEl.classList.contains('is-sized') || !canZoom() || leftPage()) { fade(); return; }
+      const target = zoomTarget(imgEl, stageRef.current, itemRef.current); // U10: photo or video
+      if (!target || !canZoom() || leftPage()) { fade(); return; }
       setClosing('zoom');
       const token = zoomTokenRef.current;
       let tries = 0;
@@ -358,7 +385,11 @@
         if (token !== zoomTokenRef.current) return;
         if (leftPage()) { fade(); return; }
         const rect = findTileRect(closingId);
-        if (rect) { runZoom(imgEl, rect, 'out', () => { if (token === zoomTokenRef.current) finish(); }); return; }
+        if (rect) {
+          const t = zoomTarget(imgEl, stageRef.current, itemRef.current) || target;
+          runZoom(t.el, rect, 'out', () => { if (token === zoomTokenRef.current) finish(); }, t.F);
+          return;
+        }
         if (++tries < 10) requestAnimationFrame(step); else fade();
       };
       requestAnimationFrame(step);
@@ -546,11 +577,30 @@
     itemRef.current = item;
     // U10: start the open zoom on the first commit where the photo is sized.
     useLayoutEffect(() => {
-      const z = zoomFromRef.current, el = imgElRef.current;
-      if (!z || !el || !itemRef.current || itemRef.current.id !== z.id || !el.classList.contains('is-sized')) return;
+      const item0 = itemRef.current;
+      // Hand-off: the video arrived while its thumbnail was zooming -> the video
+      // continues the same zoom from the same elapsed time (same picture, same rect).
+      const hf = zoomHandoffRef.current;
+      if (hf && item0 && item0.id === hf.id) {
+        const t = zoomTarget(imgElRef.current, stageRef.current, item0);
+        if (t && !t.standIn) {
+          zoomHandoffRef.current = null;
+          t.el.classList.add('is-zoom-run');
+          const elapsed = hf.anim && typeof hf.anim.currentTime === 'number' ? hf.anim.currentTime : 300;
+          if (elapsed < 300) { const a2 = runZoom(t.el, hf.rect, 'in', () => setZoomOpen('done'), t.F); if (a2) a2.currentTime = elapsed; }
+        }
+        return;
+      }
+      const z = zoomFromRef.current;
+      if (!z || !item0 || item0.id !== z.id) return;
+      const t = zoomTarget(imgElRef.current, stageRef.current, item0); // photo, video, or a video's thumbnail
+      if (!t) return;
       zoomFromRef.current = null;
       clearTimeout(zoomOpenTimer.current);
-      runZoom(el, z.rect, 'in', () => setZoomOpen('done')); // 'done': no animation left to replay
+      t.el.classList.add('is-zoom-run'); // a video stays hidden until its zoom starts (no flash)
+      setZoomOpen('running'); // backdrop and bar fades start together with the zoom, not before
+      const anim = runZoom(t.el, z.rect, 'in', () => setZoomOpen('done'), t.F); // 'done': no animation left to replay
+      if (t.standIn) zoomHandoffRef.current = { id: z.id, rect: z.rect, anim };
     });
     // U9: play a pending zoom step as a transform-only animation (FLIP).
     useLayoutEffect(() => {
@@ -771,7 +821,9 @@
     // Keyboard (window-level; Grid's handler is suspended while open).
     useEffect(() => {
       function onKey(e) {
-        const open = stateRef.current !== null;
+        // While closing (shrinking back or fading) the viewer takes no keys, so
+        // arrows go to the grid instead of reopening the viewer on the next item.
+        const open = stateRef.current !== null && !closingRef.current;
         const typing = e.target && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName);
         if (!open) {
           if (e.key === ' ' && !typing && S.selectionStore.get() != null) {
@@ -817,7 +869,7 @@
     } : null;
     const sliderEnabled = !!geom && geom.maxW > geom.fitW + 1 && !(item && item.media_type === 'video');
 
-    return h('div', { className: 'viewer' + (closing === 'zoom' ? ' is-zoom-close' : closing ? ' is-closing' : '') + (zoomOpen === 'zooming' ? ' is-zoom-open' : zoomOpen === 'done' ? ' is-zoom-done' : '') },
+    return h('div', { className: 'viewer' + (closing === 'zoom' ? ' is-zoom-close' : closing ? ' is-closing' : '') + (zoomOpen === 'zooming' ? ' is-zoom-open is-zoom-wait' : zoomOpen === 'running' ? ' is-zoom-open' : zoomOpen === 'done' ? ' is-zoom-done' : '') + (item && item.media_type === 'video' ? ' is-video-item' : '') },
       h('div', { className: 'viewer-toolbar', style: { height: toolbarH + 'px' } },
         // M6 (B.4): same sidebar toggle as the grid toolbar (renders only while
         // the sidebar is hidden).
