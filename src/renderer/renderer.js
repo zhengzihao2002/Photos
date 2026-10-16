@@ -122,7 +122,7 @@
         widthPx: row.itemWidths[i],
         heightPx: row.height,
         thumbPath: item.__placeholder ? null : thumbCache.get(item.id),
-        isSelected: !item.__placeholder && selectionStore.get() === item.id,
+        isSelected: selectionStore.contains(item), // M12.2: multi-select (ranges, Cmd+A)
       });
     }));
   }
@@ -629,14 +629,156 @@
    *   M5: viewerStore.close() sets the value to null and notifies cb(null).
    *       viewerStore.get() !== null  <=>  the viewer is open.
    */
+  /**
+   * M12.2 multi-select. get() / set(id) / subscribe(cb) keep their meaning:
+   * get() is the PRIMARY item id (last clicked) or null, set(id, item?)
+   * selects only that item, cb(primaryId) runs on every change -- so the
+   * viewer, the Info sync and launch restore are unchanged.
+   *
+   * The selection is stored compactly, never as a list of every id:
+   *   all (Cmd+A); ranges of sort keys [time, id] (Shift-click); include
+   *   (added ids); exclude (removed ids, with their keys).
+   * Ids are resolved only in the main process via the '::sel:' filter
+   * segment (src/main/index/selection-sql.js); token() is its twin here.
+   * Each grid view (keyed by its filter string) keeps its own selection for
+   * the session through bindView(key), as Apple Photos does.
+   */
   const selectionStore = (function () {
-    let value = null;
+    let value = null;        // primary id
+    let anchor = null;       // [time, id] Shift-click anchor
+    let all = false;
+    let ranges = [];         // [[t1, id1, t2, id2]], low key first
+    let include = new Map(); // id -> key (or null)
+    let exclude = new Map(); // id -> key
+    let viewKey;             // undefined until the first bindView
+    const memory = new Map();
+    const MEMORY_LIMIT = 30;
+    const MAX_RANGES = 1000; // same cap as selection-sql.js
     const listeners = new Set();
-    return {
+
+    function keyOf(item) {
+      return item && !item.__placeholder && typeof item.capture_time_local === 'string'
+        ? [item.capture_time_local, item.id] : null;
+    }
+    function cmp(a, b) {
+      if (a[0] !== b[0]) return a[0] < b[0] ? -1 : 1;
+      return a[1] - b[1];
+    }
+    function inRanges(key) {
+      for (const r of ranges) {
+        if (cmp(key, [r[0], r[1]]) >= 0 && cmp(key, [r[2], r[3]]) <= 0) return true;
+      }
+      return false;
+    }
+    function covered(key) { return all || (key !== null && inRanges(key)); }
+    function containsKey(id, key) {
+      if (include.has(id)) return true;
+      if (exclude.has(id)) return false;
+      return covered(key);
+    }
+    function emit() { listeners.forEach((fn) => fn(value)); }
+    function reset() {
+      value = null; anchor = null; all = false; ranges = [];
+      include = new Map(); exclude = new Map();
+    }
+    function snapshot() {
+      return { value, anchor, all, ranges: ranges.slice(), include: new Map(include), exclude: new Map(exclude) };
+    }
+    function restore(s) {
+      value = s.value; anchor = s.anchor; all = s.all; ranges = s.ranges;
+      include = s.include; exclude = s.exclude;
+    }
+    function isEmpty() { return !all && ranges.length === 0 && include.size === 0; }
+
+    const api = {
       get: () => value,
-      set(v) { value = v; listeners.forEach((fn) => fn(v)); },
+      set(v, item) {
+        reset();
+        if (v != null) {
+          value = v;
+          const key = keyOf(item);
+          include.set(v, key);
+          anchor = key;
+        }
+        emit();
+      },
       subscribe(fn) { listeners.add(fn); return () => listeners.delete(fn); },
+
+      contains(item) {
+        if (!item || item.__placeholder) return false;
+        return containsKey(item.id, keyOf(item));
+      },
+      // Cmd-click: add or remove one item; it becomes the anchor.
+      toggle(item) {
+        const key = keyOf(item);
+        if (!key) return;
+        const id = item.id;
+        if (containsKey(id, key)) {
+          include.delete(id);
+          if (covered(key)) exclude.set(id, key);
+          if (value === id) {
+            let last = null;
+            for (const k of include.keys()) last = k;
+            value = last;
+          }
+        } else {
+          exclude.delete(id);
+          if (!covered(key)) include.set(id, key);
+          value = id;
+        }
+        anchor = key;
+        emit();
+      },
+      // Shift-click: add the range from the anchor to this item.
+      extendTo(item) {
+        const key = keyOf(item);
+        if (!key) return;
+        if (!anchor) { api.set(item.id, item); return; }
+        const lo = cmp(anchor, key) <= 0 ? anchor : key;
+        const hi = lo === anchor ? key : anchor;
+        if (!all && ranges.length < MAX_RANGES) ranges.push([lo[0], lo[1], hi[0], hi[1]]);
+        for (const [id, k] of exclude) {
+          if (cmp(k, lo) >= 0 && cmp(k, hi) <= 0) exclude.delete(id);
+        }
+        value = item.id;
+        emit();
+      },
+      selectAll() {
+        all = true; ranges = []; include = new Map(); exclude = new Map();
+        emit();
+      },
+      clear() { reset(); emit(); },
+      isEmpty,
+      isMulti() { return all || ranges.length > 0 || include.size > 1; },
+      // Exact count when known here (individual picks only), else null:
+      // then ask the main process with getPhotoVideoCounts(withSelection(f)).
+      localCount() { return !all && ranges.length === 0 ? include.size : null; },
+      token() {
+        const s = {};
+        if (all) s.a = 1;
+        if (ranges.length) s.r = ranges;
+        if (include.size) s.i = Array.from(include.keys());
+        if (exclude.size) s.x = Array.from(exclude.keys());
+        return btoa(JSON.stringify(s)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+      },
+      // The grid filter narrowed to the selection, or null when nothing is selected.
+      withSelection(filter) { return isEmpty() ? null : (filter || '') + '::sel:' + api.token(); },
+      // Switch to another grid view's own selection (key = its filter string).
+      bindView(key) {
+        const k = key || '';
+        if (k === viewKey) return;
+        if (viewKey !== undefined) {
+          memory.delete(viewKey);
+          memory.set(viewKey, snapshot());
+          while (memory.size > MEMORY_LIMIT) memory.delete(memory.keys().next().value);
+          const saved = memory.get(k);
+          if (saved) { memory.delete(k); restore(saved); } else reset();
+        }
+        viewKey = k;
+        emit();
+      },
     };
+    return api;
   })();
 
   const viewerStore = (function () {
@@ -2666,7 +2808,7 @@
           widthPx: w,
           heightPx: row.height,
           thumbPath: item.__placeholder ? null : thumbCache.get(item.id),
-          isSelected: !item.__placeholder && selectedId === item.id,
+          isSelected: selectionStore.contains(item), // M12.2: multi-select (ranges, Cmd+A)
         })));
         x += w + GAP_SIZE;
       }
