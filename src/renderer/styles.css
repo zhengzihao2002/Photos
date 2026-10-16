@@ -1562,3 +1562,6 @@ body.drop-active::after {
 .viewer-live-badge { padding: 3px 9px 3px 5px; font-size: 11px; }
 .viewer-live-badge svg { width: 15px; height: 15px; }
 .viewer-live-badge.is-playing { background: rgba(28, 28, 30, 0.78); }
+
+/* M8c.7 (K8): Years / Months views fade in like the grids (no pop). */
+.timeline-scroll { animation: tileFadeIn 180ms ease-out; }

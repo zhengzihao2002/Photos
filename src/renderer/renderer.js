@@ -1803,6 +1803,7 @@
     sectionMemory.topItemIndex.delete('map');
     if (mapAreaStore.get() !== null) mapAreaStore.set(null);
     if (personStore.get() !== null) personStore.set(null); // M10.6
+    fadeGridSoon(); // M8c.7 (K8): the next grid fades in once its first page is loaded
     addPeopleStore.set(false); // M10.7
     groupStore.set(null);
     const scrollEl = document.getElementById(SCROLL_EL_ID);
