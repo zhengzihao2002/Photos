@@ -804,6 +804,13 @@
     geomRef.current = geom;
     const isVideo = !!media && media.kind === 'video';
     const hasLive = !!media && !!media.liveUrl && !isVideo;
+    // U16: the Live badge sits 12 px inside the PHOTO's top-left corner (stage
+    // coordinates: the photo's top-left = stage centre + (px - dw/2, py - dh/2)),
+    // never closer than 14 px to the stage edge when zoomed past the corner.
+    const liveBadgeStyle = geom && stageSize ? {
+      left: Math.max(14, stageSize.w / 2 + geom.px - geom.dw / 2 + 12) + 'px',
+      top: Math.max(14, stageSize.h / 2 + geom.py - geom.dh / 2 + 12) + 'px',
+    } : undefined;
     const imgStyle = geom ? {
       width: geom.dw + 'px', height: geom.dh + 'px',
       transform: 'translate(' + (geom.px - geom.dw / 2) + 'px,' + (geom.py - geom.dh / 2) + 'px)',
@@ -866,12 +873,13 @@
         }),
         hasLive && h('div', {
           className: 'viewer-live-badge' + (livePlaying ? ' is-playing' : ''),
+          style: liveBadgeStyle,
           title: 'Hover or press to play the Live Photo',
           onPointerEnter: () => { setLiveSound(true); setLivePlaying(true); }, // M6: Live Photos always play with sound
           onPointerLeave: () => setLivePlaying(false),
           onPointerDown: (e) => { e.stopPropagation(); setLiveSound(true); setLivePlaying(true); },
           onDblClick: (e) => e.stopPropagation(),
-        }, h(Icon, { name: 'live', size: 15 }), h('span', null, 'LIVE')),
+        }, h('svg', { viewBox: '0 0 16 16', 'aria-hidden': 'true' }, h('circle', { cx: 8, cy: 8, r: 2, fill: 'currentColor' }), h('circle', { cx: 8, cy: 8, r: 4.4, fill: 'none', stroke: 'currentColor', 'stroke-width': 1.3 }), h('circle', { cx: 8, cy: 8, r: 6.8, fill: 'none', stroke: 'currentColor', 'stroke-width': 1.1, 'stroke-dasharray': '0.9 1.5', 'stroke-linecap': 'round' })), h('span', null, 'LIVE')), // U16: Apple's Live symbol (dotted outer ring)
         !img && notice && h('div', { className: 'viewer-empty' }, notice),
         img && notice && h('div', { className: 'viewer-notice' }, notice),
         // M8b.9 fix: '<' goes older (next), '>' goes newer (prev), as the

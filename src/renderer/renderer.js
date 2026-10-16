@@ -92,7 +92,7 @@
         h('span', { className: 'tile-play-icon' }, '\u25B6'),
         item.duration_seconds != null ? h('span', null, formatDuration(item.duration_seconds)) : null
       ),
-      !isPlaceholderItem && item.is_live_photo === 1 && h('div', { className: 'tile-live-badge' }, 'LIVE'),
+      !isPlaceholderItem && item.is_live_photo === 1 && h('div', { className: 'tile-live-badge' }, h('svg', { viewBox: '0 0 16 16', 'aria-hidden': 'true' }, h('circle', { cx: 8, cy: 8, r: 2, fill: 'currentColor' }), h('circle', { cx: 8, cy: 8, r: 4.4, fill: 'none', stroke: 'currentColor', 'stroke-width': 1.3 }), h('circle', { cx: 8, cy: 8, r: 6.8, fill: 'none', stroke: 'currentColor', 'stroke-width': 1.1, 'stroke-dasharray': '0.9 1.5', 'stroke-linecap': 'round' })), 'LIVE') /* U16: Apple-style pill */,
       // U14: map-pin symbol on located items, as in Apple Photos (the '!' takes its place when unavailable).
       !isPlaceholderItem && !!item.has_gps && !unavailable && h('div', { className: 'tile-gps-badge', title: 'Has location' },
         h('svg', { viewBox: '0 0 16 16', 'aria-hidden': 'true' }, h('circle', { cx: 8, cy: 4.6, r: 2.4, fill: 'none', stroke: 'currentColor', 'stroke-width': 1.5 }), h('path', { d: 'M8 7v6', fill: 'none', stroke: 'currentColor', 'stroke-width': 1.5, 'stroke-linecap': 'round' }), h('ellipse', { cx: 8, cy: 13, rx: 4.6, ry: 1.7, fill: 'none', stroke: 'currentColor', 'stroke-width': 1.3 }))),

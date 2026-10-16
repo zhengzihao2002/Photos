@@ -646,7 +646,7 @@
           }, path ? h('img', { src: 'file://' + path, alt: '', draggable: false }) : null,
             duration >= 0 ? h('span', { class: 'pa-duration' }, formatDuration(duration))
               : duration === -2 ? h('span', { class: 'pa-duration', title: 'Video' }, '\u25B6') : null, // K3: unknown length
-            data.live && data.live[s.start + k] ? h('div', { class: 'tile-live-badge' }, 'LIVE') : null,
+            data.live && data.live[s.start + k] ? h('div', { class: 'tile-live-badge' }, h('svg', { viewBox: '0 0 16 16', 'aria-hidden': 'true' }, h('circle', { cx: 8, cy: 8, r: 2, fill: 'currentColor' }), h('circle', { cx: 8, cy: 8, r: 4.4, fill: 'none', stroke: 'currentColor', 'stroke-width': 1.3 }), h('circle', { cx: 8, cy: 8, r: 6.8, fill: 'none', stroke: 'currentColor', 'stroke-width': 1.1, 'stroke-dasharray': '0.9 1.5', 'stroke-linecap': 'round' })), 'LIVE') /* U16 */ : null,
             unavailable ? h('div', { class: 'tile-unavailable-badge', title: 'Original unavailable' }, '!')
               : h('div', { class: 'tile-gps-badge', title: 'Has location' }, h('svg', { viewBox: '0 0 16 16', 'aria-hidden': 'true' }, h('circle', { cx: 8, cy: 4.6, r: 2.4, fill: 'none', stroke: 'currentColor', 'stroke-width': 1.5 }), h('path', { d: 'M8 7v6', fill: 'none', stroke: 'currentColor', 'stroke-width': 1.5, 'stroke-linecap': 'round' }), h('ellipse', { cx: 8, cy: 13, rx: 4.6, ry: 1.7, fill: 'none', stroke: 'currentColor', 'stroke-width': 1.3 }))))); // U14: every Places item is located
         }
