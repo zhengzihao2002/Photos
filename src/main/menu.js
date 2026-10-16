@@ -40,6 +40,9 @@ function buildMenu(opts = {}) {
             submenu: [
               { role: 'about' },
               { type: 'separator' },
+              // M8c.6: Photos > Settings... (Cmd+,), as in Apple Photos.
+              { label: 'Settings\u2026', accelerator: 'Command+,', click: () => require('./settings-window').open() },
+              { type: 'separator' },
               { role: 'services' },
               { type: 'separator' },
               { role: 'hide' },

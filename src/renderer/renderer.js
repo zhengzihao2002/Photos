@@ -1872,6 +1872,18 @@
     }
   }
 
+  // M8c.6: after Settings > Storage clears thumbnails or face crops, reload the
+  // grid and People (soft refresh), so nothing points at a deleted file.
+  if (window.api.onStorageCleared) {
+    window.api.onStorageCleared((p) => {
+      const k = p && p.kind;
+      if (k === 'thumbnails' || k === 'faceCrops' || k === 'all') {
+        libraryChangeStore.bump();
+        if (typeof peopleChangeStore.bump === 'function') peopleChangeStore.bump();
+      }
+    });
+  }
+
   // M7.6: switching between the map and a map-area grid (same section).
   mapAreaStore.subscribe(() => {
     if (searchStore.get()) searchStore.set('');

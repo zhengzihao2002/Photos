@@ -61,6 +61,14 @@ contextBridge.exposeInMainWorld('api', {
     ipcRenderer.on('info:item', listener);
     return () => ipcRenderer.removeListener('info:item', listener);
   },
+  // M8c.6: Settings > Storage (see src/main/ipc/handlers/storage.js).
+  getStorage: (opts) => ipcRenderer.invoke('storage:get', { force: !!(opts && opts.force) }),
+  clearStorage: (kind) => ipcRenderer.invoke('storage:clear', { kind: String(kind || '') }),
+  onStorageCleared: (callback) => {
+    const listener = (event, payload) => callback(payload);
+    ipcRenderer.on('storage:cleared', listener);
+    return () => ipcRenderer.removeListener('storage:cleared', listener);
+  },
   getReextractionCounts: () => ipcRenderer.invoke('library:get-reextraction-counts'),
   getMediaTypeCounts: () => ipcRenderer.invoke('library:get-media-type-counts'),
   getPhotoVideoCounts: (payload) => ipcRenderer.invoke('library:get-photo-video-counts', payload),

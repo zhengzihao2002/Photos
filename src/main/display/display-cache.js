@@ -131,6 +131,24 @@ async function evict(keepId) {
   }
 }
 
+/**
+ * M8c.6: the Storage view's Clear. Deletes every cached derivative (only the
+ * two-hex-digit shard folders inside the cache folder) and empties the index.
+ * .tmp/ is left alone, so a decode in progress still commits. Anything opened
+ * later is decoded again (lookup() also self-heals on a missing file).
+ */
+async function clearAll() {
+  await init();
+  let shards = [];
+  try { shards = await fsp.readdir(root()); } catch (e) { return; }
+  for (const shard of shards) {
+    if (!/^[0-9a-f]{2}$/.test(shard)) continue;
+    await fsp.rm(path.join(root(), shard), { recursive: true, force: true });
+  }
+  byId.clear();
+  total = 0;
+}
+
 function stats() { return { files: byId.size, bytes: total, budgetBytes: BUDGET_BYTES }; }
 
-module.exports = { init, stampFor, getTmpDir, lookup, commit, stats, BUDGET_BYTES };
+module.exports = { init, stampFor, getTmpDir, lookup, commit, stats, clearAll, BUDGET_BYTES };

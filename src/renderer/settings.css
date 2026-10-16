@@ -1,0 +1,71 @@
+/* settings.css (M8c.6) -- Photos > Settings, macOS settings-window style.
+   Loaded after styles.css for the shared colour tokens (light/dark). */
+body.settings-window {
+  display: block;            /* styles.css makes body a flex row for the main window */
+  margin: 0;
+  background: transparent;   /* native window material shows through */
+  font-size: 13px;
+  color: var(--text-primary);
+}
+.st-tabs {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+  padding: 8px 0 10px;
+  border-bottom: 1px solid var(--divider);
+}
+.st-tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  min-width: 72px;
+  padding: 6px 10px 5px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 11px;
+}
+.st-tab svg { width: 24px; height: 24px; }
+.st-tab.is-selected { background: color-mix(in srgb, var(--text-primary) 10%, transparent); color: var(--accent); }
+
+.st-page { padding: 18px 24px 20px; }
+.st-total { font-size: 22px; font-weight: 600; }
+.st-total small { font-size: 13px; font-weight: 400; color: var(--text-secondary); margin-left: 4px; }
+.st-free { margin-top: 2px; color: var(--text-secondary); }
+.st-bar {
+  display: flex;
+  height: 10px;
+  margin: 14px 0 6px;
+  border-radius: 5px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--text-primary) 8%, transparent);
+}
+.st-bar span { display: block; height: 100%; min-width: 2px; }
+.st-rows { margin-top: 10px; border: 1px solid var(--divider); border-radius: 10px; overflow: hidden; }
+.st-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 38px;
+  padding: 0 12px;
+}
+.st-row + .st-row { border-top: 1px solid var(--divider); }
+.st-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+.st-label { flex: 1; min-width: 0; }
+.st-size { color: var(--text-secondary); font-variant-numeric: tabular-nums; min-width: 72px; text-align: right; }
+.st-btn {
+  appearance: none;
+  border: 1px solid var(--divider);
+  background: color-mix(in srgb, var(--text-primary) 6%, transparent);
+  color: var(--text-primary);
+  font-size: 12px;
+  padding: 3px 12px;
+  border-radius: 6px;
+  min-width: 58px;
+}
+.st-btn:disabled { opacity: 0.45; }
+.st-btn-spacer { min-width: 58px; }
+.st-footer { display: flex; align-items: center; margin-top: 14px; }
+.st-status { flex: 1; color: var(--text-secondary); font-size: 12px; }

@@ -72,6 +72,10 @@
     const [loaded, setLoaded] = useState(false);
     const [finderMsg, setFinderMsg] = useState(null);
     const [faces, setFaces] = useState([]);
+    const [cropGen, setCropGen] = useState(0); // M8c.6: bumped when face crops are cleared
+    useEffect(() => (window.api.onStorageCleared
+      ? window.api.onStorageCleared((p) => { if (p && (p.kind === 'faceCrops' || p.kind === 'all')) setCropGen((g) => g + 1); })
+      : undefined), []);
 
     // Which item: ask once at load, then follow the main window.
     useEffect(() => {
@@ -122,7 +126,7 @@
       };
       load(4);
       return () => { live = false; clearTimeout(timer); };
-    }, [itemId]);
+    }, [itemId, cropGen]);
 
     // Fit the window to the content.
     useEffect(() => {
