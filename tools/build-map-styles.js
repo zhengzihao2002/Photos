@@ -65,6 +65,20 @@ const DARK = {
 
 const light = JSON.parse(fs.readFileSync(path.join(DIR, 'positron.json'), 'utf8'));
 const dark = JSON.parse(fs.readFileSync(path.join(DIR, 'dark.json'), 'utf8'));
+// M8c.5: one label per place, in English (app UI is English; never mixed).
+// The originals draw 'Latin name + local-script name' (e.g. China / 中国)
+// wherever a non-Latin name exists; replace every such rule. Road shields
+// (ref numbers) are left alone. Later localisation changes this one place.
+const ENGLISH_LABEL = ['coalesce', ['get', 'name:en'], ['get', 'name_en'], ['get', 'name:latin'], ['get', 'name']];
+let labelsRewritten = 0;
+for (const style of [light, dark]) {
+  for (const layer of style.layers) {
+    const tf = layer.layout && layer.layout['text-field'];
+    if (tf && JSON.stringify(tf).includes('name:nonlatin')) { layer.layout['text-field'] = ENGLISH_LABEL; labelsRewritten++; }
+  }
+}
+console.log('labels rewritten to one English name:', labelsRewritten);
+
 const known = new Set(dark.layers.map((l) => l.id));
 const unknown = Object.keys(DARK).filter((id) => !known.has(id));
 let applied = 0;

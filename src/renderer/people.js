@@ -267,7 +267,10 @@
   /** M10.6: recognised people in one photo, for the viewer (null on failure). */
   window.__PhotosPeopleForItem = (itemId) => ((S.peopleEnabledStore && S.peopleEnabledStore.get() === false)
     ? Promise.resolve([]) // M10.8: View > People off: no People section in the viewer
-    : window.api.getPeopleForItem(itemId).catch(() => null));
+    : window.api.getPeopleForItem(itemId)
+      // M8c.5: named people first, then unnamed; stable, so each group stays left to right.
+      .then((rows) => (Array.isArray(rows) ? rows.slice().sort((a, b) => (b.name ? 1 : 0) - (a.name ? 1 : 0)) : rows))
+      .catch(() => null));
 
   /**
    * M10.6: People section below the photo in the viewer, above Places. Reuses
@@ -300,9 +303,19 @@
     const active = sheet > 0 && shown.length > 0;
     const zh = false /* M8c.2 (U13): English UI */;
     const open = (personId) => {
+      // K12: remember the photo (and the page it was on), so the person page's
+      // Back returns there, scrolled to this People section.
+      const returnTo = {
+        section: S.sectionStore.get(),
+        person: S.personStore ? S.personStore.get() : null,
+        group: S.groupStore ? S.groupStore.get() : null,
+        mapArea: S.mapAreaStore ? S.mapAreaStore.get() : null,
+        itemId,
+        sheet: window.__PhotosViewerSheetValue ? window.__PhotosViewerSheetValue() : 0,
+      };
       S.viewerStore.close();
       S.sectionStore.set('people');
-      S.personStore.set({ id: personId });
+      S.personStore.set({ id: personId, returnTo });
     };
     return h('div', {
       class: 'vp-panel', onWheel,

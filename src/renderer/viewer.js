@@ -58,14 +58,18 @@
   function canZoom() {
     return !(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
   }
-  // The item's grid tile, if it is on screen below the toolbar; else null.
+  // The item's tile (main grid or a Places page, incl. a trail page), if it is
+  // visible inside its scroll area (below the toolbar for the main area).
   function findTileRect(id) {
-    const sc = document.getElementById('grid-scroll');
-    const t = sc && sc.querySelector('.tile-slot[data-id="' + Number(id) + '"]');
-    if (!t) return null;
-    const r = t.getBoundingClientRect(), b = sc.getBoundingClientRect();
-    if (r.width < 4 || r.bottom <= b.top + 56 || r.top >= b.bottom) return null;
-    return r;
+    const sel = '.tile-slot[data-id="' + Number(id) + '"], .pa-tile[data-id="' + Number(id) + '"]';
+    for (const t of document.querySelectorAll(sel)) {
+      const sc = t.closest('#grid-scroll, .places-overlay-scroll');
+      if (!sc) continue;
+      const r = t.getBoundingClientRect(), b = sc.getBoundingClientRect();
+      const topLimit = b.top + (sc.id === 'grid-scroll' ? 56 : 0);
+      if (r.width >= 4 && r.bottom > topLimit && r.top < b.bottom) return r;
+    }
+    return null;
   }
   // dir 'in': tile -> viewer; 'out': viewer -> tile (held at the end).
   function runZoom(el, T, dir, done) {
@@ -323,6 +327,9 @@
       if (v) {
         if (sess.openedId == null) {                          // first open of a session
           sess.openedId = v.itemId;
+          // K11: remember the page this session came from; zoom back only to it.
+          sess.openSection = S.sectionStore ? S.sectionStore.get() : null;
+          sess.openFilter = S.filterStore && S.filterStore.get ? S.filterStore.get() : null;
           const rect = canZoom() ? findTileRect(v.itemId) : null; // U10: zoom from the tile
           zoomFromRef.current = rect ? { id: v.itemId, rect } : null;
           setZoomOpen(rect ? 'zooming' : false); // false | 'zooming' | 'done'
@@ -333,17 +340,23 @@
         setClosing(false); setState(v); return;
       }
       const closingId = sess.lastId;
+      const openCtx = { section: sess.openSection, filter: sess.openFilter };
+      // K11: leaving for another page (People, another section, another grid):
+      // fade, never zoom into a tile of a page that is going away.
+      const leftPage = () => (S.sectionStore ? S.sectionStore.get() : null) !== openCtx.section
+        || (S.filterStore && S.filterStore.get ? S.filterStore.get() : null) !== openCtx.filter;
       returnToGrid(sess.openedId, sess.lastId);
       sessionRef.current = { openedId: null, lastId: null };
       const finish = () => { setState(null); setClosing(false); };
       const fade = () => { setClosing(true); closeTimer.current = setTimeout(finish, CLOSE_ANIM_MS); };
       // U10: shrink back into the tile once the grid has scrolled it into view.
-      if (!imgEl || !imgEl.classList.contains('is-sized') || !canZoom()) { fade(); return; }
+      if (!imgEl || !imgEl.classList.contains('is-sized') || !canZoom() || leftPage()) { fade(); return; }
       setClosing('zoom');
       const token = zoomTokenRef.current;
       let tries = 0;
       const step = () => {
         if (token !== zoomTokenRef.current) return;
+        if (leftPage()) { fade(); return; }
         const rect = findTileRect(closingId);
         if (rect) { runZoom(imgEl, rect, 'out', () => { if (token === zoomTokenRef.current) finish(); }); return; }
         if (++tries < 10) requestAnimationFrame(step); else fade();

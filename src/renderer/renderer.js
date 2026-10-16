@@ -93,6 +93,9 @@
         item.duration_seconds != null ? h('span', null, formatDuration(item.duration_seconds)) : null
       ),
       !isPlaceholderItem && item.is_live_photo === 1 && h('div', { className: 'tile-live-badge' }, 'LIVE'),
+      // U14: map-pin symbol on located items, as in Apple Photos (the '!' takes its place when unavailable).
+      !isPlaceholderItem && !!item.has_gps && !unavailable && h('div', { className: 'tile-gps-badge', title: 'Has location' },
+        h('svg', { viewBox: '0 0 16 16', 'aria-hidden': 'true' }, h('circle', { cx: 8, cy: 4.6, r: 2.4, fill: 'none', stroke: 'currentColor', 'stroke-width': 1.5 }), h('path', { d: 'M8 7v6', fill: 'none', stroke: 'currentColor', 'stroke-width': 1.5, 'stroke-linecap': 'round' }), h('ellipse', { cx: 8, cy: 13, rx: 4.6, ry: 1.7, fill: 'none', stroke: 'currentColor', 'stroke-width': 1.3 }))),
       unavailable && h('div', { className: 'tile-unavailable-badge', title: 'Original unavailable' }, '!')
     );
   }
@@ -284,7 +287,9 @@
       set(v) {
         const id = v && Number.isSafeInteger(v.id) && v.id > 0 ? v.id : null;
         if ((id === null && value === null) || (id !== null && value !== null && value.id === id)) return;
-        value = id === null ? null : { id };
+        // K12: an optional returnTo (person opened from a photo) travels with it.
+        value = id === null ? null
+          : (v.returnTo && typeof v.returnTo === 'object' ? { id, returnTo: v.returnTo } : { id });
         listeners.forEach((fn) => fn(value));
       },
       subscribe(fn) { listeners.add(fn); return () => listeners.delete(fn); },
@@ -1179,7 +1184,7 @@
       // M10.6: back from a person's grid to the People page.
       return h('div', { style: { display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 } },
         h('button', {
-          type: 'button', title: 'Back to People', onClick: () => personStore.set(null),
+          type: 'button', title: 'Back', onClick: () => goBackFromPerson(), // K12
           style: {
             WebkitAppRegion: 'no-drag', border: 'none', background: 'transparent', cursor: 'pointer',
             color: 'var(--text-primary)', fontSize: '24px', fontWeight: 400, lineHeight: 1, padding: '0 8px 4px', borderRadius: '6px', whiteSpace: 'nowrap',
@@ -1223,6 +1228,7 @@
       })));
   }
   window.__PhotosSidebarToggleButton = SidebarToggleButton;
+  window.__PhotosViewFilterButton = ViewFilterButton; // M8c.5 (K2): trail Places pages
 
   /**
    * M6 (B.5g): in an album whose folder can't be found, a 'Folder not found'
@@ -1260,17 +1266,23 @@
    * All Items / Photos / Videos menu just below itself; highlighted while a
    * filter other than All Items is active.
    */
-  function ViewFilterButton() {
-    const [kind, setKind] = useState(kindStore.get());
+  // M8c.5 (K2): optionally controlled ({ value, onChange }), so a trail Places
+  // page can have its own filter; without props it drives kindStore as before.
+  function ViewFilterButton(props) {
+    const controlled = !!props && typeof props.value === 'string';
+    const [storeKind, setKind] = useState(kindStore.get());
     const btnRef = useRef(null);
-    useEffect(() => kindStore.subscribe(setKind), []);
+    useEffect(() => (controlled ? undefined : kindStore.subscribe(setKind)), [controlled]);
+    const kind = controlled ? props.value : storeKind;
     const openMenu = async () => {
       const el = btnRef.current;
       if (!el) return;
       const r = el.getBoundingClientRect();
       try {
-        const res = await window.api.showViewFilterMenu(kindStore.get(), r.left, r.bottom + 6);
-        if (res && res.choice) kindStore.set(res.choice);
+        const res = await window.api.showViewFilterMenu(kind, r.left, r.bottom + 6);
+        if (res && res.choice) {
+          if (controlled) { if (props.onChange) props.onChange(res.choice); } else kindStore.set(res.choice);
+        }
       } catch (err) {
         console.error('View filter menu failed:', err);
       }
@@ -1841,6 +1853,24 @@
     if (!libraryModeLoaded || sectionStore.get() !== 'library' || !LIBRARY_MODES.includes(m)) return;
     window.api.updateConfig({ patch: { grid: { libraryMode: m } } }).catch(() => {});
   });
+
+  // K12: Back on a person page. Opened from a photo: return to that photo's
+  // page, reopen the photo and scroll back to its People section. Otherwise:
+  // the People list, as before.
+  function goBackFromPerson() {
+    const p = personStore.get();
+    const r = p && p.returnTo;
+    personStore.set(null);
+    if (!r) return;
+    if (sectionStore.get() !== r.section) sectionStore.set(r.section);
+    if (r.mapArea) mapAreaStore.set(r.mapArea);
+    if (r.group) groupStore.set(r.group);
+    if (r.person) personStore.set(r.person);
+    if (r.itemId != null) {
+      if (r.sheet > 0) window.__PhotosViewerSheetPending = { itemId: r.itemId, value: r.sheet };
+      viewerStore.open(r.itemId);
+    }
+  }
 
   // M7.6: switching between the map and a map-area grid (same section).
   mapAreaStore.subscribe(() => {

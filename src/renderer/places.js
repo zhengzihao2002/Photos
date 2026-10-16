@@ -110,7 +110,12 @@
 
   function measureHeight() {
     const el = document.getElementById('grid-scroll');
-    return el ? el.clientHeight : window.innerHeight;
+    if (!el) return window.innerHeight;
+    // M8c.5 (K10): clientHeight includes the top padding that keeps content
+    // clear of the toolbar; the map starts below it, so subtract it, or the
+    // map runs past the window's bottom edge (zoom buttons cut off).
+    const pad = parseFloat(getComputedStyle(el).paddingTop) || 0;
+    return Math.max(0, el.clientHeight - pad);
   }
 
   // props.focus (M7.7, full map opened from the viewer): { lat, lng, zoom,
@@ -356,6 +361,7 @@
   function OverlayHost({ focus, api }) {
     const [area, setArea] = useState(null);
     const [leaving, setLeaving] = useState(false);
+    const [kind, setKind] = useState('all'); // M8c.5 (K2): this trail page's own view filter
     const scrollRef = useRef(null);
     api.back = () => {
       if (!area) { api.close(); return; }
@@ -365,17 +371,21 @@
     const zh = false /* M8c.2 (U13): English UI */;
     const AreaView = window.__PhotosPlacesAreaView;
     const step = (d) => S.columnsStore.set(S.columnsStore.get() + d);
+    // K2: the page and the viewer use the same filter, so arrows stay within it.
+    const FilterBtn = window.__PhotosViewFilterButton;
+    const effArea = area ? Object.assign({}, area, { filter: area.filter + (kind !== 'all' ? '::kind:' + kind : '') }) : null;
     return h('div', { class: 'places-overlay-inner' },
-      h(PlacesView, { focus, onOpenArea: setArea }),
+      h(PlacesView, { focus, onOpenArea: (a) => { setKind('all'); setArea(a); } }),
       area && AreaView && h('div', { class: 'places-overlay-area' + (leaving ? ' is-closing' : ''), key: area.filter },
         h('div', { class: 'places-overlay-bar' },
           h('button', { class: 'places-back is-inline', type: 'button', title: 'Back', onClick: () => api.back() }, '\u2039'),
           h('span', { class: 'places-overlay-title' }, zh ? '\u5730\u70B9' : 'Places'),
           h('span', { style: { flex: '1 1 auto' } }),
+          FilterBtn && h(FilterBtn, { value: kind, onChange: setKind }),
           h('button', { class: 'places-zoom', type: 'button', title: 'Zoom Out', onClick: () => step(1) }, '\u2212'),
           h('button', { class: 'places-zoom', type: 'button', title: 'Zoom In', onClick: () => step(-1) }, '+')),
         h('div', { class: 'places-overlay-scroll', ref: scrollRef },
-          h(AreaView, { filter: area.filter, scroller: () => scrollRef.current, onOpenItem: (id) => api.leaveToItem(area, id) }))));
+          h(AreaView, { filter: effArea.filter, scroller: () => scrollRef.current, onOpenItem: (id) => api.leaveToItem(effArea, id) }))));
   }
 
   // The trail: a stack of layers above the single viewer. Each layer (a full
@@ -542,6 +552,29 @@
     const [cols, setCols] = useState(columnCount());
     const [selected, setSelected] = useState(null);
     const [, bump] = useState(0);
+    // M8c.5 (K3): folders currently unavailable (same store as the main grid).
+    const [missing, setMissing] = useState(S.missingSourcesStore ? S.missingSourcesStore.get() : new Set());
+    useEffect(() => (S.missingSourcesStore ? S.missingSourcesStore.subscribe(setMissing) : undefined), []);
+
+    // M8c.5 (K4): Space / Enter open the selected tile, like the main grid
+    // (same path as a double-click, so a trail page opens through the trail);
+    // Escape clears the selection. Ignored while typing, and while the viewer
+    // is open over a normal Places page.
+    useEffect(() => {
+      const onKey = (e) => {
+        if (selected == null) return;
+        const t = e.target;
+        if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+        if (!onOpenItem && S.viewerStore.get() !== null) return;
+        if (e.key === 'Escape') { setSelected(null); return; }
+        if ((e.key !== 'Enter' && e.key !== ' ') || e.metaKey || e.ctrlKey || e.altKey) return;
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        if (onOpenItem) onOpenItem(selected); else S.viewerStore.open(selected);
+      };
+      window.addEventListener('keydown', onKey, true);
+      return () => window.removeEventListener('keydown', onKey, true);
+    }, [selected, onOpenItem]);
 
     useEffect(() => {
       let alive = true;
@@ -602,15 +635,20 @@
           if (k >= s.count) break;
           const id = data.ids[s.start + k];
           const duration = data.durations ? data.durations[s.start + k] : -1;
+          const unavailable = !!(data.sourceIds && missing && missing.has(data.sourceIds[s.start + k]));
           visibleIds.push(id);
           const path = thumbs.md.get(id) || thumbs.sm.get(id);
           children.push(h('div', {
-            key: id, class: 'pa-tile' + (selected === id ? ' is-selected' : ''),
+            key: id, 'data-id': id, class: 'pa-tile' + (selected === id ? ' is-selected' : ''), // data-id: U10 zoom
             style: { left: c * pitch + 'px', top: bodyTop + r * pitch + 'px', width: tile + 'px', height: tile + 'px' },
             onClick: () => setSelected(id),
             onDblClick: () => (onOpenItem ? onOpenItem(id) : S.viewerStore.open(id)),
           }, path ? h('img', { src: 'file://' + path, alt: '', draggable: false }) : null,
-            duration >= 0 ? h('span', { class: 'pa-duration' }, formatDuration(duration)) : null));
+            duration >= 0 ? h('span', { class: 'pa-duration' }, formatDuration(duration))
+              : duration === -2 ? h('span', { class: 'pa-duration', title: 'Video' }, '\u25B6') : null, // K3: unknown length
+            data.live && data.live[s.start + k] ? h('div', { class: 'tile-live-badge' }, 'LIVE') : null,
+            unavailable ? h('div', { class: 'tile-unavailable-badge', title: 'Original unavailable' }, '!')
+              : h('div', { class: 'tile-gps-badge', title: 'Has location' }, h('svg', { viewBox: '0 0 16 16', 'aria-hidden': 'true' }, h('circle', { cx: 8, cy: 4.6, r: 2.4, fill: 'none', stroke: 'currentColor', 'stroke-width': 1.5 }), h('path', { d: 'M8 7v6', fill: 'none', stroke: 'currentColor', 'stroke-width': 1.5, 'stroke-linecap': 'round' }), h('ellipse', { cx: 8, cy: 13, rx: 4.6, ry: 1.7, fill: 'none', stroke: 'currentColor', 'stroke-width': 1.3 }))))); // U14: every Places item is located
         }
       }
     }
@@ -656,7 +694,8 @@
       return () => { alive = false; clearTimeout(delay); clearTimeout(timer); };
     }, [visibleKey, wantMd]);
 
-    if (data && data.count === 0) return h('div', { class: 'pa-empty', ref: rootRef }, 'No Photos');
+    if (data && data.count === 0) return h('div', { class: 'pa-empty', ref: rootRef },
+      /::kind:videos/.test(filter || '') ? 'No Videos' : 'No Photos'); // M8c.5: matches the view filter
     return h('div', { class: 'pa-root', ref: rootRef, style: { height: total + 'px' } }, children);
   }
 

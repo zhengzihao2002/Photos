@@ -167,7 +167,7 @@ function getItemsPage(db, { limit = 100, cursor = null, direction = 'older', fil
   }
 
   const sql = `
-    SELECT id, source_folder_id, media_type, width, height, capture_time_local, duration_seconds, -- M8b.7: source id for the unavailable badge
+    SELECT id, source_folder_id, media_type, width, height, capture_time_local, duration_seconds, has_gps, -- M8b.7: source id for the unavailable badge; M8c.5 (U14): has_gps for the map-pin
            is_live_photo, burst_id, is_burst_cover
     FROM items
     WHERE ${whereFilter} ${cursorClause}
@@ -396,18 +396,23 @@ function daysBetween(a, b) {
 
 function getAreaSections(db, { filter = null } = {}) {
   const rows = db.prepare(
-    'SELECT id, capture_date, place_locality_en, place_locality_zh, media_type, duration_seconds FROM items WHERE '
+    'SELECT id, capture_date, place_locality_en, place_locality_zh, media_type, duration_seconds, source_folder_id, is_live_photo FROM items WHERE '
     + buildFilterSql(filter) + ' ORDER BY capture_time_local ASC, id ASC'
   ).raw().all();
 
   const ids = new Int32Array(rows.length);
   const durations = new Float32Array(rows.length);
+  const sourceIds = new Int32Array(rows.length); // M8c.5 (K3): for the unavailable badge
+  const live = new Uint8Array(rows.length);       // M8c.5: LIVE badge on Places tiles
   const sections = [];
   let current = null;
   for (let i = 0; i < rows.length; i += 1) {
     const row = rows[i];
     ids[i] = row[0];
-    durations[i] = row[4] === 'video' && typeof row[5] === 'number' ? row[5] : -1;
+    // -1 = not a video; -2 = a video of unknown length (M8c.5, K3: still badged)
+    durations[i] = row[4] !== 'video' ? -1 : (typeof row[5] === 'number' ? row[5] : -2);
+    sourceIds[i] = row[6] || 0;
+    live[i] = row[7] === 1 ? 1 : 0;
     if (!current || current.localityEn !== row[2] || daysBetween(current.endDate, row[1]) > 1) {
       current = { localityEn: row[2], localityZh: row[3], startDate: row[1], endDate: row[1], start: i, count: 0 };
       sections.push(current);
@@ -415,7 +420,7 @@ function getAreaSections(db, { filter = null } = {}) {
     current.endDate = row[1];
     current.count += 1;
   }
-  return { count: rows.length, ids, durations, sections };
+  return { count: rows.length, ids, durations, sourceIds, live, sections };
 }
 
 module.exports = {

@@ -185,6 +185,13 @@
       if (item.disabled) return;
       if (S.viewerStore.get() !== null) S.viewerStore.close();
       setActiveKey(item.key);
+      // M8c.5 (K1): clicking the current section's row returns to its top page
+      // (Map: closes an open Places page; People: an open person or group).
+      if (S.sectionStore.get() === item.section) {
+        if (S.mapAreaStore && S.mapAreaStore.get() !== null) S.mapAreaStore.set(null);
+        if (S.personStore && S.personStore.get() != null) S.personStore.set(null);
+        if (S.groupStore && S.groupStore.get() != null) S.groupStore.set(null);
+      }
       S.sectionStore.set(item.section);
     };
     // B.5: Albums = source folders.
