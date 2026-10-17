@@ -67,9 +67,15 @@
     useEffect(() => missingSourcesStore.subscribe(setMissingSources), []);
     const unavailable = !isPlaceholderItem && item.source_folder_id != null && missingSources.has(item.source_folder_id);
 
-    function handleClick() {
+    function handleClick(e) {
       if (isPlaceholderItem) return;
-      selectionStore.set(item.id);
+      // M12.2: Cmd-click toggles, Shift-click adds the range from the anchor,
+      // a plain click selects only this item (Apple Photos).
+      if (e && e.metaKey) selectionStore.toggle(item);
+      else if (e && e.shiftKey) {
+        if (window.getSelection) window.getSelection().removeAllRanges();
+        selectionStore.extendTo(item);
+      } else selectionStore.set(item.id, item);
     }
 
     function handleDblClick() {
@@ -1104,7 +1110,8 @@
    */
   async function openPhotoContextMenu(e, item) {
     if (e) { e.preventDefault(); e.stopPropagation(); }
-    selectionStore.set(item.id);
+    // M12.2: right-click inside the selection keeps it (Apple); elsewhere it selects that item.
+    if (!selectionStore.contains(item)) selectionStore.set(item.id, item);
     // M10.7: on a person's page the menu offers Not <name> / Remove This Group.
     const onPerson = sectionStore.get() === 'people' ? personStore.get() : null;
     let res;
@@ -2127,7 +2134,13 @@
         return row && row.type === 'items' ? row.itemIndices[0] : null;
       };
       gridTopItemIndexGetter = getter;
-      return () => { if (gridTopItemIndexGetter === getter) gridTopItemIndexGetter = null; };
+      // M12.2: Edit > Select All (Cmd+A) selects every item in this grid's view.
+      const selectAll = () => selectionStore.selectAll();
+      window.__PhotosGridSelectAll = selectAll;
+      return () => {
+        if (gridTopItemIndexGetter === getter) gridTopItemIndexGetter = null;
+        if (window.__PhotosGridSelectAll === selectAll) window.__PhotosGridSelectAll = null;
+      };
     }, []);
 
     useEffect(() => {
@@ -2520,7 +2533,7 @@
           }
           if (!firstOnScreenRow) return;
           const first = dataLayer.getItemAt(firstOnScreenRow.itemIndices[0]);
-          if (!first.__placeholder) selectionStore.set(first.id);
+          if (!first.__placeholder) selectionStore.set(first.id, first);
           return;
         }
 
@@ -2557,7 +2570,7 @@
         const newItem = dataLayer.getItemAt(newIndex);
         if (newItem.__placeholder) return;
 
-        selectionStore.set(newItem.id);
+        selectionStore.set(newItem.id, newItem);
 
         const newRowIdx = layout.getRowIndexForItem(newIndex);
         scrollRowIntoView(newRowIdx !== -1 ? layout.getRowAt(newRowIdx) : null);
@@ -2840,6 +2853,25 @@
 
   window.__PhotosGrid = Grid;
   // M5: viewer.js (a separate script loaded after this one) uses the shared stores.
+  // M12.2: each grid view keeps its own selection for the session (Apple keeps
+  // it across section switches). Person, group and map-area changes do not
+  // notify filterStore subscribers, so they are followed here too.
+  selectionStore.bindView(filterStore.get());
+  filterStore.subscribe((f) => selectionStore.bindView(f));
+  [personStore, groupStore, mapAreaStore].forEach((s) => s.subscribe(() => selectionStore.bindView(filterStore.get())));
+  // M12.2: Edit > Select All arrives here. In a text field it is ordinary text
+  // Select All; over a photo grid it selects every item in the view.
+  if (window.api.onMenuSelectAll) {
+    window.api.onMenuSelectAll(() => {
+      const el = document.activeElement;
+      if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)) {
+        document.execCommand('selectAll');
+        return;
+      }
+      if (viewerStore.get() !== null) return;
+      if (typeof window.__PhotosGridSelectAll === 'function') window.__PhotosGridSelectAll();
+    });
+  }
   window.__PhotosStores = { selectionStore, viewerStore, navigationStore, modeStore, libraryChangeStore, sectionStore, filterStore, sidebarVisibleStore, scanStatusStore, noticeStore, progressStore, columnsStore, searchStore, kindStore, mapAreaStore, missingSourcesStore, personStore, peopleChangeStore, personViewStore, faceDisplayStore, addPeopleStore, groupStore, peopleEnabledStore };
   // M8c.2b: tell the Info window which item to show -- the item open in the
   // viewer, otherwise the grid selection, otherwise none. Sent only on change.

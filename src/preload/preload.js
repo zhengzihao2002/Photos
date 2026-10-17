@@ -72,6 +72,12 @@ contextBridge.exposeInMainWorld('api', {
   getReextractionCounts: () => ipcRenderer.invoke('library:get-reextraction-counts'),
   getMediaTypeCounts: () => ipcRenderer.invoke('library:get-media-type-counts'),
   getPhotoVideoCounts: (payload) => ipcRenderer.invoke('library:get-photo-video-counts', payload),
+  // M12.2: Edit > Select All (custom menu item); the renderer decides text vs. grid.
+  onMenuSelectAll: (cb) => {
+    const listener = () => cb();
+    ipcRenderer.on('menu:select-all', listener);
+    return () => ipcRenderer.removeListener('menu:select-all', listener);
+  },
   // M7.4: every visible GPS item as parallel typed arrays, newest first
   // ({ count, ids, lats, lngs, times, queryMs }); ids and coordinates only.
   getMapPoints: () => ipcRenderer.invoke('map:get-points'),

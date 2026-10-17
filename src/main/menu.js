@@ -96,7 +96,21 @@ function buildMenu(opts = {}) {
         { role: 'cut' },
         { role: 'copy' },
         { role: 'paste' },
-        { role: 'selectAll' },
+        {
+          // M12.2: custom item so Cmd+A can select every photo in the main
+          // window's grid. The main window's page decides (a text field gets
+          // ordinary text Select All); DevTools and other windows keep the
+          // standard action.
+          label: 'Select All',
+          accelerator: 'CmdOrCtrl+A',
+          click: (menuItem, browserWindow) => {
+            if (!browserWindow) return;
+            const wc = browserWindow.webContents;
+            if (wc.isDevToolsFocused() && wc.devToolsWebContents) { wc.devToolsWebContents.selectAll(); return; }
+            if (/\/index\.html(?:[?#]|$)/.test(wc.getURL())) wc.send('menu:select-all');
+            else wc.selectAll();
+          },
+        },
       ],
     },
     {
