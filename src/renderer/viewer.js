@@ -914,9 +914,11 @@
           } }),
           h('button', { className: 'viewer-zoom-step', 'aria-label': 'Zoom In', title: 'Zoom In', disabled: !sliderEnabled, onMouseDown: (e) => e.preventDefault(), onClick: () => { const g = geomRef.current; if (!g) return; const t = Math.max(0, Math.min(100, sliderValue(g) + (20))) / 100; zoomRef.current.applyZoom(() => g.fitW * Math.pow(g.maxW / g.fitW, t), 0, 0, true); } }, '+')),
         h('div', { className: 'viewer-title' },
-          h('div', { className: 'viewer-title-date' }, titlePlace || title.date),
+          h('div', { className: 'viewer-title-date' }, (item && item.title) || titlePlace || title.date), // M12.4: a title replaces the place/date line
           h('div', { className: 'viewer-title-time' },
-            titlePlace ? title.date + (posText ? ' \u00b7 ' + posText : '') : (posText || '\u00a0'))),
+            (item && item.title)
+              ? ([titlePlace, title.date, posText].filter(Boolean).join(' \u00b7 ') || '\u00a0')
+              : (titlePlace ? title.date + (posText ? ' \u00b7 ' + posText : '') : (posText || '\u00a0')))),
         h('div', { className: 'viewer-toolbar-spacer' }),
         // M8c.1 (U7): Apple's order. Trash stays visible and disabled (write feature).
         h('div', { className: 'viewer-group' },
