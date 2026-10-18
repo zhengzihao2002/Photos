@@ -259,6 +259,8 @@
       function setImage(el, path) {
         if (el.querySelector('img')) return;
         const img = document.createElement('img');
+        const q = session.points && session.points.rots ? session.points.rots[session.points.ids.indexOf(Number(el.dataset.cover))] : 0;
+        if (q) img.style.transform = 'rotate(' + (q * 90) + 'deg)'; // M12.11
         img.src = 'file://' + path;
         img.alt = '';
         img.draggable = false;
@@ -678,7 +680,7 @@
               clearTimeout(collapseTimer.current);
               S.viewerStore.open(id, { scope: sharedScope(itemAt(s.start + k)) });
             },
-          }, path ? h('img', { src: 'file://' + path, alt: '', draggable: false }) : null,
+          }, path ? h('img', { src: 'file://' + path, alt: '', draggable: false, style: data.rot && data.rot[s.start + k] ? { transform: 'rotate(' + (data.rot[s.start + k] * 90) + 'deg)' } : undefined }) : null,
             duration >= 0 ? h('span', { class: 'pa-duration' }, formatDuration(duration))
               : duration === -2 ? h('span', { class: 'pa-duration', title: 'Video' }, '\u25B6') : null, // K3: unknown length
             data.live && data.live[s.start + k] ? h('div', { class: 'tile-live-badge' }, h('svg', { viewBox: '0 0 16 16', 'aria-hidden': 'true' }, h('circle', { cx: 8, cy: 8, r: 2, fill: 'currentColor' }), h('circle', { cx: 8, cy: 8, r: 4.4, fill: 'none', stroke: 'currentColor', 'stroke-width': 1.3 }), h('circle', { cx: 8, cy: 8, r: 6.8, fill: 'none', stroke: 'currentColor', 'stroke-width': 1.1, 'stroke-dasharray': '0.9 1.5', 'stroke-linecap': 'round' })), 'LIVE') /* U16 */ : null,

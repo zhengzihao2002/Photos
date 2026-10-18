@@ -106,7 +106,8 @@
     },
       resolved && h('img', {
         className: 'tile-img', src: 'file://' + thumbPath,
-        style: { 'object-view-box': faceBox ? faceInset(faceBox) : 'inset(0% 0% 0% 0%)', transition: 'object-view-box 0.35s ease' },
+        style: { 'object-view-box': faceBox && !item.rotation ? faceInset(faceBox) : 'inset(0% 0% 0% 0%)', transition: 'object-view-box 0.35s ease',
+          transform: item.rotation ? 'rotate(' + item.rotation + 'deg)' : undefined }, // M12.11
       }),
       isError && h('div', { className: 'tile-error' }, '\u26A0'),
       !isPlaceholderItem && item.media_type === 'video' && h('div', { className: 'tile-video-badge' },

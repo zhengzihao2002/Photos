@@ -382,7 +382,7 @@ function captureLocalToSeconds(text) {
 
 function getMapPoints(db) {
   const rows = db.prepare(`
-    SELECT id, gps_latitude, gps_longitude, capture_time_local
+    SELECT id, gps_latitude, gps_longitude, capture_time_local, rotation
     FROM items
     WHERE ${buildFilterSql('gps')}
     ORDER BY capture_time_local DESC, id DESC
@@ -393,14 +393,16 @@ function getMapPoints(db) {
   const lats = new Float64Array(count);
   const lngs = new Float64Array(count);
   const times = new Float64Array(count);
+  const rots = new Uint8Array(count); // M12.11: quarter turns clockwise (0-3)
   for (let i = 0; i < count; i += 1) {
     const row = rows[i];
+    rots[i] = ((row[4] || 0) / 90) & 3;
     ids[i] = row[0];
     lats[i] = row[1];
     lngs[i] = row[2];
     times[i] = captureLocalToSeconds(row[3]);
   }
-  return { count, ids, lats, lngs, times };
+  return { count, ids, lats, lngs, times, rots };
 }
 
 /**
