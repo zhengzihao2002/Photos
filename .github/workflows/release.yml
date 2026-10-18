@@ -144,3 +144,21 @@ jobs:
             out/Photos-*-arm64.zip.sha256
             out/Photos-arm64.zip
             out/Photos-arm64.zip.sha256
+
+  verify-download:
+    name: Install the published release the way a user does
+    needs: publish
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4.2.2
+      - name: install.sh downloads the latest release, verifies it and installs it
+        run: |
+          D="$RUNNER_TEMP/downloaded"
+          bash install.sh --dir "$D" --no-open
+          APP="$D/Photos.app"
+          test -f "$APP/Contents/Resources/icon.icns"
+          codesign --verify --deep --strict "$APP"
+          plutil -p "$APP/Contents/Info.plist" | grep -E 'CFBundleIdentifier|CFBundleShortVersionString'
+          lipo -archs "$APP/Contents/MacOS/Photos"
+          echo n | bash install.sh --uninstall --dir "$D"
+          test ! -d "$APP"
