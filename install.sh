@@ -1,9 +1,9 @@
 #!/bin/bash
 # Photos installer for macOS on Apple Silicon.
 #
-#   bash install.sh                     install the latest release into ~/Applications
+#   bash install.sh                     install the latest release INTO THIS PROJECT FOLDER (next to install.sh)
 #   bash install.sh --version 1.0.0     install a specific release
-#   bash install.sh --dir /Applications install somewhere else (must be writable; no sudo is used)
+#   bash install.sh --dir ~/Applications install somewhere else instead (must be writable; no sudo is used)
 #   bash install.sh --local Photos.zip  install from a ZIP you already have (offline, CI)
 #   bash install.sh --no-open           do not open the app afterwards
 #   bash install.sh --force             replace a running copy without asking
@@ -14,13 +14,15 @@
 # temporary folder, verifies the checksum, unpacks it with ditto, installs the app WITH its icon, checks the
 # signature, and offers to open it. Nothing is piped from the network into a shell. No sudo.
 # The app's data lives in a folder named PhotosData next to Photos.app; upgrades never touch it.
+# By default both sit inside the project folder, so deleting that folder removes everything.
 set -euo pipefail
 
 REPO="zhengzihao2002/Photos"
 APP_NAME="Photos"
 MIN_MACOS_MAJOR=12
 
-DIR="$HOME/Applications"
+HERE="$(cd "$(dirname "$0")" && pwd -P)"
+DIR="$HERE"   # the project folder: the app and its data go here, so deleting the folder removes everything
 VERSION=""
 LOCAL_ZIP=""
 OPEN_AFTER=1
@@ -30,7 +32,7 @@ TMP=""
 
 say()  { printf '%s\n' "$*"; }
 fail() { printf 'Error: %s\n' "$*" >&2; exit 1; }
-usage() { sed -n '2,16p' "$0" | sed 's/^# \{0,1\}//'; }
+usage() { sed -n '2,18p' "$0" | sed 's/^# \{0,1\}//'; }
 
 cleanup() { if [ -n "$TMP" ] && [ -d "$TMP" ]; then rm -rf "$TMP"; fi; }
 trap cleanup EXIT
@@ -81,7 +83,7 @@ if [ "$UNINSTALL" -eq 1 ]; then
 fi
 
 # ---- get the ZIP ------------------------------------------------------------------------------------------
-TMP="$(mktemp -d "${TMPDIR:-/tmp}/photos-install.XXXXXX")"
+TMP="$(mktemp -d "$DIR/.photos-install.XXXXXX")"   # inside the target folder, removed on exit: nothing is left in system temp folders
 ZIP="$TMP/Photos-arm64.zip"
 if [ -n "$LOCAL_ZIP" ]; then
   [ -f "$LOCAL_ZIP" ] || fail "File not found: $LOCAL_ZIP"
@@ -123,13 +125,11 @@ ditto "$NEW" "$APP"
 xattr -dr com.apple.quarantine "$APP" 2>/dev/null || true       # harmless when absent
 codesign --verify --deep --strict "$APP" || fail "The app's signature check failed. Not opening it."
 touch "$APP"                                                      # lets Finder refresh the icon
-LSREG="/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister"
-if [ -x "$LSREG" ]; then "$LSREG" -f "$APP" >/dev/null 2>&1 || true; fi
 [ -f "$APP/Contents/Resources/icon.icns" ] || say "(note: icon file not found inside the app)"
 
 say ""
 say "Installed: $APP"
-say "Its data will live in: $DATA   (delete the app and this folder to remove everything)"
+say "Its data will live in: $DATA   (delete both, or the folder they are in, to remove everything)"
 
 # ---- open -------------------------------------------------------------------------------------------------
 if [ "$OPEN_AFTER" -eq 1 ]; then

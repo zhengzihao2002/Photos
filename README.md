@@ -16,24 +16,24 @@ cd Photos
 bash install.sh
 ```
 
-The script downloads the latest release from GitHub, checks its SHA-256, installs **Photos.app with its icon** into `~/Applications` (no password, no `sudo`) and offers to open it. Options: `--dir /Applications`, `--version 1.0.0`, `--local Photos-arm64.zip` (offline), `--no-open`, `--uninstall`, `--help`.
+The script downloads the latest release from GitHub, checks its SHA-256, installs **Photos.app with its icon** **inside this project folder** (next to `install.sh`; no password, no `sudo`) and offers to open it. Options: `--dir ~/Applications` (install somewhere else), `--version 1.0.0`, `--local Photos-arm64.zip` (offline), `--no-open`, `--uninstall`, `--help`.
 
 ### If macOS blocks the first launch
 
 The app is signed ad-hoc and not notarized by Apple (that needs a paid account). macOS may say it cannot verify the app. Either:
 
 - **macOS 15 and later:** System Settings → Privacy & Security → scroll down to the message about “Photos” → **Open Anyway**; or
-- run once in Terminal and open the app again: `xattr -dr com.apple.quarantine ~/Applications/Photos.app`
+- run once in Terminal and open the app again: `xattr -dr com.apple.quarantine Photos.app` (from inside the project folder)
 
 (The old “right-click → Open” trick no longer works on macOS 15.)
 
 ## Uninstall
 
-`bash install.sh --uninstall`, or delete `Photos.app` and the `PhotosData` folder next to it. Nothing else is left on your Mac (macOS keeps a few tiny entries under the app's bundle id; the app removes them each time you quit).
+Delete the project folder (it holds `Photos.app` and `PhotosData`), or run `bash install.sh --uninstall`. Nothing else is left on your Mac (macOS keeps a few tiny entries under the app's bundle id; the app removes them each time you quit).
 
 ## Where your data lives
 
-In a folder named `PhotosData` **next to** `Photos.app` (for example `~/Applications/PhotosData`): the library index (`library.db`), thumbnails, caches, logs and settings. Copy both together to move the app to another Mac. Your photos stay where they are.
+In a folder named `PhotosData` **next to** `Photos.app` (by default both are inside the project folder you ran `install.sh` from): the library index (`library.db`), thumbnails, caches, logs and settings. Copy both together to move the app to another Mac. Your photos stay where they are.
 
 ## Promises
 
@@ -58,7 +58,7 @@ Nothing leaves your Mac except map tile requests (which reveal the map area you 
 
 | Problem | What to do |
 |---|---|
-| “Can’t Create Data Folder” | The folder next to the app is not writable (for example the app runs from a disk image). Copy `Photos.app` to `~/Applications` first. |
+| “Can’t Create Data Folder” | The folder next to the app is not writable (for example the app runs from a disk image). Copy `Photos.app` to a normal folder first. |
 | Map is grey | You are offline; everything else keeps working. |
 | A folder shows a warning badge | It is not reachable (unplugged drive?). Nothing is removed from the library until you remove the folder yourself; use right-click → Relink… |
 | Slow first scan | Thumbnails and face analysis run in the background; a large library takes a while the first time. |
