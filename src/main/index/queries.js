@@ -400,7 +400,7 @@ function daysBetween(a, b) {
 
 function getAreaSections(db, { filter = null } = {}) {
   const rows = db.prepare(
-    'SELECT id, capture_date, place_locality_en, place_locality_zh, media_type, duration_seconds, source_folder_id, is_live_photo FROM items WHERE '
+    'SELECT id, capture_date, place_locality_en, place_locality_zh, media_type, duration_seconds, source_folder_id, is_live_photo, capture_time_local FROM items WHERE '
     + buildFilterSql(filter) + ' ORDER BY capture_time_local ASC, id ASC'
   ).raw().all();
 
@@ -408,6 +408,7 @@ function getAreaSections(db, { filter = null } = {}) {
   const durations = new Float32Array(rows.length);
   const sourceIds = new Int32Array(rows.length); // M8c.5 (K3): for the unavailable badge
   const live = new Uint8Array(rows.length);       // M8c.5: LIVE badge on Places tiles
+  const times = new Float64Array(rows.length);    // M12.2g: sort keys for selection ranges (seconds, face value)
   const sections = [];
   let current = null;
   for (let i = 0; i < rows.length; i += 1) {
@@ -417,6 +418,7 @@ function getAreaSections(db, { filter = null } = {}) {
     durations[i] = row[4] !== 'video' ? -1 : (typeof row[5] === 'number' ? row[5] : -2);
     sourceIds[i] = row[6] || 0;
     live[i] = row[7] === 1 ? 1 : 0;
+    times[i] = captureLocalToSeconds(row[8]);
     if (!current || current.localityEn !== row[2] || daysBetween(current.endDate, row[1]) > 1) {
       current = { localityEn: row[2], localityZh: row[3], startDate: row[1], endDate: row[1], start: i, count: 0 };
       sections.push(current);
@@ -424,7 +426,7 @@ function getAreaSections(db, { filter = null } = {}) {
     current.endDate = row[1];
     current.count += 1;
   }
-  return { count: rows.length, ids, durations, sourceIds, live, sections };
+  return { count: rows.length, ids, durations, sourceIds, live, times, sections };
 }
 
 module.exports = {
