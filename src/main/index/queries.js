@@ -259,8 +259,19 @@ function getItemById(db, id) {
     }
   }
 
+  // M12.4: the values the UI shows. A user edit always wins (NULL = never
+  // edited; '' = cleared by the user, shown as none).
+  const title = row.title_user !== null && row.title_user !== undefined ? (row.title_user || null) : (row.title_file || null);
+  const caption = row.caption_user !== null && row.caption_user !== undefined ? (row.caption_user || null) : (row.caption_file || null);
+  const keywords = db.prepare(
+    'SELECT k.name AS name FROM item_keywords ik JOIN keywords k ON k.id = ik.keyword_id WHERE ik.item_id = ? AND ik.origin = ? ORDER BY k.name COLLATE NOCASE'
+  ).all(row.id, row.keywords_user_owned === 1 ? 1 : 0).map((r) => r.name);
+
   return {
     ...row,
+    title,
+    caption,
+    keywords,
     absolute_path: absolutePath,
     live_photo_video_absolute_path: livePhotoVideoAbsolutePath,
   };
