@@ -206,6 +206,14 @@
       } catch (err) { /* the field simply shows the stored value again */ }
     }
 
+    async function saveKeywords(change) {
+      try {
+        await window.api.updateKeywords({ target: { ids: [item.id] }, add: change.add, remove: change.remove });
+        const row = await window.api.getItemById({ id: item.id });
+        if (row) setItem(row);
+      } catch (err) { /* the field shows the stored keywords again */ }
+    }
+
     async function toggleFavorite() {
       try {
         await window.api.setFavorite({ target: { ids: [item.id] }, value: item.is_favorite !== 1 });
@@ -242,7 +250,7 @@
           F.exposureCells(item).map((c, i) => h('span', { key: i }, c)))),
       h(EditableField, { className: 'info-field', value: item.caption, placeholder: 'Add a Caption', multiline: true,
         onCommit: (v) => saveText('setCaption', v) }), // M12.4
-      h('div', { className: 'info-field' }, 'Add Keywords'),
+      h(window.InfoKeywords, { keywords: item.keywords || [], onChange: (c) => saveKeywords(c) }), // M12.4
       faces.length > 0 && h('div', { className: 'info-faces' },
         faces.map((p) => p.crop
           ? h('img', { key: p.faceId, className: 'info-face', src: 'file://' + p.crop, alt: '',
