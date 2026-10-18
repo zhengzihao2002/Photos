@@ -52,18 +52,18 @@ jobs:
         run: |
           APP="${{ steps.app.outputs.path }}"
           R="$APP/Contents/Resources"
-          for f in geo/places.json geo/landmarks.json models/face_detection_yunet_2023mar.onnx models/face_recognition_sface_2021dec.onnx icon.icns en.lproj/InfoPlist.strings zh-Hans.lproj/InfoPlist.strings LICENSE.txt THIRD_PARTY_NOTICES.md app.asar; do
+          for f in geo/places.json geo/landmarks.json models/face_detection_yunet_2023mar.onnx models/face_recognition_sface_2021dec.onnx icon.icns en.lproj/InfoPlist.strings zh-Hans.lproj/InfoPlist.strings LICENSE.txt THIRD_PARTY_NOTICES.md app/package.json app/src/main/main.js app/src/shared/i18n/en.js app/src/shared/i18n/zh-Hans.js app/src/renderer/vendor/map-styles/styles.js app/src/renderer/info.html app/src/renderer/settings.html app/src/renderer/vendor/maplibre/maplibre-gl-csp.js app/src/renderer/vendor/supercluster/supercluster.min.js; do
             test -e "$R/$f" || { echo "MISSING in app: $f"; exit 1; }
           done
-          U="$R/app.asar.unpacked/node_modules"
+          U="$R/app/node_modules"
           test -x "$U/ffmpeg-static/ffmpeg"
           test -x "$U/ffprobe-static/bin/darwin/arm64/ffprobe"
-          find "$U/onnxruntime-node" -name 'onnxruntime_binding.node' | grep -q . 
+          find "$U/onnxruntime-node" -name 'onnxruntime_binding.node' | grep -q .
           find "$U/onnxruntime-node" -name 'libonnxruntime*.dylib' | grep -q .
           find "$U/better-sqlite3" -name 'better_sqlite3.node' | grep -q .
           find "$U/@img" -name '*.node' | grep -q .
-          test -f "$APP/Contents/Frameworks/Electron Framework.framework/Resources/LICENSES.chromium.html" || test -f "$R/LICENSES.chromium.html" || find "$APP" -name 'LICENSES.chromium.html' | grep -q .
-          npx --no-install asar list "$R/app.asar" 2>/dev/null | grep -E 'src/shared/i18n/(en|zh-Hans)\.js|vendor/map-styles/styles.js|src/renderer/info.html|src/renderer/settings.html' || ./dev node -e "const a=require('@electron/asar');const l=a.listPackage(process.argv[1]);for(const n of ['src/shared/i18n/en.js','src/shared/i18n/zh-Hans.js','src/renderer/vendor/map-styles/styles.js','src/renderer/info.html','src/renderer/settings.html']) if(!l.some((x)=>x.endsWith(n))) {console.error('missing in asar: '+n);process.exit(1)}" "$R/app.asar"
+          find "$APP" -name 'LICENSES.chromium.html' | grep -q .
+          ! test -d "$U/onnxruntime-node/bin/napi-v6/win32"    # other platforms' binaries are not shipped
           echo "ship list OK"
       - name: Packaged smoke test (generated library, then read-only disk image)
         run: SMOKE_APP="${{ steps.app.outputs.path }}/Contents/MacOS/Photos" bash tools/ci-smoke.sh

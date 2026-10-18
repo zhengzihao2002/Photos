@@ -86,17 +86,7 @@
         }
       ]
     },
-    "asar": true,
-    "asarUnpack": [
-      "node_modules/ffmpeg-static/**",
-      "node_modules/ffprobe-static/**",
-      "node_modules/sharp/**",
-      "node_modules/@img/**",
-      "node_modules/onnxruntime-node/**",
-      "node_modules/better-sqlite3/**",
-      "**/*.node",
-      "**/*.dylib"
-    ],
+    "asar": false,
     "npmRebuild": false,
     "copyright": "Copyright © 2026 The Photos contributors. MIT License.",
     "afterPack": "build/after-pack.js"

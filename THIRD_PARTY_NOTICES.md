@@ -53,12 +53,12 @@ Map tiles and styles from https://openfreemap.org/ (the only network use of the 
 ### FFmpeg and FFprobe (ffmpeg-static, ffprobe-static)
 **License:** GPL-3.0-or-later (ffmpeg-static builds) / MIT (wrapper)
 
-Run as separate command-line programs, never linked into the app. Source code of the FFmpeg build used by ffmpeg-static: https://github.com/eugeneware/ffmpeg-static and https://ffmpeg.org/ . The binaries are inside Photos.app/Contents/Resources/app.asar.unpacked/node_modules/ and can be replaced.
+Run as separate command-line programs, never linked into the app. Source code of the FFmpeg build used by ffmpeg-static: https://github.com/eugeneware/ffmpeg-static and https://ffmpeg.org/ . The binaries are inside Photos.app/Contents/Resources/app/node_modules/ and can be replaced.
 
 ### libvips (via sharp, @img/sharp-libvips-*)
 **License:** LGPL-3.0-or-later
 
-Shipped as a separate shared library inside app.asar.unpacked and can be replaced. https://www.libvips.org/
+Shipped as a separate shared library inside Photos.app/Contents/Resources/app/node_modules/@img and can be replaced. https://www.libvips.org/
 
 ## npm packages shipped in the app (from package-lock.json)
 
