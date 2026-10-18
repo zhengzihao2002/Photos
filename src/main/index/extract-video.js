@@ -234,7 +234,7 @@ async function extractVideoMetadata(fullPath, filename) {
     isPanorama: false,
     titleFile: cleanTitle(tagText(probeResult, ['title', 'com.apple.quicktime.title']), filename),
     captionFile: cleanCaption(tagText(probeResult, ['description', 'com.apple.quicktime.description'])),
-    keywordsFile: cleanKeywords(tagText(probeResult, ['com.apple.quicktime.keywords', 'keywords'])),
+    keywordsFile: cleanKeywords(tagText(probeResult, ['keywords'])) /* not Apple's system tag (FaceTime): nobody wrote it */,
     extractionError: !videoStream ? 'no_video_stream' : (width === null || height === null ? 'dimensions_unavailable' : null),
   };
 }
