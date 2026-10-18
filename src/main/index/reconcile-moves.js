@@ -15,8 +15,8 @@
 
 const WINDOW_SECONDS = 3600;
 
-const HAS_USER_DATA = '(is_favorite = 1 OR title_user IS NOT NULL OR caption_user IS NOT NULL OR keywords_user_owned = 1)';
-const NO_USER_DATA = '(is_favorite = 0 AND title_user IS NULL AND caption_user IS NULL AND keywords_user_owned = 0)';
+const HAS_USER_DATA = '(is_favorite = 1 OR title_user IS NOT NULL OR caption_user IS NOT NULL OR keywords_user_owned = 1 OR rotation != 0)';
+const NO_USER_DATA = '(is_favorite = 0 AND title_user IS NULL AND caption_user IS NULL AND keywords_user_owned = 0 AND rotation = 0)';
 const COLS = 'id, filename, media_type, file_size_bytes, file_mtime, capture_time_local, width, height';
 
 function sameFile(a, b) {
@@ -53,13 +53,14 @@ function reconcileMoves(db, sourceFolderId, now) {
       'UPDATE items SET is_favorite = (SELECT is_favorite FROM items WHERE id = @d), '
       + 'title_user = (SELECT title_user FROM items WHERE id = @d), '
       + 'caption_user = (SELECT caption_user FROM items WHERE id = @d), '
-      + 'keywords_user_owned = (SELECT keywords_user_owned FROM items WHERE id = @d) WHERE id = @r'
+      + 'keywords_user_owned = (SELECT keywords_user_owned FROM items WHERE id = @d), '
+      + 'rotation = (SELECT rotation FROM items WHERE id = @d) WHERE id = @r'
     );
     const moveKeywords = db.prepare(
       'INSERT OR IGNORE INTO item_keywords (item_id, keyword_id, origin) SELECT @r, keyword_id, 1 FROM item_keywords WHERE item_id = @d AND origin = 1'
     );
     const clearDonor = db.prepare(
-      'UPDATE items SET is_favorite = 0, title_user = NULL, caption_user = NULL, keywords_user_owned = 0 WHERE id = ?'
+      'UPDATE items SET is_favorite = 0, title_user = NULL, caption_user = NULL, keywords_user_owned = 0, rotation = 0 WHERE id = ?'
     );
     const dropDonorKeywords = db.prepare('DELETE FROM item_keywords WHERE item_id = ? AND origin = 1');
 

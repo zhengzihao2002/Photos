@@ -182,7 +182,7 @@ function getItemsPage(db, { limit = 100, cursor = null, direction = 'older', fil
 
   const sql = `
     SELECT id, source_folder_id, media_type, width, height, capture_time_local, duration_seconds, has_gps, -- M8b.7: source id for the unavailable badge; M8c.5 (U14): has_gps for the map-pin
-           is_live_photo, burst_id, is_burst_cover, is_favorite -- M12.3: heart badge
+           is_live_photo, burst_id, is_burst_cover, is_favorite, rotation -- M12.3: heart badge; M12.11: rotation
     FROM items
     WHERE ${whereFilter} ${cursorClause}
     ORDER BY ${orderBy}
@@ -421,7 +421,7 @@ function daysBetween(a, b) {
 
 function getAreaSections(db, { filter = null } = {}) {
   const rows = db.prepare(
-    'SELECT id, capture_date, place_locality_en, place_locality_zh, media_type, duration_seconds, source_folder_id, is_live_photo, capture_time_local, is_favorite FROM items WHERE '
+    'SELECT id, capture_date, place_locality_en, place_locality_zh, media_type, duration_seconds, source_folder_id, is_live_photo, capture_time_local, is_favorite, rotation FROM items WHERE '
     + buildFilterSql(filter) + ' ORDER BY capture_time_local ASC, id ASC'
   ).raw().all();
 
@@ -431,6 +431,7 @@ function getAreaSections(db, { filter = null } = {}) {
   const live = new Uint8Array(rows.length);       // M8c.5: LIVE badge on Places tiles
   const times = new Float64Array(rows.length);    // M12.2g: sort keys for selection ranges (seconds, face value)
   const fav = new Uint8Array(rows.length);        // M12.3: heart badge on Places tiles
+  const rot = new Uint8Array(rows.length);        // M12.11: quarter turns clockwise (0-3)
   const sections = [];
   let current = null;
   for (let i = 0; i < rows.length; i += 1) {
@@ -442,6 +443,7 @@ function getAreaSections(db, { filter = null } = {}) {
     live[i] = row[7] === 1 ? 1 : 0;
     times[i] = captureLocalToSeconds(row[8]);
     fav[i] = row[9] === 1 ? 1 : 0;
+    rot[i] = ((row[10] || 0) / 90) & 3;
     if (!current || current.localityEn !== row[2] || daysBetween(current.endDate, row[1]) > 1) {
       current = { localityEn: row[2], localityZh: row[3], startDate: row[1], endDate: row[1], start: i, count: 0 };
       sections.push(current);
@@ -449,7 +451,7 @@ function getAreaSections(db, { filter = null } = {}) {
     current.endDate = row[1];
     current.count += 1;
   }
-  return { count: rows.length, ids, durations, sourceIds, live, times, fav, sections };
+  return { count: rows.length, ids, durations, sourceIds, live, times, fav, rot, sections };
 }
 
 module.exports = {

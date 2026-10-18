@@ -20,6 +20,7 @@ const db = require('../../index/db');
 const edits = require('../../index/edits');
 const text = require('../../index/edits-text');
 const history = require('../../index/edit-history');
+const rotate = require('../../index/edits-rotate');
 const windowBus = require('../../window-bus');
 
 function broadcast(kind, result) {
@@ -31,6 +32,7 @@ async function setFavorite(event, p = {}) { return broadcast('favorite', history
 async function setTitle(event, p = {}) { return broadcast('title', history.recorded(db.get(), p.target, () => text.setTitle(db.get(), { target: p.target, value: p.value }))); }
 async function setCaption(event, p = {}) { return broadcast('caption', history.recorded(db.get(), p.target, () => text.setCaption(db.get(), { target: p.target, value: p.value }))); }
 async function updateKeywords(event, p = {}) { return broadcast('keywords', history.recorded(db.get(), p.target, () => text.updateKeywords(db.get(), { target: p.target, add: p.add, remove: p.remove }))); }
+async function rotateItems(event, p = {}) { return broadcast('rotate', history.recorded(db.get(), p.target, () => rotate.rotateItems(db.get(), { target: p.target, delta: p.delta }))); }
 async function keywordSuggestions(event, p = {}) { return text.keywordSuggestions(db.get(), { prefix: p.prefix, limit: p.limit }); }
 async function undo() { const r = history.undo(db.get()); if (r.applied) windowBus.send('library:edited', { kind: 'undo' }); return r; }
 async function redo() { const r = history.redo(db.get()); if (r.applied) windowBus.send('library:edited', { kind: 'redo' }); return r; }
@@ -41,6 +43,7 @@ module.exports = [
   { channel: 'edits:set-caption', handle: setCaption },
   { channel: 'edits:update-keywords', handle: updateKeywords },
   { channel: 'edits:keyword-suggestions', handle: keywordSuggestions },
+  { channel: 'edits:rotate', handle: rotateItems }, // M12.11: { target, delta: 90 | -90 | 180 }
   { channel: 'edits:undo', handle: undo },
   { channel: 'edits:redo', handle: redo },
 ];

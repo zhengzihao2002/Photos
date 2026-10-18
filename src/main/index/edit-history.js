@@ -16,7 +16,7 @@ let redoStack = [];
 
 function capture(db, where) {
   const rows = db.prepare(
-    'SELECT id, is_favorite, title_user, caption_user, keywords_user_owned FROM items WHERE id IN (SELECT id FROM items WHERE ' + where + ') LIMIT ' + (MAX_ITEMS + 1)
+    'SELECT id, is_favorite, title_user, caption_user, keywords_user_owned, rotation FROM items WHERE id IN (SELECT id FROM items WHERE ' + where + ') LIMIT ' + (MAX_ITEMS + 1)
   ).all();
   if (rows.length > MAX_ITEMS) return null;
   const kw = db.prepare('SELECT k.name AS name FROM item_keywords ik JOIN keywords k ON k.id = ik.keyword_id WHERE ik.item_id = ? AND ik.origin = 1');
@@ -24,7 +24,7 @@ function capture(db, where) {
 }
 
 function restore(db, snapshot) {
-  const upd = db.prepare('UPDATE items SET is_favorite = @is_favorite, title_user = @title_user, caption_user = @caption_user, keywords_user_owned = @keywords_user_owned WHERE id = @id');
+  const upd = db.prepare('UPDATE items SET is_favorite = @is_favorite, title_user = @title_user, caption_user = @caption_user, keywords_user_owned = @keywords_user_owned, rotation = @rotation WHERE id = @id');
   const del = db.prepare('DELETE FROM item_keywords WHERE item_id = ? AND origin = 1');
   const insK = db.prepare('INSERT OR IGNORE INTO keywords (name) VALUES (?)');
   const getK = db.prepare('SELECT id FROM keywords WHERE name = ?');
