@@ -99,7 +99,7 @@ fi
 if [ -f "$TMP/Photos-arm64.zip.sha256" ]; then
   WANT="$(awk '{print $1}' "$TMP/Photos-arm64.zip.sha256" | head -n1)"
   GOT="$(shasum -a 256 "$ZIP" | awk '{print $1}')"
-  [ -n "$WANT" ] && [ "$WANT" = "$GOT" ] || fail "Checksum mismatch: the download is damaged or was changed. Not installing."
+  if [ -z "$WANT" ] || [ "$WANT" != "$GOT" ]; then fail "Checksum mismatch: the download is damaged or was changed. Not installing."; fi
   say "Checksum verified."
 elif [ -n "$LOCAL_ZIP" ]; then
   say "No .sha256 next to the local ZIP; skipping the checksum check."
@@ -124,7 +124,7 @@ xattr -dr com.apple.quarantine "$APP" 2>/dev/null || true       # harmless when 
 codesign --verify --deep --strict "$APP" || fail "The app's signature check failed. Not opening it."
 touch "$APP"                                                      # lets Finder refresh the icon
 LSREG="/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister"
-[ -x "$LSREG" ] && "$LSREG" -f "$APP" >/dev/null 2>&1 || true
+if [ -x "$LSREG" ]; then "$LSREG" -f "$APP" >/dev/null 2>&1 || true; fi
 [ -f "$APP/Contents/Resources/icon.icns" ] || say "(note: icon file not found inside the app)"
 
 say ""
