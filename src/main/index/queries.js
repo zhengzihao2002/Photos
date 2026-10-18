@@ -174,7 +174,7 @@ function getItemsPage(db, { limit = 100, cursor = null, direction = 'older', fil
 
   const sql = `
     SELECT id, source_folder_id, media_type, width, height, capture_time_local, duration_seconds, has_gps, -- M8b.7: source id for the unavailable badge; M8c.5 (U14): has_gps for the map-pin
-           is_live_photo, burst_id, is_burst_cover
+           is_live_photo, burst_id, is_burst_cover, is_favorite -- M12.3: heart badge
     FROM items
     WHERE ${whereFilter} ${cursorClause}
     ORDER BY ${orderBy}

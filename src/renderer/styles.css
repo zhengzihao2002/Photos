@@ -1576,3 +1576,16 @@ body.drop-active::after {
 .viewer.is-zoom-wait > :not(.viewer-stage),
 .viewer.is-zoom-wait .viewer-stage > :not(.viewer-img):not(.viewer-video-wrap),
 .viewer.is-zoom-wait .viewer-vbar { animation: none; opacity: 0; }
+
+/* M12.3: favorite heart, bottom left of tiles (Apple Photos). */
+.tile-fav-badge {
+  position: absolute;
+  left: 6px;
+  bottom: 6px;
+  width: 14px;
+  height: 14px;
+  color: #ffffff;
+  filter: drop-shadow(0 1px 1.5px rgba(0, 0, 0, 0.7));
+  pointer-events: none;
+}
+.tile-fav-badge svg { display: block; width: 100%; height: 100%; }

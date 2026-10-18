@@ -117,7 +117,10 @@
       // U14: map-pin symbol on located items, as in Apple Photos (the '!' takes its place when unavailable).
       !isPlaceholderItem && !!item.has_gps && !unavailable && h('div', { className: 'tile-gps-badge', title: 'Has location' },
         h('svg', { viewBox: '0 0 16 16', 'aria-hidden': 'true' }, h('circle', { cx: 8, cy: 4.6, r: 2.4, fill: 'none', stroke: 'currentColor', 'stroke-width': 1.5 }), h('path', { d: 'M8 7v6', fill: 'none', stroke: 'currentColor', 'stroke-width': 1.5, 'stroke-linecap': 'round' }), h('ellipse', { cx: 8, cy: 13, rx: 4.6, ry: 1.7, fill: 'none', stroke: 'currentColor', 'stroke-width': 1.3 }))),
-      unavailable && h('div', { className: 'tile-unavailable-badge', title: 'Original unavailable' }, '!')
+      unavailable && h('div', { className: 'tile-unavailable-badge', title: 'Original unavailable' }, '!'),
+      // M12.3: Apple's small white heart, bottom left, on favorites.
+      !isPlaceholderItem && item.is_favorite === 1 && h('div', { className: 'tile-fav-badge', 'aria-label': 'Favorite' },
+        h('svg', { viewBox: '0 0 16 16', 'aria-hidden': 'true' }, h('path', { fill: 'currentColor', d: 'M8 14.2 2.3 8.6C.6 6.9.6 4.2 2.3 2.8c1.5-1.3 3.7-1 5 .5l.7.8.7-.8c1.3-1.5 3.5-1.8 5-.5 1.7 1.4 1.7 4.1 0 5.8z' })))
     );
   }
 
@@ -2924,6 +2927,8 @@
   // it across section switches). Person, group and map-area changes do not
   // notify filterStore subscribers, so they are followed here too.
   selectionStore.bindView(filterStore.get());
+  // M12.3: any user edit (favorite, later title/keywords) refreshes the grids softly.
+  if (window.api.onLibraryEdited) window.api.onLibraryEdited(() => libraryChangeStore.bump());
   filterStore.subscribe((f) => selectionStore.bindView(f));
   [personStore, groupStore, mapAreaStore].forEach((s) => s.subscribe(() => selectionStore.bindView(filterStore.get())));
   // M12.2: Edit > Select All arrives here. In a text field it is ordinary text
