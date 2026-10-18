@@ -73,7 +73,13 @@ function buildSearchClause(encoded) {
     .replace(/%/g, '\\%')
     .replace(/_/g, '\\_')
     .replace(/'/g, "''");
-  return "filename LIKE '%" + escaped + "%' ESCAPE '\\'";
+  // M12.5: file name, shown title, shown caption, or any shown keyword.
+  const like = "LIKE '%" + escaped + "%' ESCAPE '\\'";
+  return '(filename ' + like
+    + ' OR COALESCE(title_user, title_file) ' + like
+    + ' OR COALESCE(caption_user, caption_file) ' + like
+    + ' OR EXISTS (SELECT 1 FROM item_keywords ik JOIN keywords k ON k.id = ik.keyword_id'
+    + ' WHERE ik.item_id = items.id AND ik.origin = items.keywords_user_owned AND k.name ' + like + '))';
 }
 
 // M6: refinements appended to any filter as '::name:value' segments --
