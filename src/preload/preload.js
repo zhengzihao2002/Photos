@@ -12,6 +12,14 @@
 const { contextBridge, ipcRenderer, webUtils } = require('electron');
 
 contextBridge.exposeInMainWorld('api', {
+  // M14: the active language ('en' | 'zh-Hans'), and a notice when the user changes it in the menu bar.
+  getLocale: () => ipcRenderer.sendSync('i18n:get-locale'),
+  onLocaleChanged: (callback) => {
+    const listener = (_event, payload) => callback(payload);
+    ipcRenderer.on('i18n:locale-changed', listener);
+    return () => ipcRenderer.removeListener('i18n:locale-changed', listener);
+  },
+
   getSystemInfo: () => ipcRenderer.invoke('system:get-info'),
 
   pickFolders: () => ipcRenderer.invoke('dialog:pick-folders'),

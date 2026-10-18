@@ -28,6 +28,8 @@ const faceManager = require('./faces/face-manager'); // M10: People
 const mediaProtocol = require('./display/media-protocol');
 const displayService = require('./display/display-service');
 const residueCleanup = require('./residue-cleanup');
+const i18n = require('./i18n'); // M14
+const { t } = i18n;
 
 // M7 + M8a (self-containment): keep everything Electron writes -- network
 // cache (map tiles), GPU/code caches, cookies, logs, crash dumps, temp files
@@ -136,14 +138,7 @@ function verifyDataFolderWritable() {
     paths.dataRoot(); // creates the folder as a side effect if missing
     return true;
   } catch (err) {
-    dialog.showErrorBox(
-      'Can\u2019t Create Data Folder',
-      'Photos couldn\u2019t create its data folder next to the app.\n\n' +
-        'If you\u2019re running Photos.app from a mounted disk image (a ' +
-        '.dmg), copy it to a regular folder first \u2014 e.g. your Desktop or ' +
-        'Applications \u2014 and open it from there.\n\n' +
-        `Details: ${err.message}`
-    );
+    dialog.showErrorBox(t('dialog.dataFolder.title'), t('dialog.dataFolder.body', { details: err.message }));
     return false;
   }
 }
@@ -157,11 +152,7 @@ function initializeDatabase() {
     db.get();
     return true;
   } catch (err) {
-    dialog.showErrorBox(
-      'Can\u2019t Open Library Database',
-      'Photos couldn\u2019t open or set up its database file.\n\n' +
-        `Details: ${err.message}`
-    );
+    dialog.showErrorBox(t('dialog.db.title'), t('dialog.db.body', { details: err.message }));
     return false;
   }
 }
@@ -184,7 +175,7 @@ app.whenReady().then(() => {
     const devIcon = require('path').join(__dirname, '..', '..', 'build', 'icon.png');
     if (require('fs').existsSync(devIcon)) app.dock.setIcon(devIcon);
   }
-  app.setAboutPanelOptions({ applicationName: 'Photos', applicationVersion: app.getVersion() });
+  require('./menu').applyAboutPanel(); // M14: name follows the app language
   registerIpcHandlers();
   mediaProtocol.handle();   // M5: photos-media:// (ids only, Range-capable)
   displayService.init();    // M5: empties display-cache/.tmp, indexes cache (async)

@@ -12,12 +12,13 @@
  */
 
 const { dialog, BrowserWindow } = require('electron');
+const { t } = require('../../i18n'); // M14
 
 async function pickFolders(event) {
   const ownerWindow = BrowserWindow.fromWebContents(event.sender);
   const result = await dialog.showOpenDialog(ownerWindow, {
     properties: ['openDirectory', 'multiSelections'],
-    title: 'Choose Photo Folders',
+    title: t('dialog.pickFolders.title'),
   });
 
   return {
@@ -47,7 +48,7 @@ async function showMessage(event, payload = {}) {
   const index = (v, fallback) => (Number.isInteger(v) && v >= 0 && v < buttons.length ? v : fallback);
   const result = await dialog.showMessageBox(ownerWindow, {
     type,
-    message: text(payload.message, 200) || 'Photos',
+    message: text(payload.message, 200) || t('dialog.default.message'),
     detail: text(payload.detail, 2000) || undefined,
     buttons,
     defaultId: index(payload.defaultId, 0),

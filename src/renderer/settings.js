@@ -12,7 +12,9 @@
     app: '#8e8e93', library: '#34c759', thumbnails: '#0a84ff', previews: '#bf5af2',
     faceCrops: '#ff375f', webCache: '#30b0c7', logs: '#ff9f0a', other: '#c7c7cc',
   };
-  const fmt = (b) => (b >= 1e9 ? (b / 1e9).toFixed(1) + ' GB' : (b / 1e6).toFixed(1) + ' MB');
+  const fmt = (b) => (b >= 1e9 ? t('size.gb', { value: window.i18n.number(b / 1e9, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) })
+    : t('size.mb', { value: window.i18n.number(b / 1e6, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) }));
+  document.title = t('window.settings');
 
   function StorageIcon() {
     return h('svg', { viewBox: '0 0 24 24', 'aria-hidden': 'true' },
@@ -29,7 +31,7 @@
       setError(null);
       return window.api.getStorage({ force })
         .then((r) => setSizes(r))
-        .catch((e) => setError('Could not measure storage: ' + (e && e.message ? e.message : e)));
+        .catch((e) => setError(t('settings.err.measure', { details: e && e.message ? e.message : String(e) })));
     };
     useEffect(() => {
       setBusy('measure');
@@ -45,9 +47,9 @@
       try {
         const r = await window.api.clearStorage(kind);
         if (r && r.ok && r.sizes) setSizes(r.sizes);
-        else if (r && r.reason === 'busy') setError('Another clear is still running.');
+        else if (r && r.reason === 'busy') setError(t('settings.err.busy'));
       } catch (e) {
-        setError('Clear failed: ' + (e && e.message ? e.message : e));
+        setError(t('settings.err.clear', { details: e && e.message ? e.message : String(e) }));
       } finally {
         setBusy(null);
       }
@@ -56,33 +58,33 @@
     const rows = sizes ? sizes.rows : [];
     const total = sizes ? sizes.total : 0;
     const anyClearable = rows.some((r) => r.clear && r.bytes > 0);
-    const status = busy === 'measure' ? 'Calculating\u2026' : busy ? 'Clearing\u2026' : (error || '');
+    const status = busy === 'measure' ? t('settings.calculating') : busy ? t('settings.clearing') : (error || '');
 
     return h('div', null,
       h('div', { class: 'st-tabs' },
-        h('button', { class: 'st-tab is-selected', type: 'button', 'aria-pressed': 'true' }, h(StorageIcon), 'Storage')),
+        h('button', { class: 'st-tab is-selected', type: 'button', 'aria-pressed': 'true' }, h(StorageIcon), t('settings.tab.storage'))),
       h('div', { class: 'st-page' },
         sizes
           ? h('div', null,
-              h('div', { class: 'st-total' }, fmt(total), h('small', null, 'used by Photos')),
-              sizes.freeBytes != null && h('div', { class: 'st-free' }, fmt(sizes.freeBytes) + ' available on this disk'),
+              h('div', { class: 'st-total' }, fmt(total), h('small', null, t('settings.usedByPhotos'))),
+              sizes.freeBytes != null && h('div', { class: 'st-free' }, t('settings.available', { size: fmt(sizes.freeBytes) })),
               h('div', { class: 'st-bar' },
                 rows.filter((r) => r.bytes > 0).map((r) => h('span', {
-                  key: r.key, title: r.label + ': ' + fmt(r.bytes),
+                  key: r.key, title: t('storage.row.' + r.key) + ': ' + fmt(r.bytes),
                   style: { width: (total > 0 ? (r.bytes / total) * 100 : 0) + '%', background: COLORS[r.key] || '#999' },
                 }))),
               h('div', { class: 'st-rows' },
                 rows.map((r) => h('div', { key: r.key, class: 'st-row' },
                   h('span', { class: 'st-dot', style: { background: COLORS[r.key] || '#999' } }),
-                  h('span', { class: 'st-label' }, r.label),
+                  h('span', { class: 'st-label' }, t('storage.row.' + r.key)),
                   h('span', { class: 'st-size' }, fmt(r.bytes)),
                   r.clear
-                    ? h('button', { class: 'st-btn', type: 'button', disabled: !!busy || r.bytes === 0, onClick: () => clear(r.clear) }, 'Clear')
+                    ? h('button', { class: 'st-btn', type: 'button', disabled: !!busy || r.bytes === 0, onClick: () => clear(r.clear) }, t('settings.clear'))
                     : h('span', { class: 'st-btn-spacer' })))))
           : h('div', { class: 'st-total' }, '\u00a0'),
         h('div', { class: 'st-footer' },
           h('span', { class: 'st-status' }, status),
-          h('button', { class: 'st-btn', type: 'button', disabled: !!busy || !anyClearable, onClick: () => clear('all') }, 'Clear All Caches'))));
+          h('button', { class: 'st-btn', type: 'button', disabled: !!busy || !anyClearable, onClick: () => clear('all') }, t('settings.clearAll')))));
   }
 
   render(h(Settings), document.getElementById('settings-root'));

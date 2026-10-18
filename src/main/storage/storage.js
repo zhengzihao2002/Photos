@@ -16,6 +16,7 @@ const { app, session, dialog } = require('electron');
 const paths = require('../paths');
 const db = require('../index/db');
 const bus = require('../window-bus');
+const { t } = require('../i18n'); // M14
 
 const WEB_CACHE_DIRS = ['Cache', 'Code Cache', 'GPUCache', 'DawnGraphiteCache', 'DawnWebGPUCache', 'Shared Dictionary'];
 const CACHE_MS = 15000;
@@ -35,13 +36,13 @@ function libraryPaths() {
 }
 
 const ROWS = [
-  { key: 'app', label: 'App', paths: appPaths },
-  { key: 'library', label: 'Library', paths: libraryPaths },
-  { key: 'thumbnails', label: 'Thumbnails', paths: () => [paths.thumbnailsDir()], clear: 'thumbnails' },
-  { key: 'previews', label: 'Full-Size Previews & Converted Videos', paths: () => [paths.displayCacheDir()], clear: 'previews' },
-  { key: 'faceCrops', label: 'Face Crops', paths: () => [paths.faceCropsDir()], clear: 'faceCrops' },
-  { key: 'webCache', label: 'Map & Web Cache', paths: () => WEB_CACHE_DIRS.map((d) => path.join(paths.electronDataDir(), d)), clear: 'webCache' },
-  { key: 'logs', label: 'Logs & Temporary Files', paths: () => [paths.logsDir(), paths.tempDir(), paths.crashDumpsDir()], clear: 'logs' },
+  { key: 'app', paths: appPaths },
+  { key: 'library', paths: libraryPaths },
+  { key: 'thumbnails', paths: () => [paths.thumbnailsDir()], clear: 'thumbnails' },
+  { key: 'previews', paths: () => [paths.displayCacheDir()], clear: 'previews' },
+  { key: 'faceCrops', paths: () => [paths.faceCropsDir()], clear: 'faceCrops' },
+  { key: 'webCache', paths: () => WEB_CACHE_DIRS.map((d) => path.join(paths.electronDataDir(), d)), clear: 'webCache' },
+  { key: 'logs', paths: () => [paths.logsDir(), paths.tempDir(), paths.crashDumpsDir()], clear: 'logs' },
 ];
 
 function runWorker(jobs) {
@@ -57,9 +58,9 @@ async function getSizes({ force = false } = {}) {
   if (!force && cached && Date.now() - cached.at < CACHE_MS) return cached.result;
   const jobs = [{ key: 'total', paths: [rootFolder()] }].concat(ROWS.map((r) => ({ key: r.key, paths: r.paths() })));
   const m = await runWorker(jobs);
-  const rows = ROWS.map((r) => ({ key: r.key, label: r.label, bytes: m.sizes[r.key] || 0, clear: r.clear || null }));
+  const rows = ROWS.map((r) => ({ key: r.key, bytes: m.sizes[r.key] || 0, clear: r.clear || null }));
   const other = Math.max(0, (m.sizes.total || 0) - rows.reduce((a, r) => a + r.bytes, 0));
-  rows.push({ key: 'other', label: 'Other (Settings, System Files)', bytes: other, clear: null });
+  rows.push({ key: 'other', bytes: other, clear: null });
   const result = { total: m.sizes.total || 0, rows, freeBytes: m.freeBytes, ms: m.ms };
   cached = { at: Date.now(), result };
   return result;
@@ -108,21 +109,15 @@ const CLEARERS = {
   },
 };
 
-const CONFIRM = {
-  thumbnails: ['Clear Thumbnails?', 'All thumbnails are deleted and made again in the background. On a large library this can take hours and uses CPU; until then the grid shows placeholders. Your photos are not affected.'],
-  previews: ['Clear Full-Size Previews & Converted Videos?', 'They are made again when you open a photo or video. Your photos are not affected.'],
-  faceCrops: ['Clear Face Crops?', 'Face images are made again as needed. Your people, names and corrections are kept.'],
-  webCache: ['Clear Map & Web Cache?', 'Map areas you viewed will load again from the internet. Settings are kept.'],
-  logs: ['Clear Logs & Temporary Files?', 'Logs, crash reports and temporary files older than an hour are deleted.'],
-  all: ['Clear All Caches?', 'Thumbnails, previews, converted videos, face crops, the map cache, logs and old temporary files are deleted and made again as needed. Thumbnails can take hours on a large library. Your photos, library, people and settings are kept.'],
-};
+const CONFIRM_KINDS = ['thumbnails', 'previews', 'faceCrops', 'webCache', 'logs', 'all'];
 
 async function clear(kind, parentWindow) {
-  if (!CONFIRM[kind]) throw new Error('storage: unknown clear kind ' + kind);
+  if (!CONFIRM_KINDS.includes(kind)) throw new Error('storage: unknown clear kind ' + kind);
   if (busy) return { ok: false, reason: 'busy' };
-  const [message, detail] = CONFIRM[kind];
+  const message = t('storage.confirm.' + kind + '.message');
+  const detail = t('storage.confirm.' + kind + '.detail');
   const res = await dialog.showMessageBox(parentWindow || undefined, {
-    type: 'warning', buttons: ['Clear', 'Cancel'], defaultId: 1, cancelId: 1, message, detail,
+    type: 'warning', buttons: [t('storage.confirm.clear'), t('storage.confirm.cancel')], defaultId: 1, cancelId: 1, message, detail,
   });
   if (res.response !== 0) return { ok: false, reason: 'cancelled' };
   busy = true;

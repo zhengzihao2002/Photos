@@ -5,6 +5,7 @@
  */
 const path = require('path');
 const { BrowserWindow } = require('electron');
+const { t } = require('./i18n'); // M14
 
 let win = null;
 
@@ -19,7 +20,7 @@ function open() {
     width: 620,
     height: 480,
     useContentSize: true,
-    title: 'Settings',
+    title: t('window.settings'),
     show: false,
     resizable: false,
     minimizable: false,
@@ -40,4 +41,9 @@ function open() {
   win.loadFile(path.join(__dirname, '..', 'renderer', 'settings.html'));
 }
 
-module.exports = { open };
+/** M14: new title after a language change (the page itself reloads). */
+function retitle() {
+  if (win && !win.isDestroyed()) win.setTitle(t('window.settings'));
+}
+
+module.exports = { open, retitle };

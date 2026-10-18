@@ -1,0 +1,22 @@
+{
+  "sameAsEnglish": [
+    "lang.en",
+    "storage.row.app"
+  ],
+  "dynamicKeyPrefixes": [
+    "storage.row.",
+    "storage.confirm."
+  ],
+  "literals": [
+    {
+      "file": "src/main/storage/storage.js",
+      "regex": "^(Cache|Code Cache|GPUCache|DawnGraphiteCache|DawnWebGPUCache|Shared Dictionary)$",
+      "reason": "Chromium cache folder names under the data folder, not text shown to the user"
+    },
+    {
+      "file": "src/main/storage/storage.js",
+      "text": "size worker exited ",
+      "reason": "internal error text; reaches the user only inside a localized 'Could not measure storage: {details}' notice"
+    }
+  ]
+}

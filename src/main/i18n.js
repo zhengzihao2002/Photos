@@ -46,6 +46,7 @@ function setLanguage(next) {
   i18n.setLocale(locale);
   const { Menu } = require('electron');
   Menu.setApplicationMenu(require('./menu').buildMenu());
+  require('./menu').applyAboutPanel();
   try { require('./settings-window').retitle(); } catch (e) { /* not open */ }
   try { require('./info-window').retitle(); } catch (e) { /* not open */ }
   require('./window-bus').send('i18n:locale-changed', { locale });

@@ -46,6 +46,8 @@ const handlers = [
 ];
 
 function registerIpcHandlers() {
+  // M14: pages ask for the language synchronously while they load, so the first render is already translated.
+  ipcMain.on('i18n:get-locale', (event) => { event.returnValue = require('../i18n').getLocale(); });
   for (const { channel, handle } of handlers) {
     ipcMain.handle(channel, handle);
   }

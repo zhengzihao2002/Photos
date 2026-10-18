@@ -20,6 +20,7 @@ const path = require('path');
 const { app, BrowserWindow, screen } = require('electron');
 const config = require('./config');
 const bus = require('./window-bus');
+const { t } = require('./i18n'); // M14
 
 const WIDTH = 290;
 const MIN_H = 120;
@@ -70,7 +71,7 @@ function open() {
   infoWin = new BrowserWindow({
     x, y, width: WIDTH, height: 300,
     useContentSize: true,
-    title: 'Info',
+    title: t('window.info'),
     show: false,
     focusable: false,
     resizable: false,
@@ -162,4 +163,9 @@ function setHeight(h) {
   infoWin.setContentSize(WIDTH, height);
 }
 
-module.exports = { attach, open, close, toggle, isOpen, setItem, getItem, setSelection, getSelection, setHeight, setEditing };
+/** M14: new title after a language change (the page itself reloads). */
+function retitle() {
+  if (isOpen()) infoWin.setTitle(t('window.info'));
+}
+
+module.exports = { retitle, attach, open, close, toggle, isOpen, setItem, getItem, setSelection, getSelection, setHeight, setEditing };

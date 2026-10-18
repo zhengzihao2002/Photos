@@ -7,6 +7,7 @@
  * The window is told through 'people:privacy' { enabled, deleted }.
  */
 
+const { t } = require('../i18n'); // M14
 const fs = require('fs');
 const path = require('path');
 const { Menu, dialog } = require('electron');
@@ -57,12 +58,11 @@ async function deleteAll(win) {
   const on = isEnabled();
   const res = await dialog.showMessageBox(win, {
     type: 'warning',
-    buttons: ['Delete', 'Cancel'],
+    buttons: [t('dialog.people.delete.delete'), t('dialog.people.delete.cancel')],
     defaultId: 1,
     cancelId: 1,
-    message: 'Delete all People data?',
-    detail: 'All faces, groups, people and names, and their crops, are removed from this app. Your photos are not touched. '
-      + (on ? 'People will then find faces again from scratch.' : 'People is off, so nothing is analysed until you turn it on.'),
+    message: t('dialog.people.delete.message'),
+    detail: on ? t('dialog.people.delete.detailOn') : t('dialog.people.delete.detailOff'),
   });
   if (res.response !== 0) return { ok: false };
 

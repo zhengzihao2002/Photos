@@ -57,6 +57,7 @@ const db = require('../../index/db');
 const { listSourceFolders } = require('../../index/source-folders');
 const queries = require('../../index/queries');
 const fs = require('fs');
+const { t } = require('../../i18n'); // M14
 
 async function setSidebarVisible(event, payload = {}) {
   Menu.setApplicationMenu(buildMenu({ sidebarVisible: payload.visible !== false }));
@@ -79,12 +80,12 @@ async function showAlbumContextMenu(event, payload = {}) {
     let settled = false;
     const pick = (action) => { if (!settled) { settled = true; resolve(action); } };
     const menu = Menu.buildFromTemplate([
-      { label: 'Rescan', enabled: found, click: () => pick('rescan') },
-      { label: 'Rescan All Folders', click: () => pick('rescan-all') },
-      { label: 'Show in Finder', enabled: found, click: () => pick('show') },
-      { label: 'Relink\u2026', click: () => pick('relink') },
+      { label: t('ctx.album.rescan'), enabled: found, click: () => pick('rescan') },
+      { label: t('ctx.album.rescanAll'), click: () => pick('rescan-all') },
+      { label: t('ctx.album.show'), enabled: found, click: () => pick('show') },
+      { label: t('ctx.album.relink'), click: () => pick('relink') },
       { type: 'separator' },
-      { label: 'Remove from Library\u2026', click: () => pick('remove') },
+      { label: t('ctx.album.remove'), click: () => pick('remove') },
     ]);
     activeAlbumMenu = menu;
     // 'closed' can fire around the same time as a click; wait briefly so a
@@ -105,8 +106,8 @@ async function showAlbumContextMenu(event, payload = {}) {
   if (chosen === 'relink') {
     const res = await dialog.showOpenDialog(win, {
       properties: ['openDirectory'],
-      title: 'Locate \u201C' + source.displayName + '\u201D',
-      message: 'Choose the folder\u2019s new location. Photos are not moved or copied.',
+      title: t('dialog.relink.title', { name: source.displayName }),
+      message: t('dialog.relink.message'),
     });
     if (res.canceled || !res.filePaths.length) return { action: null };
     return { action: 'relink', newRootPath: res.filePaths[0] };
@@ -134,10 +135,10 @@ async function showPhotoContextMenu(event, payload = {}) {
       const size = face.cluster_id == null ? 0 : conn.prepare('SELECT COUNT(*) AS n FROM faces WHERE cluster_id = ?').get(face.cluster_id).n;
       clusterId = face.cluster_id;
       personItems = [
-        { label: 'Make Key Photo', action: 'key-photo' },
-        { label: person.name ? 'Not ' + person.name : 'Not This Person', action: 'not-person' },
+        { label: t('ctx.photo.makeKey'), action: 'key-photo' },
+        { label: person.name ? t('ctx.photo.notPerson', { name: person.name }) : t('ctx.photo.notThisPerson'), action: 'not-person' },
       ];
-      if (groups > 1 && clusterId != null) personItems.push({ label: 'Remove This Group (' + size + (size === 1 ? ' Face)' : ' Faces)'), action: 'remove-group' });
+      if (groups > 1 && clusterId != null) personItems.push({ label: t('ctx.photo.removeGroup', { count: size }), action: 'remove-group' });
     }
   }
   let exists = false;
@@ -150,16 +151,16 @@ async function showPhotoContextMenu(event, payload = {}) {
     const menu = Menu.buildFromTemplate([
       ...personItems.map((p) => ({ label: p.label, click: () => pick(p.action) })),
       ...(personItems.length ? [{ type: 'separator' }] : []),
-      { label: 'Get Info', click: () => pick('info') },
-      { label: 'Show in Finder', enabled: exists, click: () => pick('show') },
+      { label: t('ctx.photo.getInfo'), click: () => pick('info') },
+      { label: t('ctx.album.show'), enabled: exists, click: () => pick('show') },
       { type: 'separator' },
-      { label: 'Rescan All Folders', click: () => pick('rescan-all') },
+      { label: t('ctx.album.rescanAll'), click: () => pick('rescan-all') },
       { type: 'separator' },
-      { label: 'Rotate Clockwise', click: () => pick('rotate') }, // M12.11
-      disabled('Edit'),
-      disabled('Hide'),
-      disabled('Duplicate'),
-      disabled('Delete'),
+      { label: t('ctx.photo.rotate'), click: () => pick('rotate') }, // M12.11
+      disabled(t('ctx.photo.edit')),
+      disabled(t('ctx.photo.hide')),
+      disabled(t('ctx.photo.duplicate')),
+      disabled(t('ctx.photo.delete')),
     ]);
     activePhotoMenu = menu;
     menu.popup({
@@ -191,12 +192,12 @@ async function showViewFilterMenu(event, payload = {}) {
     const pick = (value) => { if (!settled) { settled = true; resolve(value); } };
     const option = (label, value) => ({ label, type: 'checkbox', checked: current === value, click: () => pick(value) });
     const menu = Menu.buildFromTemplate([
-      option('All Items', 'all'),
+      option(t('ctx.view.allItems'), 'all'),
       { type: 'separator' },
-      { label: 'Favorites', enabled: false },
-      { label: 'Edited', enabled: false },
-      option('Photos', 'photos'),
-      option('Videos', 'videos'),
+      { label: t('ctx.view.favorites'), enabled: false },
+      { label: t('ctx.view.edited'), enabled: false },
+      option(t('ctx.view.photos'), 'photos'),
+      option(t('ctx.view.videos'), 'videos'),
     ]);
     activeViewMenu = menu;
     menu.popup({
@@ -219,22 +220,21 @@ async function showPersonContextMenu(event, payload = {}) {
   const named = payload.named === true;
   const hidden = payload.hidden === true;
   const win = BrowserWindow.fromWebContents(event.sender);
-  const people = count === 1 ? '1 Person' : count + ' People';
   const chosen = await new Promise((resolve) => {
     let settled = false;
     const pick = (action) => { if (settled === false) { settled = true; resolve(action); } };
     const menu = Menu.buildFromTemplate([
-      { label: 'Show Info', enabled: false },
-      { label: 'Pin', enabled: false },
+      { label: t('ctx.people.showInfo'), enabled: false },
+      { label: t('ctx.people.pin'), enabled: false },
       { type: 'separator' },
-      { label: 'Play Slideshow', enabled: false },
+      { label: t('ctx.people.slideshow'), enabled: false },
       { type: 'separator' },
-      { label: 'Add to Favorites', enabled: false },
+      { label: t('ctx.people.addFav'), enabled: false },
       count === 1
-        ? { label: named ? 'Rename\u2026' : 'Name This Person\u2026', click: () => pick('name') }
-        : { label: 'Merge ' + people + '\u2026', click: () => pick('merge') },
-      { label: 'Don\u2019t Feature This Person', enabled: false },
-      { label: (hidden ? 'Show ' : 'Hide ') + people, click: () => pick(hidden ? 'unhide' : 'hide') },
+        ? { label: named ? t('ctx.people.rename') : t('ctx.people.nameThis'), click: () => pick('name') }
+        : { label: t('ctx.people.merge', { count }), click: () => pick('merge') },
+      { label: t('ctx.people.dontFeature'), enabled: false },
+      { label: hidden ? t('ctx.people.show', { count }) : t('ctx.people.hide', { count }), click: () => pick(hidden ? 'unhide' : 'hide') },
     ]);
     activePersonMenu = menu;
     menu.popup({
@@ -260,15 +260,15 @@ async function showPersonPageMenu(event, payload = {}) {
     let settled = false;
     const pick = (action) => { if (settled === false) { settled = true; resolve(action); } };
     const menu = Menu.buildFromTemplate([
-      { label: 'Review More Photos\u2026', click: () => pick('review') },
-      { label: 'Add to Favorites', enabled: false },
-      { label: named ? 'Rename\u2026' : 'Name This Person\u2026', click: () => pick('name') },
-      { label: 'Don\u2019t Feature This Person', enabled: false },
-      { label: hidden ? 'Show This Person' : 'Hide This Person', click: () => pick(hidden ? 'unhide' : 'hide') },
+      { label: t('ctx.person.reviewMore'), click: () => pick('review') },
+      { label: t('ctx.people.addFav'), enabled: false },
+      { label: named ? t('ctx.people.rename') : t('ctx.people.nameThis'), click: () => pick('name') },
+      { label: t('ctx.people.dontFeature'), enabled: false },
+      { label: hidden ? t('ctx.person.showThis') : t('ctx.person.hideThis'), click: () => pick(hidden ? 'unhide' : 'hide') },
       { type: 'separator' },
-      { label: 'Show:', enabled: false },
-      { label: 'Photos', type: 'checkbox', checked: faces === false, click: () => pick('show-photos') },
-      { label: 'Faces', type: 'checkbox', checked: faces, click: () => pick('show-faces') },
+      { label: t('ctx.person.showLabel'), enabled: false },
+      { label: t('ctx.person.photos'), type: 'checkbox', checked: faces === false, click: () => pick('show-photos') },
+      { label: t('ctx.person.faces'), type: 'checkbox', checked: faces, click: () => pick('show-faces') },
     ]);
     activePersonPageMenu = menu;
     menu.popup({
@@ -292,8 +292,8 @@ async function showPeopleSortMenu(event, payload = {}) {
     let settled = false;
     const pick = (c) => { if (settled === false) { settled = true; resolve(c); } };
     const menu = Menu.buildFromTemplate([
-      { label: 'Sort by Name', type: 'checkbox', checked: byName, click: () => pick('name') },
-      { label: 'Sort by Custom Order', type: 'checkbox', checked: byName === false, click: () => pick('custom') },
+      { label: t('ctx.people.sortName'), type: 'checkbox', checked: byName, click: () => pick('name') },
+      { label: t('ctx.people.sortCustom'), type: 'checkbox', checked: byName === false, click: () => pick('custom') },
     ]);
     activeSortMenu = menu;
     menu.popup({

@@ -21,6 +21,7 @@
  */
 
 const { app, Menu } = require('electron');
+const i18n = require('./i18n'); // M14: every label comes from the catalog, never from Electron's OS-language role labels
 
 // M10.8: the menu is rebuilt whole on every change, so remember each state value and
 // let callers pass only what changed (a sidebar rebuild must not reset People).
@@ -31,37 +32,38 @@ function buildMenu(opts = {}) {
   if (typeof opts.peopleEnabled === 'boolean') menuState.peopleEnabled = opts.peopleEnabled;
   const { sidebarVisible, peopleEnabled } = menuState;
   const isMac = process.platform === 'darwin';
+  const t = i18n.t;
 
   const template = [
     ...(isMac
       ? [
           {
-            label: app.name,
+            label: t('app.name'),
             submenu: [
-              { role: 'about' },
+              { label: t('menu.about'), click: () => app.showAboutPanel() },
               { type: 'separator' },
               // M8c.6: Photos > Settings... (Cmd+,), as in Apple Photos.
-              { label: 'Settings\u2026', accelerator: 'Command+,', click: () => require('./settings-window').open() },
+              { label: t('menu.settings'), accelerator: 'Command+,', click: () => require('./settings-window').open() },
               { type: 'separator' },
-              { role: 'services' },
+              { role: 'services', label: t('menu.services') },
               { type: 'separator' },
-              { role: 'hide' },
-              { role: 'hideOthers' },
-              { role: 'unhide' },
+              { role: 'hide', label: t('menu.hide') },
+              { role: 'hideOthers', label: t('menu.hideOthers') },
+              { role: 'unhide', label: t('menu.showAll') },
               { type: 'separator' },
-              { role: 'quit' },
+              { role: 'quit', label: t('menu.quit') },
             ],
           },
         ]
       : []),
     ...(isMac
       ? [{
-          label: 'File',
+          label: t('menu.file'),
           submenu: [
             // M6: Apple Photos' Import shortcut; this app's equivalent action.
             // Registers a folder path only -- never copies or moves files.
             {
-              label: 'Add Folder\u2026',
+              label: t('menu.file.addFolder'),
               accelerator: 'Shift+Command+I',
               click: (menuItem, browserWindow) => {
                 if (browserWindow) browserWindow.webContents.send('menu:add-folder');
@@ -69,7 +71,7 @@ function buildMenu(opts = {}) {
             },
             // M6: queue a rescan of every found source folder (renderer).
             {
-              label: 'Rescan All Folders',
+              label: t('menu.file.rescanAll'),
               click: (menuItem, browserWindow) => {
                 if (browserWindow) browserWindow.webContents.send('menu:rescan-all');
               },
@@ -78,7 +80,7 @@ function buildMenu(opts = {}) {
             // M8c.2b: Cmd+W closes the Info window first when it is open (it never
             // takes focus), otherwise the main window.
             {
-              label: 'Close', accelerator: 'Command+W',
+              label: t('menu.file.close'), accelerator: 'Command+W',
               click: (menuItem, browserWindow) => {
                 const info = require('./info-window');
                 if (info.isOpen()) info.close(); else if (browserWindow) browserWindow.close();
@@ -88,13 +90,13 @@ function buildMenu(opts = {}) {
         }]
       : []),
     {
-      label: 'Edit',
+      label: t('menu.edit'),
       submenu: [
         {
           // M12.9: Undo / Redo of favorite, title, caption and keyword edits. The main
           // window's page decides (a focused text field keeps its own text undo);
           // other windows and DevTools keep the native action.
-          label: 'Undo',
+          label: t('menu.edit.undo'),
           accelerator: 'CmdOrCtrl+Z',
           click: (menuItem, browserWindow) => {
             if (!browserWindow) return;
@@ -104,7 +106,7 @@ function buildMenu(opts = {}) {
           },
         },
         {
-          label: 'Redo',
+          label: t('menu.edit.redo'),
           accelerator: 'Shift+CmdOrCtrl+Z',
           click: (menuItem, browserWindow) => {
             if (!browserWindow) return;
@@ -114,15 +116,15 @@ function buildMenu(opts = {}) {
           },
         },
         { type: 'separator' },
-        { role: 'cut' },
-        { role: 'copy' },
-        { role: 'paste' },
+        { role: 'cut', label: t('menu.edit.cut') },
+        { role: 'copy', label: t('menu.edit.copy') },
+        { role: 'paste', label: t('menu.edit.paste') },
         {
           // M12.2: custom item so Cmd+A can select every photo in the main
           // window's grid. The main window's page decides (a text field gets
           // ordinary text Select All); DevTools and other windows keep the
           // standard action.
-          label: 'Select All',
+          label: t('menu.edit.selectAll'),
           accelerator: 'CmdOrCtrl+A',
           click: (menuItem, browserWindow) => {
             if (!browserWindow) return;
@@ -137,13 +139,13 @@ function buildMenu(opts = {}) {
     {
       // M12.3: Image > Favorite. No accelerator: a bare '.' would fire inside text
       // fields; the page handles the '.' key itself and this item sends the same action.
-      label: 'Image',
+      label: t('menu.image'),
       submenu: [
-        { label: 'Rotate Counterclockwise', accelerator: 'CmdOrCtrl+R', click: (mi, bw) => { if (bw && /\/index\.html(?:[?#]|$)/.test(bw.webContents.getURL())) bw.webContents.send('menu:rotate', -90); } }, // M12.11
-        { label: 'Rotate Clockwise', accelerator: 'Alt+CmdOrCtrl+R', click: (mi, bw) => { if (bw && /\/index\.html(?:[?#]|$)/.test(bw.webContents.getURL())) bw.webContents.send('menu:rotate', 90); } },
+        { label: t('menu.image.rotateCcw'), accelerator: 'CmdOrCtrl+R', click: (mi, bw) => { if (bw && /\/index\.html(?:[?#]|$)/.test(bw.webContents.getURL())) bw.webContents.send('menu:rotate', -90); } }, // M12.11
+        { label: t('menu.image.rotateCw'), accelerator: 'Alt+CmdOrCtrl+R', click: (mi, bw) => { if (bw && /\/index\.html(?:[?#]|$)/.test(bw.webContents.getURL())) bw.webContents.send('menu:rotate', 90); } },
         { type: 'separator' },
         {
-          label: 'Favorite',
+          label: t('menu.image.favorite'),
           click: (menuItem, browserWindow) => {
             if (browserWindow && /\/index\.html(?:[?#]|$)/.test(browserWindow.webContents.getURL())) browserWindow.webContents.send('menu:favorite');
           },
@@ -151,10 +153,10 @@ function buildMenu(opts = {}) {
       ],
     },
     {
-      label: 'View',
+      label: t('menu.view'),
       submenu: [
         {
-          label: sidebarVisible ? 'Hide Sidebar' : 'Show Sidebar',
+          label: sidebarVisible ? t('menu.view.hideSidebar') : t('menu.view.showSidebar'),
           accelerator: 'Alt+Command+S',
           click: (menuItem, browserWindow) => {
             if (browserWindow) browserWindow.webContents.send('menu:toggle-sidebar');
@@ -163,30 +165,39 @@ function buildMenu(opts = {}) {
         { type: 'separator' },
         // M10.8: People face analysis on/off, and erase every piece of face data.
         {
-          label: 'People', type: 'checkbox', checked: peopleEnabled,
+          label: t('menu.view.people'), type: 'checkbox', checked: peopleEnabled,
           click: (menuItem, browserWindow) => { require('./people/people-privacy').setEnabled(menuItem.checked, browserWindow); },
         },
         {
-          label: 'Delete All People Data\u2026',
+          label: t('menu.view.deletePeople'),
           click: (menuItem, browserWindow) => { require('./people/people-privacy').deleteAll(browserWindow); },
         },
         { type: 'separator' },
-        { role: 'reload' },
-        { role: 'toggleDevTools' },
+        { role: 'reload', label: t('menu.view.reload') },
+        { role: 'toggleDevTools', label: t('menu.view.devTools') },
         { type: 'separator' },
-        { role: 'togglefullscreen' },
+        { role: 'togglefullscreen', label: t('menu.view.fullScreen') },
+        { type: 'separator' },
+        {
+          // M14: the language is chosen here, in the menu bar, and takes effect at once in every window.
+          label: t('menu.view.language'),
+          submenu: [
+            { label: t('lang.en'), type: 'radio', checked: i18n.getLocale() !== 'zh-Hans', click: () => i18n.setLanguage('en') },
+            { label: t('lang.zh'), type: 'radio', checked: i18n.getLocale() === 'zh-Hans', click: () => i18n.setLanguage('zh-Hans') },
+          ],
+        },
       ],
     },
     {
-      label: 'Window',
+      label: t('menu.window'),
       submenu: [
-        { role: 'minimize' },
-        { role: 'zoom' },
+        { role: 'minimize', label: t('menu.window.minimize') },
+        { role: 'zoom', label: t('menu.window.zoom') },
         // M8c.2b: Window > Info (Cmd+I), as in Apple Photos. Handled here so it
         // works in every section and whichever window has focus.
         { type: 'separator' },
-        { label: 'Info', accelerator: 'Command+I', click: () => require('./info-window').toggle() },
-        ...(isMac ? [{ type: 'separator' }, { role: 'front' }] : [{ role: 'close' }]),
+        { label: t('menu.window.info'), accelerator: 'Command+I', click: () => require('./info-window').toggle() },
+        ...(isMac ? [{ type: 'separator' }, { role: 'front', label: t('menu.window.front') }] : [{ role: 'close', label: t('menu.window.close') }]),
       ],
     },
   ];
@@ -194,4 +205,9 @@ function buildMenu(opts = {}) {
   return Menu.buildFromTemplate(template);
 }
 
-module.exports = { buildMenu };
+/** About panel: name and credits in the active language (called at launch and on a language change). */
+function applyAboutPanel() {
+  app.setAboutPanelOptions({ applicationName: i18n.t('app.name'), applicationVersion: app.getVersion() });
+}
+
+module.exports = { buildMenu, applyAboutPanel };
