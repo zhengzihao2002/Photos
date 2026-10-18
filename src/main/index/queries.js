@@ -413,7 +413,7 @@ function getMapPoints(db) {
  * passes without items. Ids only -- never file paths.
  * Response: { count, ids: Int32Array,
  *   durations: Float32Array (seconds; -1 = not a video or unknown),
- *   sections: Array<{ localityEn, localityZh, startDate, endDate,
+ *   sections: Array<{ localityEn, localityZh, landmarkEn, landmarkZh, startDate, endDate,
  *                     start, count }> }   (start = offset into ids)
  */
 function daysBetween(a, b) {
@@ -423,7 +423,7 @@ function daysBetween(a, b) {
 
 function getAreaSections(db, { filter = null } = {}) {
   const rows = db.prepare(
-    'SELECT id, capture_date, place_locality_en, place_locality_zh, media_type, duration_seconds, source_folder_id, is_live_photo, capture_time_local, is_favorite, rotation FROM items WHERE '
+    'SELECT id, capture_date, place_locality_en, place_locality_zh, media_type, duration_seconds, source_folder_id, is_live_photo, capture_time_local, is_favorite, rotation, place_landmark_en, place_landmark_zh FROM items WHERE '
     + buildFilterSql(filter) + ' ORDER BY capture_time_local ASC, id ASC'
   ).raw().all();
 
@@ -446,8 +446,9 @@ function getAreaSections(db, { filter = null } = {}) {
     times[i] = captureLocalToSeconds(row[8]);
     fav[i] = row[9] === 1 ? 1 : 0;
     rot[i] = ((row[10] || 0) / 90) & 3;
-    if (!current || current.localityEn !== row[2] || daysBetween(current.endDate, row[1]) > 1) {
-      current = { localityEn: row[2], localityZh: row[3], startDate: row[1], endDate: row[1], start: i, count: 0 };
+    // M13: a landmark names the section when there is one; the city stays as the fallback
+    if (!current || current.localityEn !== row[2] || current.landmarkEn !== row[11] || daysBetween(current.endDate, row[1]) > 1) {
+      current = { localityEn: row[2], localityZh: row[3], landmarkEn: row[11], landmarkZh: row[12], startDate: row[1], endDate: row[1], start: i, count: 0 };
       sections.push(current);
     }
     current.endDate = row[1];

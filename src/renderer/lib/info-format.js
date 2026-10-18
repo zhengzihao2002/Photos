@@ -74,19 +74,9 @@
     const m = Math.floor(t / 60), sec = Math.floor(t % 60);
     return m + ':' + String(sec).padStart(2, '0');
   }
-  // Keep in step with placeLine() in places.js (copied so the Info window
-  // does not load the whole map module).
-  function placeLine(item) {
-    if (!item) return null;
-    const locality = item.place_locality_en || null;
-    const region = item.place_region_en || null;
-    let country = null;
-    if (item.place_country_code) {
-      try { country = new Intl.DisplayNames(['en-US'], { type: 'region' }).of(item.place_country_code); }
-      catch (err) { country = item.place_country_code; }
-    }
-    const parts = [locality, region !== locality ? region : null, country].filter(Boolean);
-    return parts.length ? parts.join(', ') : null;
+  // M13: one implementation for every window (lib/place-text.js).
+  function placeLine(item, locale) {
+    return window.PlaceText ? window.PlaceText.placeLine(item, locale) : null;
   }
 
   window.InfoFormat = {

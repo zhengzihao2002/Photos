@@ -32,8 +32,8 @@ const { createUpsertStatements } = require('./upsert-item');
 const { discoverFiles, discoverFilesByDirectory, isHidden, isBundleDirectory } = require('./discover');
 const { processDirectoryBatch } = require('./scan-directory-batch');
 const { markMissing, markScanned } = require('./source-folders');
-const { createReverseGeocoder } = require('../places/reverse-geocode');
-const { runPlacePass } = require('../places/place-pass');
+const { createPlaceResolver, peekDatasetVersion } = require('../places/place-resolver'); // M13
+const { runPlacePassLazy } = require('../places/place-pass');
 const { reconcileMoves } = require('./reconcile-moves'); // M12.8
 
 // M8b.6: the app's own folders (from the main process) are never walked.
@@ -63,7 +63,7 @@ async function countTotalFiles(rootPath) {
 function runPlacePassSafely(db, datasetPath) {
   if (!datasetPath) return { skipped: 'no dataset path' };
   try {
-    return runPlacePass(db, createReverseGeocoder(datasetPath));
+    return runPlacePassLazy(db, () => createPlaceResolver(datasetPath), peekDatasetVersion(datasetPath));
   } catch (err) {
     return { skipped: err.message };
   }

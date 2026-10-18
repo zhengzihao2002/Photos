@@ -395,6 +395,19 @@ const migrations = [
       if (existing.has('rotation') === false) db.exec('ALTER TABLE items ADD COLUMN rotation INTEGER NOT NULL DEFAULT 0;');
     },
   },
+  {
+    // M13: offline landmarks. Written only by the place pass (never by a user
+    // edit); a user title always wins over a landmark name at display time.
+    // place_version is untouched here: the resolver's composite dataset version
+    // makes the next scan recompute each row once. Guarded so a re-run is harmless.
+    version: 17,
+    up: (db) => {
+      const existing = new Set(db.prepare('PRAGMA table_info(items)').all().map((c) => c.name));
+      for (const [name, type] of [['place_landmark_id', 'INTEGER'], ['place_landmark_en', 'TEXT'], ['place_landmark_zh', 'TEXT']]) {
+        if (!existing.has(name)) db.exec('ALTER TABLE items ADD COLUMN ' + name + ' ' + type + ';');
+      }
+    },
+  },
 ];
 
 module.exports = { migrations };

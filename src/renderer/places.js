@@ -173,9 +173,7 @@
 
       function placeTitle(item) {
         if (!item) return null;
-        const zh = false /* M8c.2 (U13): English UI */;
-        return (zh && item.place_locality_zh) || item.place_locality_en
-          || (zh && item.place_region_zh) || item.place_region_en || null;
+        return window.PlaceText.placeTitle(item, isZh() ? 'zh-Hans' : 'en');
       }
 
       // M7.6: open the photo grid of one marker's area. The box is the
@@ -525,7 +523,7 @@
   document.head.appendChild(css);
 
   const isZh = () => false /* M8c.2 (U13): English UI */;
-  const placeName = (s) => (isZh() && s.localityZh) || s.localityEn || '';
+  const placeName = (s) => (isZh() && (s.landmarkZh || (!s.landmarkEn && s.localityZh))) || s.landmarkEn || s.localityEn || '';
   function parseDay(text) {
     const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(text || '');
     return m ? new Date(+m[1], +m[2] - 1, +m[3]) : null;
@@ -757,17 +755,7 @@
   const isZh = () => false /* M8c.2 (U13): English UI */;
 
   function placeLine(item) {
-    if (!item) return null;
-    const zh = isZh();
-    const locality = (zh && item.place_locality_zh) || item.place_locality_en || null;
-    const region = (zh && item.place_region_zh) || item.place_region_en || null;
-    let country = null;
-    if (item.place_country_code) {
-      try { country = new Intl.DisplayNames(['en-US'], { type: 'region' }).of(item.place_country_code); }
-      catch (err) { country = item.place_country_code; }
-    }
-    const parts = [locality, region !== locality ? region : null, country].filter(Boolean);
-    return parts.length ? parts.join(', ') : null;
+    return item ? window.PlaceText.placeLine(item, isZh() ? 'zh-Hans' : 'en') : null;
   }
   window.__PhotosPlaceLine = placeLine;
 

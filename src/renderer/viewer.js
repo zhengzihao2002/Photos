@@ -908,7 +908,10 @@
     // M8c.2 (U12): a located item's title shows the place on line 1 and
     // 'date · position' on line 2, as in Apple Photos (scrolled or not).
     const posText = pos ? pos.i.toLocaleString('en-US') + '/' + pos.n.toLocaleString('en-US') : '';
-    const titlePlace = item ? (item.place_locality_en || item.place_region_en || '') : '';
+    const viewerLocale = 'en'; // M14 replaces this with the active locale
+    const hasUserTitle = !!(item && item.title);
+    const titlePlace = item ? (window.PlaceText.placeTitle(item, viewerLocale) || '') : '';
+    const placeParts = item ? window.PlaceText.viewerPlaceParts(item, viewerLocale, hasUserTitle) : []; // M13: landmark first, city and country on line 2
     const geom = item ? computeGeom(dims, item, stageSize, view, item.rotation ? item.rotation : 0) : null; // M12.11: never size before the rotation is known
     geomRef.current = geom;
     const isVideo = !!media && media.kind === 'video';
@@ -952,9 +955,7 @@
         h('div', { className: 'viewer-title' },
           h('div', { className: 'viewer-title-date' }, (item && item.title) || titlePlace || title.date), // M12.4: a title replaces the place/date line
           h('div', { className: 'viewer-title-time' },
-            (item && item.title)
-              ? ([titlePlace, title.date, posText].filter(Boolean).join(' \u00b7 ') || '\u00a0')
-              : (titlePlace ? title.date + (posText ? ' \u00b7 ' + posText : '') : (posText || '\u00a0')))),
+            [...placeParts, (hasUserTitle || titlePlace) ? title.date : null, posText].filter(Boolean).join(' \u00b7 ') || '\u00a0')),
         h('div', { className: 'viewer-toolbar-spacer' }),
         // M8c.1 (U7): Apple's order. Trash stays visible and disabled (write feature).
         h('div', { className: 'viewer-group' },
