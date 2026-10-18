@@ -46,7 +46,7 @@ const LANDMARK_CODES = {
   PRK: [2500, false], RES: [4000, false], RESN: [4000, false], RESV: [4000, false], RESW: [4000, false], RESF: [3000, true],
   GDN: [300, true], ZOO: [500, false], PRKN: [4000, false],
   // mountains and natural features
-  MT: [3000, false], MTS: [6000, false], PK: [800, false], PKS: [1500, false], VLC: [3000, false], CNYN: [5000, false],
+  MT: [1500, false], MTS: [6000, false], PK: [600, false], PKS: [1500, false], VLC: [2500, false], CNYN: [5000, false],
   GLCR: [3000, false], FLLS: [400, false], CAVE: [250, true], CLF: [500, true], ARCH: [200, false],
   // water and coast
   LK: [3000, false], LKS: [5000, false], RSV: [2500, true], ISL: [5000, false], ISLS: [8000, false], BCH: [800, false],
@@ -57,7 +57,7 @@ const LANDMARK_CODES = {
   MUS: [150, true], STDM: [350, false], AIRP: [1500, true], TOWR: [150, false], LTHSE: [150, false], OPRA: [150, false],
   THTR: [120, true], PYR: [250, false], PYRS: [400, false], HSTS: [400, false], RUIN: [400, false], AMTH: [250, false],
   SQR: [250, true], MALL: [250, true], UNIV: [500, true], HSP: [300, true], LIBR: [120, true], TRIN: [200, true],
-  OBPT: [300, true],
+  OBPT: [300, true], TMB: [250, false], WALL: [500, true], AMUS: [600, true], OBS: [300, true], GATE: [120, true],
 };
 
 function sha256(file) {
