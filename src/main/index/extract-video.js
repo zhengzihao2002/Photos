@@ -16,6 +16,7 @@
 
 const { execFile } = require('child_process');
 const ffprobePath = require('ffprobe-static').path;
+const { cleanTitle, cleanCaption, cleanKeywords } = require('./embedded-text'); // M12.4
 const { parseFilenameTimestamp, isPlausibleCaptureParts } = require('./metadata-helpers');
 
 const CREATION_TIME_PATTERN = /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2}):(\d{2})/;
@@ -160,6 +161,15 @@ function extractGpsFromFormatTags(probeResult) {
   return null;
 }
 
+// M12.4: container tag lookup, case-insensitive, first non-empty match wins.
+function tagText(probeResult, names) {
+  const tags = (probeResult && probeResult.format && probeResult.format.tags) || {};
+  const byLower = {};
+  for (const k of Object.keys(tags)) byLower[k.toLowerCase()] = tags[k];
+  for (const n of names) if (typeof byLower[n] === 'string' && byLower[n].trim()) return byLower[n];
+  return null;
+}
+
 async function extractVideoMetadata(fullPath, filename) {
   const probeResult = await runFfprobe(fullPath);
 
@@ -222,6 +232,9 @@ async function extractVideoMetadata(fullPath, filename) {
     gpsLatitude: gps ? gps.latitude : null,
     gpsLongitude: gps ? gps.longitude : null,
     isPanorama: false,
+    titleFile: cleanTitle(tagText(probeResult, ['title', 'com.apple.quicktime.title']), filename),
+    captionFile: cleanCaption(tagText(probeResult, ['description', 'com.apple.quicktime.description'])),
+    keywordsFile: cleanKeywords(tagText(probeResult, ['com.apple.quicktime.keywords', 'keywords'])),
     extractionError: !videoStream ? 'no_video_stream' : (width === null || height === null ? 'dimensions_unavailable' : null),
   };
 }

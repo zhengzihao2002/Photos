@@ -10,6 +10,7 @@
  */
 
 const exifr = require('exifr');
+const { cleanTitle, cleanCaption, cleanKeywords, parseExposureBias, parseFocal35 } = require('./embedded-text'); // M12.4
 const { readContainerDimensions } = require('./image-dimensions');
 const {
   parseFilenameTimestamp,
@@ -23,6 +24,8 @@ const EXIFR_OPTIONS = {
   translateValues: false,
   reviveValues: true,
   mergeOutput: true,
+  xmp: true,  // M12.4: XMP title / description / subject
+  iptc: true, // M12.4: IPTC object name / caption / keywords
 };
 
 function dateToParts(date) {
@@ -123,6 +126,12 @@ async function extractImageMetadata(fullPath, filename, extension) {
     fNumber: typeof exif.FNumber === 'number' ? exif.FNumber : null,
     exposureTimeSeconds: typeof exif.ExposureTime === 'number' ? exif.ExposureTime : null,
     focalLengthMm: typeof exif.FocalLength === 'number' ? exif.FocalLength : null,
+    // M12.4 / M12.7: read-only imports; cleaned, junk dropped.
+    titleFile: cleanTitle(exif.title, filename) || cleanTitle(exif.ObjectName, filename),
+    captionFile: cleanCaption(exif.description) || cleanCaption(exif.Caption) || cleanCaption(exif.ImageDescription),
+    keywordsFile: cleanKeywords(exif.subject, exif.Keywords),
+    exposureBiasEv: parseExposureBias(exif.ExposureCompensation) ?? parseExposureBias(exif.ExposureBiasValue),
+    focalLength35mm: parseFocal35(exif.FocalLengthIn35mmFormat),
     gpsLatitude: latitude,
     gpsLongitude: longitude,
     isPanorama,

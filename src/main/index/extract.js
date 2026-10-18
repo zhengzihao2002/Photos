@@ -110,6 +110,12 @@ async function extractItemMetadata({ fullPath, filename, extension, mediaType })
     is_gif: extension === 'gif' ? 1 : 0,
     is_panorama: perTypeResult.isPanorama ? 1 : 0,
     extraction_error: perTypeResult.extractionError,
+    // M12.4 / M12.7 (extractor-owned; keywords_file is a list, stored in item_keywords)
+    title_file: perTypeResult.titleFile ?? null,
+    caption_file: perTypeResult.captionFile ?? null,
+    keywords_file: perTypeResult.keywordsFile || [],
+    exposure_bias_ev: perTypeResult.exposureBiasEv ?? null,
+    focal_length_35mm: perTypeResult.focalLength35mm ?? null,
   };
 }
 

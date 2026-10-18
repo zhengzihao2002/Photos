@@ -25,6 +25,7 @@ const ITEM_COLUMNS = [
   'is_live_photo', 'live_photo_video_item_id', 'is_live_photo_component',
   'burst_id', 'is_burst_cover',
   'extraction_error', 'extraction_version', 'place_version', 'is_deleted',
+  'title_file', 'caption_file', 'exposure_bias_ev', 'focal_length_35mm', // M12.4 / M12.7: extractor-owned only
   'created_at', 'updated_at',
 ];
 

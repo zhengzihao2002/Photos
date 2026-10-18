@@ -191,6 +191,8 @@ function buildFullFields(entry, sourceFolderId, groupingFields, now) {
     burst_id: groupingFields.burst_id,
     is_burst_cover: groupingFields.is_burst_cover,
     extraction_error: entry.extraction_error,
+    title_file: entry.title_file, caption_file: entry.caption_file, // M12.4 (extractor-owned)
+    exposure_bias_ev: entry.exposure_bias_ev, focal_length_35mm: entry.focal_length_35mm, // M12.7
     extraction_version: CURRENT_EXTRACTION_VERSION,
     // M7.3: NULL marks the row for the place pass (src/main/places/place-pass.js),
     // which recomputes or clears the place columns after the directory walk.
