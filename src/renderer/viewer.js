@@ -144,12 +144,18 @@
   // swapping sm -> md -> full (same aspect) never moves the image.
   // fullW = width of the full-quality source: the loaded full image when
   // rank 3, else the DB width if its aspect matches, else the shown image.
-  function computeGeom(dims, item, stage, view) {
+  function computeGeom(dims, item, stage, view, rot) {
     if (!dims || !dims.nw || !dims.nh || !stage.w || !stage.h) return null;
-    const aspect = dims.nh / dims.nw;
-    let fullW = dims.nw;
-    if (dims.rank < 3 && item && item.width > 0 && item.height > 0 &&
-        Math.abs(item.height / item.width - aspect) < 0.02 * aspect + 0.01) fullW = item.width;
+    // M12.11: a quarter-turn rotation swaps the photo's visible width and height.
+    const turned = rot === 90 || rot === 270;
+    const vw = turned ? dims.nh : dims.nw;
+    const vh = turned ? dims.nw : dims.nh;
+    const aspect = vh / vw;
+    let fullW = vw;
+    const iw = item ? (turned ? item.height : item.width) : 0;
+    const ih = item ? (turned ? item.width : item.height) : 0;
+    if (dims.rank < 3 && iw > 0 && ih > 0 &&
+        Math.abs(ih / iw - aspect) < 0.02 * aspect + 0.01) fullW = iw;
     const fitW = Math.min(stage.w, stage.h / aspect);
     const maxW = Math.max(fitW, fullW * MAX_ZOOM);
     const dw = view.fit ? fitW : Math.min(Math.max(view.dw, fitW), maxW);
@@ -159,7 +165,7 @@
     const px = view.fit ? 0 : Math.min(mx, Math.max(-mx, view.px));
     const py = view.fit ? 0 : Math.min(my, Math.max(-my, view.py));
     return { aspect, fullW, fitW, maxW, dw, dh, px, py, mx, my, sw: stage.w, sh: stage.h,
-             zoomed: dw > fitW + 0.5, scale: dw / fullW };
+             zoomed: dw > fitW + 0.5, scale: dw / fullW, turned, rot: rot || 0 };
   }
 
   // Slider position: log scale between fit (0) and max (100).
@@ -535,6 +541,9 @@
 
     // Zoom resets on navigation (M5.6).
     useEffect(() => { setDims(null); setView({ fit: true, dw: 0, px: 0, py: 0 }); }, [itemId]);
+    // M12.11: a new rotation changes the photo's shape, so return to fit.
+    const rotationNow = item && item.rotation ? item.rotation : 0;
+    useEffect(() => { setView({ fit: true, dw: 0, px: 0, py: 0 }); }, [rotationNow]);
 
     // Track the stage size (window resizes, info panel later).
     const isOpen = state !== null;
@@ -876,7 +885,7 @@
     // 'date · position' on line 2, as in Apple Photos (scrolled or not).
     const posText = pos ? pos.i.toLocaleString('en-US') + '/' + pos.n.toLocaleString('en-US') : '';
     const titlePlace = item ? (item.place_locality_en || item.place_region_en || '') : '';
-    const geom = computeGeom(dims, item, stageSize, view);
+    const geom = computeGeom(dims, item, stageSize, view, item && item.rotation ? item.rotation : 0);
     geomRef.current = geom;
     const isVideo = !!media && media.kind === 'video';
     const hasLive = !!media && !!media.liveUrl && !isVideo;
@@ -887,9 +896,12 @@
       left: Math.max(14, stageSize.w / 2 + geom.px - geom.dw / 2 + 12) + 'px',
       top: Math.max(14, stageSize.h / 2 + geom.py - geom.dh / 2 + 12) + 'px',
     } : undefined;
+    // M12.11: the <img> keeps its unturned layout box; the turn is a rotate about its centre.
+    const boxW = geom ? (geom.turned ? geom.dh : geom.dw) : 0;
+    const boxH = geom ? (geom.turned ? geom.dw : geom.dh) : 0;
     const imgStyle = geom ? {
-      width: geom.dw + 'px', height: geom.dh + 'px',
-      transform: 'translate(' + (geom.px - geom.dw / 2) + 'px,' + (geom.py - geom.dh / 2) + 'px)',
+      width: boxW + 'px', height: boxH + 'px',
+      transform: 'translate(' + (geom.px - boxW / 2) + 'px,' + (geom.py - boxH / 2) + 'px)' + (geom.rot ? ' rotate(' + geom.rot + 'deg)' : ''),
     } : null;
     const sliderEnabled = !!geom && geom.maxW > geom.fitW + 1 && !(item && item.media_type === 'video');
 
