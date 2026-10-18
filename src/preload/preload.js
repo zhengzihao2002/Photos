@@ -50,6 +50,13 @@ contextBridge.exposeInMainWorld('api', {
   setInfoOpen: (open) => ipcRenderer.invoke('info:set-open', { open: open === true }),
   getInfoState: () => ipcRenderer.invoke('info:get-state'),
   setInfoItem: (id) => ipcRenderer.invoke('info:set-item', { id: Number.isInteger(id) ? id : null }),
+  setInfoSelection: (filter) => ipcRenderer.invoke('info:set-selection', { filter: typeof filter === 'string' ? filter : null }), // M12.6
+  getSelectionSummary: (filter) => ipcRenderer.invoke('selection:get-summary', { filter }), // M12.6
+  onInfoSelection: (callback) => {
+    const listener = (event, payload) => callback(payload);
+    ipcRenderer.on('info:selection', listener);
+    return () => ipcRenderer.removeListener('info:selection', listener);
+  },
   setInfoHeight: (height) => ipcRenderer.invoke('info:set-height', { height: Number(height) }),
   onInfoVisibility: (callback) => {
     const listener = (event, payload) => callback(payload);

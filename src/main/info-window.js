@@ -28,6 +28,7 @@ const MAX_H = 800;
 let parentWin = null;
 let infoWin = null;
 let currentItemId = null;
+let currentSelection = null; // M12.6: '::sel:' filter while 2+ items are selected
 let saveTimer = null;
 
 function isOpen() {
@@ -130,6 +131,15 @@ function setItem(id) {
   bus.send('info:item', { id: currentItemId });
 }
 
+function setSelection(filter) {
+  currentSelection = typeof filter === 'string' && filter.length > 0 && filter.length < 2100000 ? filter : null;
+  bus.send('info:selection', { filter: currentSelection });
+}
+
+function getSelection() {
+  return currentSelection;
+}
+
 function getItem() {
   return currentItemId;
 }
@@ -152,4 +162,4 @@ function setHeight(h) {
   infoWin.setContentSize(WIDTH, height);
 }
 
-module.exports = { attach, open, close, toggle, isOpen, setItem, getItem, setHeight, setEditing };
+module.exports = { attach, open, close, toggle, isOpen, setItem, getItem, setSelection, getSelection, setHeight, setEditing };

@@ -3043,6 +3043,19 @@
     viewerStore.subscribe(sync);
     selectionStore.subscribe(sync);
     sync();
+    // M12.6: with 2+ items selected (and no viewer open) Info shows the summary.
+    let lastSel = null;
+    const syncSelection = () => {
+      const f = viewerStore.get() === null && selectionStore.isMulti() ? selectionTargetFilter() : null;
+      if (f === lastSel) return;
+      lastSel = f;
+      window.api.setInfoSelection(f).catch(() => {});
+    };
+    viewerStore.subscribe(syncSelection);
+    selectionStore.subscribe(syncSelection);
+    sectionStore.subscribe(syncSelection);
+    searchStore.subscribe(syncSelection);
+    syncSelection();
   })();
   /**
    * M6 (B.5): drop folders from Finder onto the window to add them as

@@ -21,6 +21,8 @@
  */
 
 const infoWindow = require('../../info-window');
+const db = require('../../index/db');
+const { getSelectionSummary } = require('../../index/selection-summary');
 
 async function toggle() {
   infoWindow.toggle();
@@ -34,7 +36,7 @@ async function setOpen(event, payload = {}) {
 }
 
 async function getState() {
-  return { open: infoWindow.isOpen(), itemId: infoWindow.getItem() };
+  return { open: infoWindow.isOpen(), itemId: infoWindow.getItem(), selection: infoWindow.getSelection() };
 }
 
 async function setItem(event, payload = {}) {
@@ -54,7 +56,18 @@ async function setEditing(event, payload = {}) {
   return { ok: true };
 }
 
+async function setSelection(event, payload = {}) {
+  infoWindow.setSelection(payload ? payload.filter : null);
+  return { ok: true };
+}
+
+async function getSummary(event, payload = {}) {
+  return getSelectionSummary(db.get(), { filter: payload && payload.filter });
+}
+
 module.exports = [
+  { channel: 'info:set-selection', handle: setSelection }, // M12.6: { filter: string|null }
+  { channel: 'selection:get-summary', handle: getSummary }, // M12.6: { filter } -> summary
   { channel: 'info:set-editing', handle: setEditing }, // M12.4
   { channel: 'info:toggle', handle: toggle },
   { channel: 'info:set-open', handle: setOpen },
