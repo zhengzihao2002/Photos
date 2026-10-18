@@ -56,14 +56,17 @@ jobs:
             test -e "$R/$f" || { echo "MISSING in app: $f"; exit 1; }
           done
           U="$R/app/node_modules"
-          test -x "$U/ffmpeg-static/ffmpeg"
-          test -x "$U/ffprobe-static/bin/darwin/arm64/ffprobe"
-          find "$U/onnxruntime-node" -name 'onnxruntime_binding.node' | grep -q .
-          find "$U/onnxruntime-node" -name 'libonnxruntime*.dylib' | grep -q .
-          find "$U/better-sqlite3" -name 'better_sqlite3.node' | grep -q .
-          find "$U/@img" -name '*.node' | grep -q .
-          find "$APP" -name 'LICENSES.chromium.html' | grep -q .
-          ! test -d "$U/onnxruntime-node/bin/napi-v6/win32"    # other platforms' binaries are not shipped
+          chk() { if ! "$@"; then echo "CHECK FAILED: $*"; exit 1; fi; }
+          has() { find "$1" -name "$2" 2>/dev/null | grep -q .; }
+          chk test -x "$U/ffmpeg-static/ffmpeg"
+          chk test -x "$U/ffprobe-static/bin/darwin/arm64/ffprobe"
+          chk has "$U/onnxruntime-node" onnxruntime_binding.node
+          chk has "$U/onnxruntime-node" 'libonnxruntime*.dylib'
+          chk has "$U/better-sqlite3" better_sqlite3.node
+          chk has "$U/@img" '*.node'
+          chk has "$APP" LICENSES.chromium.html
+          chk test ! -d "$U/onnxruntime-node/bin/napi-v6/win32"    # other platforms' binaries are not shipped
+          du -sh "$APP"; ls "$U" | head -80
           echo "ship list OK"
       - name: Packaged smoke test (generated library, then read-only disk image)
         run: SMOKE_APP="${{ steps.app.outputs.path }}/Contents/MacOS/Photos" bash tools/ci-smoke.sh
