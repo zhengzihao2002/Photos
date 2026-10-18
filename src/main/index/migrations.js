@@ -384,6 +384,17 @@ const migrations = [
       `);
     },
   },
+  {
+    // M12.11: Rotate. rotation (0, 90, 180, 270; clockwise degrees) is written only
+    // by the user's own action, never by the extractor, so a rescan leaves it alone.
+    // The photo file and the thumbnail cache are never changed; it is applied when
+    // drawing. Guarded so a re-run is harmless.
+    version: 16,
+    up: (db) => {
+      const existing = new Set(db.prepare('PRAGMA table_info(items)').all().map((c) => c.name));
+      if (existing.has('rotation') === false) db.exec('ALTER TABLE items ADD COLUMN rotation INTEGER NOT NULL DEFAULT 0;');
+    },
+  },
 ];
 
 module.exports = { migrations };
