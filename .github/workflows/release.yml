@@ -1,0 +1,132 @@
+name: Release
+
+# Builds the arm64 app on a macOS runner, checks it (signature, ship list, packaged smoke test on a
+# generated library and on a read-only disk image, install.sh end to end), and publishes
+# Photos-arm64.zip + checksum as a GitHub Release when a tag v* is pushed.
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: 'Publish a GitHub Release from this run (needs a tag as the ref)'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build, verify and package (macos-14, arm64)
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4.2.2
+      - name: Cache toolchain and packages
+        uses: actions/cache@v4.2.3
+        with:
+          path: |
+            .toolchain
+            node_modules
+          key: toolchain-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('package-lock.json', 'dev') }}
+      - name: Set up
+        run: PHOTOS_KEEP_CACHE=1 ./dev setup
+      - name: Tests and static checks
+        run: |
+          ./dev node --test "test/*.test.js"
+          ./dev node tools/check-i18n.js
+          ./dev node tools/audit-writes.js --check
+      - name: Build the app (arm64 only)
+        run: PHOTOS_KEEP_CACHE=1 ./dev dist
+      - name: Find the app and check the signature and identity
+        id: app
+        run: |
+          APP="$(pwd)/dist/mac-arm64/Photos.app"
+          test -d "$APP"
+          echo "path=$APP" >> "$GITHUB_OUTPUT"
+          codesign --verify --deep --strict --verbose=2 "$APP"
+          lipo -archs "$APP/Contents/MacOS/Photos"
+          plutil -p "$APP/Contents/Info.plist" | grep -E 'CFBundleIdentifier|CFBundleShortVersionString|CFBundleIconFile|LSMinimumSystemVersion|CFBundleDisplayName'
+          test "$(lipo -archs "$APP/Contents/MacOS/Photos")" = "arm64"
+      - name: Check the ship list inside the app
+        run: |
+          APP="${{ steps.app.outputs.path }}"
+          R="$APP/Contents/Resources"
+          for f in geo/places.json geo/landmarks.json models/face_detection_yunet_2023mar.onnx models/face_recognition_sface_2021dec.onnx icon.icns en.lproj/InfoPlist.strings zh-Hans.lproj/InfoPlist.strings LICENSE.txt THIRD_PARTY_NOTICES.md app.asar; do
+            test -e "$R/$f" || { echo "MISSING in app: $f"; exit 1; }
+          done
+          U="$R/app.asar.unpacked/node_modules"
+          test -x "$U/ffmpeg-static/ffmpeg"
+          test -x "$U/ffprobe-static/bin/darwin/arm64/ffprobe"
+          find "$U/onnxruntime-node" -name 'onnxruntime_binding.node' | grep -q . 
+          find "$U/onnxruntime-node" -name 'libonnxruntime*.dylib' | grep -q .
+          find "$U/better-sqlite3" -name 'better_sqlite3.node' | grep -q .
+          find "$U/@img" -name '*.node' | grep -q .
+          test -f "$APP/Contents/Frameworks/Electron Framework.framework/Resources/LICENSES.chromium.html" || test -f "$R/LICENSES.chromium.html" || find "$APP" -name 'LICENSES.chromium.html' | grep -q .
+          npx --no-install asar list "$R/app.asar" 2>/dev/null | grep -E 'src/shared/i18n/(en|zh-Hans)\.js|vendor/map-styles/styles.js|src/renderer/info.html|src/renderer/settings.html' || ./dev node -e "const a=require('@electron/asar');const l=a.listPackage(process.argv[1]);for(const n of ['src/shared/i18n/en.js','src/shared/i18n/zh-Hans.js','src/renderer/vendor/map-styles/styles.js','src/renderer/info.html','src/renderer/settings.html']) if(!l.some((x)=>x.endsWith(n))) {console.error('missing in asar: '+n);process.exit(1)}" "$R/app.asar"
+          echo "ship list OK"
+      - name: Packaged smoke test (generated library, then read-only disk image)
+        run: SMOKE_APP="${{ steps.app.outputs.path }}/Contents/MacOS/Photos" bash tools/ci-smoke.sh
+      - name: Package (ditto, not zip)
+        id: pkg
+        run: |
+          VER="$(./dev node -p "require('./package.json').version" | tail -n1)"
+          echo "version=$VER" >> "$GITHUB_OUTPUT"
+          mkdir -p out
+          ditto -c -k --keepParent "${{ steps.app.outputs.path }}" "out/Photos-$VER-arm64.zip"
+          (cd out && shasum -a 256 "Photos-$VER-arm64.zip" > "Photos-$VER-arm64.zip.sha256")
+          cp "out/Photos-$VER-arm64.zip" out/Photos-arm64.zip
+          (cd out && shasum -a 256 Photos-arm64.zip > Photos-arm64.zip.sha256)
+          ls -l out
+      - name: install.sh end to end (local ZIP, temporary folder)
+        run: |
+          D="$RUNNER_TEMP/installed"
+          bash install.sh --local out/Photos-arm64.zip --dir "$D" --no-open
+          APP="$D/Photos.app"
+          test -d "$APP" && test -f "$APP/Contents/Resources/icon.icns"
+          codesign --verify --deep --strict "$APP"
+          bash install.sh --local out/Photos-arm64.zip --dir "$D" --no-open   # second run: idempotent
+          mkdir -p "$D/PhotosData" && echo keep > "$D/PhotosData/marker"
+          bash install.sh --local out/Photos-arm64.zip --dir "$D" --no-open   # upgrade keeps data
+          test -f "$D/PhotosData/marker"
+          echo n | bash install.sh --uninstall --dir "$D"
+          test ! -d "$APP" && test -f "$D/PhotosData/marker"                  # data kept unless the user says yes
+      - name: Keep the build and the reports
+        uses: actions/upload-artifact@v4.6.2
+        with:
+          name: photos-arm64
+          path: |
+            out/*
+            ${{ runner.temp }}/photos-smoke/*.json
+          if-no-files-found: error
+
+  publish:
+    name: Publish the GitHub Release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v') && (github.event_name == 'push' || inputs.publish)
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4.2.2
+      - uses: actions/download-artifact@v4.3.0
+        with:
+          name: photos-arm64
+          path: out
+      - name: Release notes from CHANGELOG.md
+        run: |
+          VER="${GITHUB_REF_NAME#v}"
+          awk -v v="$VER" '$0 ~ "^## \\[" v "\\]" {p=1; next} /^## \[/ {p=0} p' CHANGELOG.md > notes.md
+          [ -s notes.md ] || echo "Photos $VER" > notes.md
+          cat >> notes.md <<'EONOTES'
+
+          **Install:** download the repository and run `bash install.sh` (Apple Silicon, macOS 12+). The app is signed ad-hoc and not notarized; see the README for the one-time "Open Anyway" step.
+          EONOTES
+      - uses: softprops/action-gh-release@v2.2.1
+        with:
+          body_path: notes.md
+          files: |
+            out/Photos-*-arm64.zip
+            out/Photos-*-arm64.zip.sha256
+            out/Photos-arm64.zip
+            out/Photos-arm64.zip.sha256

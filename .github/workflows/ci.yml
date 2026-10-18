@@ -30,6 +30,8 @@ jobs:
         run: |
           if [ -f tools/check-i18n.js ]; then node tools/check-i18n.js; fi
           if [ -f tools/audit-writes.js ]; then node tools/audit-writes.js --check; fi
+      - name: Shell scripts (shellcheck)
+        run: shellcheck install.sh tools/ci-smoke.sh dev tools/residue-audit.sh
       - name: Scale benchmark (regression alarm, generous thresholds)
         run: |
           if [ -f tools/bench-scale.js ]; then node tools/bench-scale.js --rows 100000 --check; fi
