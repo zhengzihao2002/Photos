@@ -75,6 +75,7 @@ contextBridge.exposeInMainWorld('api', {
   // M12.3: favorites (database only). Target = { filter } or { ids }.
   setFavorite: (payload) => ipcRenderer.invoke('edits:set-favorite', payload),
   setTitle: (payload) => ipcRenderer.invoke('edits:set-title', payload),
+  setInfoEditing: (editing) => ipcRenderer.invoke('info:set-editing', { editing: Boolean(editing) }), // M12.4
   setCaption: (payload) => ipcRenderer.invoke('edits:set-caption', payload),
   updateKeywords: (payload) => ipcRenderer.invoke('edits:update-keywords', payload),
   keywordSuggestions: (payload) => ipcRenderer.invoke('edits:keyword-suggestions', payload),

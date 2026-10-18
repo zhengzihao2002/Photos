@@ -134,10 +134,22 @@ function getItem() {
   return currentItemId;
 }
 
+// M12.4: typing needs keyboard focus. The window is non-focusable except while a field is being edited.
+function setEditing(editing) {
+  if (!isOpen()) return;
+  if (editing) {
+    infoWin.setFocusable(true);
+    infoWin.focus();
+  } else {
+    infoWin.setFocusable(false);
+    if (parentWin && !parentWin.isDestroyed()) parentWin.focus();
+  }
+}
+
 function setHeight(h) {
   if (!isOpen() || !Number.isFinite(h)) return;
   const height = Math.round(Math.min(MAX_H, Math.max(MIN_H, h)));
   infoWin.setContentSize(WIDTH, height);
 }
 
-module.exports = { attach, open, close, toggle, isOpen, setItem, getItem, setHeight };
+module.exports = { attach, open, close, toggle, isOpen, setItem, getItem, setHeight, setEditing };

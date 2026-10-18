@@ -49,7 +49,13 @@ async function setHeight(event, payload = {}) {
   return { ok: true };
 }
 
+async function setEditing(event, payload = {}) {
+  infoWindow.setEditing(Boolean(payload && payload.editing));
+  return { ok: true };
+}
+
 module.exports = [
+  { channel: 'info:set-editing', handle: setEditing }, // M12.4
   { channel: 'info:toggle', handle: toggle },
   { channel: 'info:set-open', handle: setOpen },
   { channel: 'info:get-state', handle: getState },

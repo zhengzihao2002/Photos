@@ -66,6 +66,48 @@
       !online && h('div', { className: 'info-map-offline' }, 'Map unavailable offline'));
   }
 
+  // M12.4: click-to-edit text. Return commits (Shift+Return = new line when multiline),
+  // Esc cancels, blur commits; an unchanged value sends nothing.
+  function EditableField({ className, value, placeholder, multiline, onCommit }) {
+    const [editing, setEditing] = useState(false);
+    const [draft, setDraft] = useState('');
+    const doneRef = useRef(false);
+    const inputRef = useRef(null);
+    useEffect(() => { setEditing(false); }, [value]);
+    useEffect(() => {
+      const el = inputRef.current;
+      if (!editing || !el) return;
+      el.focus();
+      el.setSelectionRange(el.value.length, el.value.length);
+    }, [editing]);
+    useEffect(() => {
+      const el = inputRef.current;
+      if (editing && multiline && el) { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; }
+    }, [editing, draft, multiline]);
+    function start() { doneRef.current = false; setDraft(value || ''); window.api.setInfoEditing(true).catch(() => {}); setEditing(true); }
+    function finish(save) {
+      if (doneRef.current) return;
+      doneRef.current = true;
+      window.api.setInfoEditing(false).catch(() => {});
+      setEditing(false);
+      if (save && draft.trim() !== (value || '')) onCommit(draft);
+    }
+    const has = !!value;
+    if (!editing) {
+      return h('div', { className: className + (has ? ' has-value' : ''), onClick: start }, has ? value : placeholder);
+    }
+    const common = {
+      ref: inputRef, className: 'info-edit', value: draft, placeholder, onBlur: () => finish(true),
+      onInput: (e) => setDraft(e.currentTarget.value),
+      onKeyDown: (e) => {
+        e.stopPropagation();
+        if (e.key === 'Escape') { e.preventDefault(); finish(false); }
+        else if (e.key === 'Enter' && !(multiline && e.shiftKey)) { e.preventDefault(); finish(true); }
+      },
+    };
+    return h('div', { className }, multiline ? h('textarea', Object.assign({ rows: 1 }, common)) : h('input', Object.assign({ type: 'text' }, common)));
+  }
+
   function Info() {
     const [itemId, setItemId] = useState(null);
     const [item, setItem] = useState(null);
@@ -156,6 +198,14 @@
     const coords = item.has_gps ? F.coords(item.gps_latitude, item.gps_longitude) : null;
     const note = F.dateNote(item.capture_time_source);
 
+    async function saveText(fn, value) {
+      try {
+        await window.api[fn]({ target: { ids: [item.id] }, value });
+        const row = await window.api.getItemById({ id: item.id });
+        if (row) setItem(row);
+      } catch (err) { /* the field simply shows the stored value again */ }
+    }
+
     async function toggleFavorite() {
       try {
         await window.api.setFavorite({ target: { ids: [item.id] }, value: item.is_favorite !== 1 });
@@ -172,7 +222,8 @@
     return h('div', null,
       h('div', { className: 'info-head' },
         h('div', { className: 'info-head-text' },
-          h('div', { className: 'info-title-field' }, 'Add a Title'),
+          h(EditableField, { className: 'info-title-field', value: item.title, placeholder: 'Add a Title',
+            onCommit: (v) => saveText('setTitle', v) }), // M12.4
           h('div', { className: 'info-name', title: item.filename }, item.filename),
           h('div', { className: 'info-date' }, F.dateTime(item.capture_time_local) || 'No Date'),
           note && h('div', { className: 'info-note' }, note)),
@@ -189,7 +240,8 @@
           badges.map((b) => h('span', { key: b, className: 'info-badge' }, b))),
         !isVideo && h('div', { className: 'info-exposure' },
           F.exposureCells(item).map((c, i) => h('span', { key: i }, c)))),
-      h('div', { className: 'info-field' }, 'Add a Caption'),
+      h(EditableField, { className: 'info-field', value: item.caption, placeholder: 'Add a Caption', multiline: true,
+        onCommit: (v) => saveText('setCaption', v) }), // M12.4
       h('div', { className: 'info-field' }, 'Add Keywords'),
       faces.length > 0 && h('div', { className: 'info-faces' },
         faces.map((p) => p.crop

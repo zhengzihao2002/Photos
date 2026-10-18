@@ -120,3 +120,24 @@ body.info-window {
   color: var(--text-secondary);
   font-size: 13px;
 }
+
+/* M12.4: editable title and caption (Apple's Info). */
+.info-title-field { color: var(--text-secondary); cursor: text; min-height: 17px; }
+.info-title-field.has-value { color: var(--text-primary); font-weight: 700; }
+.info-field { cursor: text; white-space: pre-wrap; overflow-wrap: anywhere; min-height: 17px; }
+.info-field.has-value { color: var(--text-primary); }
+.info-edit {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  resize: none;
+  background: transparent;
+  color: var(--text-primary);
+  font: inherit;
+  line-height: inherit;
+}
+.info-title-field .info-edit { font-weight: 700; }
