@@ -2864,7 +2864,6 @@
     // only by the Aspect Ratio Grid) still render through Row.
     const children = [];
     const thumbCache = thumbCacheRef.current;
-    const selectedId = selectionStore.get();
     for (let r = visibleRange.startRow; r <= visibleRange.endRow; r++) {
       const row = layout.getRowAt(r);
       if (!row) continue;

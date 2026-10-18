@@ -553,6 +553,27 @@
     const [cols, setCols] = useState(columnCount());
     const [selected, setSelected] = useState(null);
     const [, bump] = useState(0);
+    // M12.2g: the normal Places page shares selectionStore with the main grid.
+    // Layered trail pages (onOpenItem set) keep their own single selection.
+    const shared = !onOpenItem;
+    const collapseTimer = useRef(null);
+    function itemAt(i) {
+      const secs = data && data.times ? data.times[i] : NaN;
+      const text = Number.isFinite(secs) ? new Date(secs * 1000).toISOString().replace('T', ' ').slice(0, 19) : null;
+      return { id: data.ids[i], capture_time_local: text };
+    }
+    function sharedScope(item) {
+      const st = S.selectionStore;
+      if (!st.isMulti() || (item && !st.contains(item))) return null;
+      return st.withSelection(S.filterStore.get());
+    }
+    useEffect(() => (shared ? S.selectionStore.subscribe(() => bump((v) => v + 1)) : undefined), [shared]);
+    useEffect(() => {
+      if (!shared) return undefined;
+      const selectAll = () => S.selectionStore.selectAll();
+      window.__PhotosGridSelectAll = selectAll;
+      return () => { if (window.__PhotosGridSelectAll === selectAll) window.__PhotosGridSelectAll = null; };
+    }, [shared]);
     // M8c.5 (K3): folders currently unavailable (same store as the main grid).
     const [missing, setMissing] = useState(S.missingSourcesStore ? S.missingSourcesStore.get() : new Set());
     useEffect(() => (S.missingSourcesStore ? S.missingSourcesStore.subscribe(setMissing) : undefined), []);
@@ -563,15 +584,16 @@
     // is open over a normal Places page.
     useEffect(() => {
       const onKey = (e) => {
-        if (selected == null) return;
+        const cur = shared ? S.selectionStore.get() : selected;
+        if (cur == null) return;
         const t = e.target;
         if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
         if (!onOpenItem && S.viewerStore.get() !== null) return;
-        if (e.key === 'Escape') { setSelected(null); return; }
+        if (e.key === 'Escape') { if (shared) S.selectionStore.set(null); else setSelected(null); return; }
         if ((e.key !== 'Enter' && e.key !== ' ') || e.metaKey || e.ctrlKey || e.altKey) return;
         e.preventDefault();
         e.stopImmediatePropagation();
-        if (onOpenItem) onOpenItem(selected); else S.viewerStore.open(selected);
+        if (onOpenItem) onOpenItem(cur); else S.viewerStore.open(cur, { scope: sharedScope(null) });
       };
       window.addEventListener('keydown', onKey, true);
       return () => window.removeEventListener('keydown', onKey, true);
@@ -640,10 +662,22 @@
           visibleIds.push(id);
           const path = thumbs.md.get(id) || thumbs.sm.get(id);
           children.push(h('div', {
-            key: id, 'data-id': id, class: 'pa-tile' + (selected === id ? ' is-selected' : ''), // data-id: U10 zoom
+            key: id, 'data-id': id, class: 'pa-tile' + ((shared ? S.selectionStore.contains(itemAt(s.start + k)) : selected === id) ? ' is-selected' : ''), // data-id: U10 zoom
             style: { left: c * pitch + 'px', top: bodyTop + r * pitch + 'px', width: tile + 'px', height: tile + 'px' },
-            onClick: () => setSelected(id),
-            onDblClick: () => (onOpenItem ? onOpenItem(id) : S.viewerStore.open(id)),
+            onClick: (e) => {
+              if (!shared) { setSelected(id); return; }
+              const it = itemAt(s.start + k); const st = S.selectionStore;
+              clearTimeout(collapseTimer.current);
+              if (e.metaKey) st.toggle(it);
+              else if (e.shiftKey) { if (window.getSelection) window.getSelection().removeAllRanges(); st.extendTo(it); }
+              else if (st.isMulti() && st.contains(it)) collapseTimer.current = setTimeout(() => st.set(id, it), 300);
+              else st.set(id, it);
+            },
+            onDblClick: () => {
+              if (onOpenItem) { onOpenItem(id); return; }
+              clearTimeout(collapseTimer.current);
+              S.viewerStore.open(id, { scope: sharedScope(itemAt(s.start + k)) });
+            },
           }, path ? h('img', { src: 'file://' + path, alt: '', draggable: false }) : null,
             duration >= 0 ? h('span', { class: 'pa-duration' }, formatDuration(duration))
               : duration === -2 ? h('span', { class: 'pa-duration', title: 'Video' }, '\u25B6') : null, // K3: unknown length
@@ -697,7 +731,8 @@
 
     if (data && data.count === 0) return h('div', { class: 'pa-empty', ref: rootRef },
       /::kind:videos/.test(filter || '') ? 'No Videos' : 'No Photos'); // M8c.5: matches the view filter
-    return h('div', { class: 'pa-root', ref: rootRef, style: { height: total + 'px' } }, children);
+    return h('div', { class: 'pa-root', ref: rootRef, style: { height: total + 'px' },
+      onClick: (e) => { if (shared && !e.target.closest('.pa-tile')) S.selectionStore.set(null); } }, children);
   }
 
   window.__PhotosPlacesAreaView = PlacesAreaView;
