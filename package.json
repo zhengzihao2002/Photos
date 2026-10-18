@@ -31,7 +31,9 @@
       "!**/*.md",
       "!**/*.map",
       "!**/test/**",
-      "!**/docs/**"
+      "!**/docs/**",
+      "!node_modules/better-sqlite3/prebuilds/{linux-*,linuxmusl-*,win32-*,darwin-x64}.node",
+      "!node_modules/better-sqlite3/{deps,src}/**"
     ],
     "mac": {
       "category": "public.app-category.photography",
