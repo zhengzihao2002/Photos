@@ -64,7 +64,7 @@ jobs:
           chk has "$U/onnxruntime-node" 'libonnxruntime*.dylib'
           chk has "$U/better-sqlite3" darwin-arm64.node
           chk has "$U/@img" '*.node'
-          chk has "$APP" LICENSES.chromium.html
+          chk test -f "$R/LICENSES.chromium.html"
           chk test ! -d "$U/onnxruntime-node/bin/napi-v6/win32"    # other platforms' binaries are not shipped
           du -sh "$APP"; ls "$U" | head -80
           echo "ship list OK"
