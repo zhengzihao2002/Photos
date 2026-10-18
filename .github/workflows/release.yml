@@ -67,6 +67,16 @@ jobs:
           echo "ship list OK"
       - name: Packaged smoke test (generated library, then read-only disk image)
         run: SMOKE_APP="${{ steps.app.outputs.path }}/Contents/MacOS/Photos" bash tools/ci-smoke.sh
+      - name: Residue check (nothing filed under the app's bundle id outside its folders)
+        run: |
+          ID="io.github.zhengzihao2002.photos-clone"
+          sleep 6
+          C="$(getconf DARWIN_USER_CACHE_DIR)"
+          FOUND=0
+          for p in "$HOME/Library/Preferences/$ID.plist" "$HOME/Library/Caches/$ID" "$HOME/Library/Saved Application State/$ID.savedState" "$HOME/Library/HTTPStorages/$ID" "$HOME/Library/WebKit/$ID" "$HOME/Library/Application Support/Photos" "$HOME/Library/Logs/Photos" "$C$ID" "$C$ID.helper"; do
+            if [ -e "$p" ]; then echo "LEFT BEHIND: $p"; FOUND=1; fi
+          done
+          [ "$FOUND" -eq 0 ] && echo "no residue under the bundle id" || { echo "(macOS-owned com.apple.* entries are not counted)"; exit 1; }
       - name: Package (ditto, not zip)
         id: pkg
         run: |
