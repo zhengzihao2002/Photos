@@ -1589,3 +1589,23 @@ body.drop-active::after {
   pointer-events: none;
 }
 .tile-fav-badge svg { display: block; width: 100%; height: 100%; }
+
+/* M12.11: selection outline as an overlay, so a rotated (transformed) thumbnail cannot paint over it. */
+.tile.tile-selected { outline: none; }
+.tile.tile-selected::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 3px solid var(--accent);
+  pointer-events: none;
+  z-index: 3;
+}
+.pa-tile.is-selected { outline: none !important; }
+.pa-tile.is-selected::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 3px solid #0a84ff;
+  pointer-events: none;
+  z-index: 3;
+}

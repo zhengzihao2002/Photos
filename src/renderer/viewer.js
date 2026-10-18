@@ -82,7 +82,10 @@
     const dx = (T.left + T.width / 2) - (F.left + F.width / 2);
     const dy = (T.top + T.height / 2) - (F.top + F.height / 2);
     const base = el.style.transform || '';
-    const ix = Math.max(0, (E.width - T.width / k) / 2), iy = Math.max(0, (E.height - T.height / k) / 2); // in el's own box
+    let ix = Math.max(0, (E.width - T.width / k) / 2), iy = Math.max(0, (E.height - T.height / k) / 2); // in el's own box
+    // M12.11: the clip is applied in the element's unturned box, so a quarter turn swaps the axes.
+    const rm = /rotate\((-?\d+(?:\.\d+)?)deg\)/.exec(base);
+    if (rm && Math.abs(Number(rm[1])) % 180 === 90) { const t0 = ix; ix = iy; iy = t0; }
     const small = { transform: 'translate(' + dx + 'px,' + dy + 'px) ' + base + ' scale(' + k + ')',
       clipPath: 'inset(' + iy + 'px ' + ix + 'px round ' + (4 / k) + 'px)' };
     const big = { transform: base || 'none', clipPath: 'inset(0px 0px round 0px)' };
@@ -103,7 +106,8 @@
     const v = stageEl && stageEl.querySelector('video.viewer-video');
     if (!v) return sizedImg ? { el: sizedImg, F: null, standIn: true } : null;
     const E = v.getBoundingClientRect();
-    const vw = v.videoWidth || (item && item.width) || 0, vh = v.videoHeight || (item && item.height) || 0;
+    let vw = v.videoWidth || (item && item.width) || 0, vh = v.videoHeight || (item && item.height) || 0;
+    if (item && (item.rotation === 90 || item.rotation === 270)) { const t0 = vw; vw = vh; vh = t0; } // M12.11
     if (!E.width || !E.height || !vw || !vh) return null;
     const s = Math.min(E.width / vw, E.height / vh), w = vw * s, hh = vh * s;
     return { el: v, F: { left: E.left + (E.width - w) / 2, top: E.top + (E.height - hh) / 2, width: w, height: hh } };
@@ -183,8 +187,26 @@
 
   // Video (M5.7): paused on open (no autoplay), custom control bar.
   // apiRef.current = { toggle } while mounted; released on unmount/url change.
-  function VideoPlayer({ url, poster, onError, apiRef }) {
+  function VideoPlayer({ url, poster, onError, apiRef, rotation, stageBox }) {
     const vref = useRef(null);
+    // M12.11: a turned video is drawn in a box with swapped sides, then rotated about its centre.
+    const wrapRef = useRef(null);
+    const [box, setBox] = useState(null);
+    (window.preactHooks.useLayoutEffect || useEffect)(() => { // before the first paint: no unturned flash
+      const el = wrapRef.current;
+      if (!el) return undefined;
+      const measure = () => setBox({ w: el.clientWidth, h: el.clientHeight });
+      measure();
+      const ro = new ResizeObserver(measure);
+      ro.observe(el);
+      return () => ro.disconnect();
+    }, []);
+    const turned = rotation === 90 || rotation === 270;
+    const eff = stageBox && stageBox.w && stageBox.h ? stageBox : box; // M12.11: known on the first render, so the turn is in place before any zoom animation reads it
+    const videoStyle = rotation && eff ? {
+      width: (turned ? eff.h : eff.w) + 'px', height: (turned ? eff.w : eff.h) + 'px', flex: 'none',
+      transform: 'rotate(' + rotation + 'deg)',
+    } : (rotation ? { visibility: 'hidden' } : undefined);
     const [playing, setPlaying] = useState(false);
     const [t, setT] = useState(0);
     const [dur, setDur] = useState(0);
@@ -225,9 +247,9 @@
       if (v && st && st.wasPlaying) v.play().catch(() => {});
       if (el) el.blur();
     };
-    return h('div', { className: 'viewer-video-wrap' + (idle ? ' is-idle' : ''), onMouseMove: () => wakeRef.current() },
+    return h('div', { ref: wrapRef, className: 'viewer-video-wrap' + (idle ? ' is-idle' : ''), onMouseMove: () => wakeRef.current() },
       h('video', {
-        ref: vref, className: 'viewer-video', src: url, poster: poster || undefined, preload: 'metadata', playsInline: true,
+        ref: vref, className: 'viewer-video', style: videoStyle, src: url, poster: poster || undefined, preload: 'metadata', playsInline: true,
         onPlay: () => setPlaying(true), onPause: () => setPlaying(false), onEnded: () => setPlaying(false),
         onTimeUpdate: (e) => setT(e.currentTarget.currentTime),
         onLoadedMetadata: (e) => setDur(e.currentTarget.duration),
@@ -887,7 +909,7 @@
     // 'date · position' on line 2, as in Apple Photos (scrolled or not).
     const posText = pos ? pos.i.toLocaleString('en-US') + '/' + pos.n.toLocaleString('en-US') : '';
     const titlePlace = item ? (item.place_locality_en || item.place_region_en || '') : '';
-    const geom = computeGeom(dims, item, stageSize, view, item && item.rotation ? item.rotation : 0);
+    const geom = item ? computeGeom(dims, item, stageSize, view, item.rotation ? item.rotation : 0) : null; // M12.11: never size before the rotation is known
     geomRef.current = geom;
     const isVideo = !!media && media.kind === 'video';
     const hasLive = !!media && !!media.liveUrl && !isVideo;
@@ -946,7 +968,7 @@
       h('div', { className: 'viewer-stage' + (geom && geom.zoomed ? ' is-zoomed' : '') + (panning ? ' is-panning' : ''), ref: stageRef,
         style: sheet > 0 ? { transform: 'translateY(' + (-sheet) + 'px)' } : undefined },
         isVideo && h(VideoPlayer, {
-          key: media.url, url: media.url, poster: img ? img.url : null, apiRef: videoApiRef,
+          key: media.url, url: media.url, poster: img ? img.url : null, apiRef: videoApiRef, rotation: item && item.rotation ? item.rotation : 0, stageBox: stageSize, // M12.11
           onError: () => { setMedia((m) => (m ? { ...m, kind: 'unplayable-video' } : m)); setNotice("This video format can't be played"); },
         }),
         img && !isVideo && h('img', {
@@ -955,7 +977,7 @@
           src: img.url, 'data-rank': img.rank, 'data-scale': geom ? geom.scale.toFixed(3) : '',
           draggable: false, alt: '',
           onLoad: (e) => { const t = e.currentTarget; setDims({ nw: t.naturalWidth, nh: t.naturalHeight, rank: img.rank }); },
-          style: imgStyle,
+          style: imgStyle || (!item ? { visibility: 'hidden' } : undefined), // M12.11: no unturned flash
         }),
         img && hasLive && livePlaying && h(LiveOverlay, {
           key: 'live-' + media.liveUrl, url: media.liveUrl, style: imgStyle,
