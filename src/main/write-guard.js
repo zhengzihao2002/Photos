@@ -199,8 +199,10 @@ function workerConfig() {
 /**
  * Worker side. Call first thing in a worker file: require('../write-guard').installInWorker(workerData.guard).
  * Source folder changes arrive as { type: 'guard:source-roots', roots } messages from the main thread.
+ * Short-lived workers (scan, size) pass { listen: false }: a message listener would keep a finished worker alive;
+ * they get the list at start-up, which is current for their whole short life.
  */
-function installInWorker(config) {
+function installInWorker(config, { listen = true } = {}) {
   if (!config) return;
   const { parentPort } = require('worker_threads');
   // Already folded real paths from the main thread: store as given.
@@ -208,7 +210,7 @@ function installInWorker(config) {
   state.allowed = (config.allowedRoots || []).slice();
   state.sources = (config.sourceRoots || []).slice();
   state.reporter = (v) => { if (parentPort) parentPort.postMessage({ type: 'guard:violation', violation: v }); };
-  if (parentPort) {
+  if (parentPort && listen) {
     parentPort.on('message', (msg) => {
       if (msg && msg.type === 'guard:source-roots' && Array.isArray(msg.roots)) state.sources = msg.roots.slice();
     });

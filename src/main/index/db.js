@@ -1,17 +1,9 @@
 const Database = require('better-sqlite3');
 const paths = require('../paths');
 const { migrations } = require('./migrations');
+const { applyPragmas } = require('./pragmas');
 
 let db = null;
-
-function applyPragmas(connection) {
-  connection.pragma('journal_mode = WAL');
-  connection.pragma('synchronous = NORMAL');
-  connection.pragma('foreign_keys = ON');
-  connection.pragma('temp_store = MEMORY');
-  connection.pragma('cache_size = -20000');
-  connection.pragma('busy_timeout = 5000');
-}
 
 function runMigrations(connection) {
   const currentVersion = connection.pragma('user_version', { simple: true });

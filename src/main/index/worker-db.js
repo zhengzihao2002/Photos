@@ -14,7 +14,7 @@
  */
 
 const Database = require('better-sqlite3');
-const { applyPragmas } = require('./db');
+const { applyPragmas } = require('./pragmas');
 
 function openWorkerConnection(dbPath) {
   const connection = new Database(dbPath);

@@ -27,7 +27,7 @@
 const fs = require('fs');
 const path = require('path');
 const { parentPort, workerData } = require('worker_threads');
-require('../write-guard').installInWorker(workerData.guard); // M11: the first thing a worker does
+require('../write-guard').installInWorker(workerData.guard, { listen: false }); // M11: the first thing a worker does
 const { openWorkerConnection } = require('./worker-db');
 const { createUpsertStatements } = require('./upsert-item');
 const { discoverFiles, discoverFilesByDirectory, isHidden, isBundleDirectory } = require('./discover');
