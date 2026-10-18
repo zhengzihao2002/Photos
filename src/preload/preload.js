@@ -74,6 +74,10 @@ contextBridge.exposeInMainWorld('api', {
   getPhotoVideoCounts: (payload) => ipcRenderer.invoke('library:get-photo-video-counts', payload),
   // M12.3: favorites (database only). Target = { filter } or { ids }.
   setFavorite: (payload) => ipcRenderer.invoke('edits:set-favorite', payload),
+  setTitle: (payload) => ipcRenderer.invoke('edits:set-title', payload),
+  setCaption: (payload) => ipcRenderer.invoke('edits:set-caption', payload),
+  updateKeywords: (payload) => ipcRenderer.invoke('edits:update-keywords', payload),
+  keywordSuggestions: (payload) => ipcRenderer.invoke('edits:keyword-suggestions', payload),
   // M12.3: Image > Favorite menu item.
   onMenuFavorite: (cb) => {
     const listener = () => cb();
