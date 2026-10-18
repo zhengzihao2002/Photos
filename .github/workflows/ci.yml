@@ -63,7 +63,9 @@ jobs:
         uses: actions/upload-artifact@v4.6.2
         with:
           name: smoke-reports
-          path: ${{ runner.temp }}/photos-smoke/*.json
+          path: |
+            ${{ runner.temp }}/photos-smoke/*.json
+            ${{ runner.temp }}/photos-smoke/*.log
           if-no-files-found: ignore
 
   # Manual only. Downloads the GeoNames dumps (CC BY 4.0), runs

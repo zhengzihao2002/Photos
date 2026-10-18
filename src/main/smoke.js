@@ -47,7 +47,8 @@ async function run(getWindow) {
   wc.on('console-message', (...args) => {
     const d = args[0] && typeof args[0] === 'object' && 'level' in args[0] ? args[0] : { level: args[1], message: args[2] };
     const level = d.level; // 'error' | 3
-    if (level === 'error' || level === 3) report.consoleErrors.push(String(d.message).slice(0, 300));
+    // 'ResizeObserver loop ...' is a harmless Chromium notice about layout timing, not an app error.
+    if ((level === 'error' || level === 3) && !/ResizeObserver loop/.test(String(d.message))) report.consoleErrors.push(String(d.message).slice(0, 300));
   });
 
   const out = process.env.PHOTOS_SMOKE_REPORT;
@@ -93,24 +94,30 @@ async function run(getWindow) {
     return { sourceFolderId: r.id };
   });
 
-  await step('counts match the generated manifest', async () => {
-    const c = Q.getPhotoVideoCounts(db.get(), { filter: null });
-    if (c.photos !== manifest.photos || c.videos !== manifest.videos) {
-      const rows = db.get().prepare('SELECT extension, media_type, is_deleted, is_live_photo_component AS comp, COUNT(*) AS n FROM items GROUP BY 1,2,3,4').all();
+  // Items the grid shows (not a Live Photo's video half, not a hidden burst member): the same clause the app uses.
+  const VISIBLE = 'is_deleted = 0 AND is_live_photo_component = 0 AND (burst_id IS NULL OR is_burst_cover = 1)';
+
+  await step('every generated file is indexed, and counts are consistent', async () => {
+    const raw = db.get().prepare("SELECT SUM(media_type = 'image') AS photos, SUM(media_type = 'video') AS videos FROM items WHERE is_deleted = 0").get();
+    if (raw.photos !== manifest.photos || raw.videos !== manifest.videos) {
+      const rows = db.get().prepare('SELECT extension, media_type, COUNT(*) AS n FROM items WHERE is_deleted = 0 GROUP BY 1,2').all();
       const have = new Set(db.get().prepare('SELECT filename FROM items').all().map((r) => r.filename));
       const missing = manifest.files.map((f) => path.basename(f)).filter((f) => !have.has(f));
-      throw new Error('expected ' + manifest.photos + '/' + manifest.videos + ' got ' + c.photos + '/' + c.videos + ' | by type: ' + JSON.stringify(rows) + ' | missing: ' + missing.slice(0, 8).join(','));
+      throw new Error('expected ' + manifest.photos + '/' + manifest.videos + ' got ' + raw.photos + '/' + raw.videos + ' | by type: ' + JSON.stringify(rows) + ' | missing: ' + missing.slice(0, 8).join(','));
     }
+    const shown = Q.getPhotoVideoCounts(db.get(), { filter: null });
+    const hidden = db.get().prepare('SELECT filename FROM items WHERE is_deleted = 0 AND NOT (' + VISIBLE + ')').all().map((r) => r.filename);
+    if (shown.photos + shown.videos + hidden.length !== raw.photos + raw.videos) throw new Error('shown + hidden != indexed');
     const per = Q.getPhotoVideoCounts(db.get(), { filter: 'source:1' });
-    if (per.photos !== c.photos || per.videos !== c.videos) throw new Error('per-source counts differ from the total');
-    return c;
+    if (per.photos !== shown.photos || per.videos !== shown.videos) throw new Error('per-source counts differ from the total');
+    return { indexed: raw, shown, hiddenAsBurstOrLiveMembers: hidden };
   });
 
   await step('thumbnails are made for every item', async () => {
     try {
-      await waitFor(() => db.get().prepare("SELECT COUNT(*) AS n FROM items WHERE is_deleted = 0 AND (thumb_sm_status IS NULL OR thumb_sm_status = 'pending')").get().n === 0, 120000, 'thumbnails');
+      await waitFor(() => db.get().prepare("SELECT COUNT(*) AS n FROM items WHERE " + VISIBLE + " AND (thumb_sm_status IS NULL OR thumb_sm_status = 'pending')").get().n === 0, 120000, 'thumbnails');
     } catch (e) {
-      const rows = db.get().prepare("SELECT extension, thumb_sm_status AS s, COUNT(*) AS n FROM items WHERE is_deleted = 0 GROUP BY 1,2").all();
+      const rows = db.get().prepare("SELECT extension, thumb_sm_status AS s, is_burst_cover AS cover, burst_id IS NOT NULL AS burst, is_live_photo_component AS comp, COUNT(*) AS n FROM items WHERE is_deleted = 0 GROUP BY 1,2,3,4,5").all();
       throw new Error(e.message + ' | ' + JSON.stringify(rows));
     }
     const bad = db.get().prepare("SELECT filename FROM items WHERE thumb_sm_status = 'error'").all().map((r) => r.filename);
@@ -159,7 +166,7 @@ async function run(getWindow) {
   });
 
   await step('the face worker loads its models and processes the images', async () => {
-    const todo = () => db.get().prepare("SELECT COUNT(*) AS n FROM items WHERE media_type = 'image' AND is_deleted = 0 AND face_version IS NULL").get().n;
+    const todo = () => db.get().prepare("SELECT COUNT(*) AS n FROM items WHERE media_type = 'image' AND " + VISIBLE + ' AND face_version IS NULL').get().n;
     try { await waitFor(() => todo() === 0, 90000, 'face analysis'); } catch (e) {
       throw new Error(e.message + ' | todo=' + todo() + ' status=' + JSON.stringify(require('./faces/face-manager').getStatus()));
     }
