@@ -3022,6 +3022,10 @@
     e.preventDefault();
     toggleFavoriteForSelection();
   });
+  if (window.api.onMenuFavorite) window.api.onMenuFavorite(() => {
+    if (viewerStore.get() !== null && window.__PhotosViewerToggleFavorite) window.__PhotosViewerToggleFavorite();
+    else toggleFavoriteForSelection();
+  });
   window.__PhotosStores = { selectionStore, viewerStore, navigationStore, modeStore, libraryChangeStore, sectionStore, filterStore, sidebarVisibleStore, scanStatusStore, noticeStore, progressStore, columnsStore, searchStore, kindStore, mapAreaStore, missingSourcesStore, personStore, peopleChangeStore, personViewStore, faceDisplayStore, addPeopleStore, groupStore, peopleEnabledStore };
   // M8c.2b: tell the Info window which item to show -- the item open in the
   // viewer, otherwise the grid selection, otherwise none. Sent only on change.

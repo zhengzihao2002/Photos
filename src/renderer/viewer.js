@@ -824,6 +824,23 @@
     }
     goRef.current = go;
 
+    // M12.3: favorite the shown photo (by id), and keep the heart current after any edit.
+    async function toggleShownFavorite() {
+      const it = itemRef.current;
+      if (!it) return;
+      try {
+        await window.api.setFavorite({ target: { ids: [it.id] }, value: it.is_favorite !== 1 });
+        const row = await window.api.getItemById({ id: it.id });
+        if (row && itemRef.current && itemRef.current.id === row.id) setItem(row);
+      } catch (err) { /* the grid's notice path covers failures */ }
+    }
+    window.__PhotosViewerToggleFavorite = toggleShownFavorite;
+    useEffect(() => (window.api.onLibraryEdited ? window.api.onLibraryEdited(() => {
+      const it = itemRef.current;
+      if (!it) return;
+      window.api.getItemById({ id: it.id }).then((row) => { if (row && itemRef.current && itemRef.current.id === row.id) setItem(row); }).catch(() => {});
+    }) : undefined), []);
+
     // Keyboard (window-level; Grid's handler is suspended while open).
     useEffect(() => {
       function onKey(e) {
@@ -843,6 +860,7 @@
         if (e.metaKey && (e.key === '-' || e.key === '_')) { e.preventDefault(); if (zoomable()) zoomRef.current.applyZoom((w) => w / 1.25, 0, 0, true); return; }
         if (e.metaKey && e.key === '0') { e.preventDefault(); if (zoomable()) zoomRef.current.applyZoom(() => 0, 0, 0, true); return; }
         if (e.metaKey && (e.key === 'i' || e.key === 'I')) { e.preventDefault(); window.api.toggleInfo().catch(() => {}); return; }
+        if (e.key === '.' && !e.metaKey && !e.ctrlKey && !e.altKey && !e.repeat) { e.preventDefault(); toggleShownFavorite(); return; } // M12.3
         // M6: grid is oldest (left) -> newest (right); data 'prev' is the NEWER photo.
         if (e.key === 'ArrowRight') { e.preventDefault(); goRef.current('prev'); return; }
         if (e.key === 'ArrowLeft') { e.preventDefault(); goRef.current('next'); return; }
@@ -904,7 +922,7 @@
         h('div', { className: 'viewer-group' },
           h(ToolButton, { icon: 'info', label: 'Info', active: infoOpen, onClick: () => window.api.toggleInfo().catch(() => {}) }),
           h(ToolButton, { icon: 'share', label: 'Share', disabled: true }),
-          h(ToolButton, { icon: 'heart', label: 'Favorite', disabled: true }),
+          h(ToolButton, { icon: 'heart', label: item && item.is_favorite === 1 ? 'Unfavorite' : 'Favorite', disabled: !item, active: !!(item && item.is_favorite === 1), onClick: toggleShownFavorite }), // M12.3
           h(ToolButton, { icon: 'rotate', label: 'Rotate', disabled: true }),
           h(ToolButton, { icon: 'trash', label: 'Delete', disabled: true })),
         h('div', { className: 'viewer-group' },

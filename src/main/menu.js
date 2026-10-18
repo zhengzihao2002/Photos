@@ -114,6 +114,19 @@ function buildMenu(opts = {}) {
       ],
     },
     {
+      // M12.3: Image > Favorite. No accelerator: a bare '.' would fire inside text
+      // fields; the page handles the '.' key itself and this item sends the same action.
+      label: 'Image',
+      submenu: [
+        {
+          label: 'Favorite',
+          click: (menuItem, browserWindow) => {
+            if (browserWindow && /\/index\.html(?:[?#]|$)/.test(browserWindow.webContents.getURL())) browserWindow.webContents.send('menu:favorite');
+          },
+        },
+      ],
+    },
+    {
       label: 'View',
       submenu: [
         {
