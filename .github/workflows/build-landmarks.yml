@@ -1,0 +1,30 @@
+name: Build landmarks dataset
+
+# Downloads the GeoNames dumps (CC BY 4.0), runs tools/build-landmarks-dataset.js
+# on a macOS runner (needed for the Traditional-to-Simplified Chinese transform)
+# and commits resources/geo/landmarks.json to the branch it ran on.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4.2.2
+      - uses: actions/setup-node@v4.4.0
+        with:
+          node-version: '24'
+      - name: Build
+        run: node tools/build-landmarks-dataset.js
+      - name: Report size
+        run: ls -l resources/geo
+      - name: Commit the dataset
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git add resources/geo/landmarks.json resources/geo/landmarks.json.sha256
+          git commit -m "M13: landmarks dataset built from GeoNames" || echo "nothing to commit"
+          git push
