@@ -57,7 +57,7 @@ ensure_node() {
     exit 1
   fi
   echo "Checksum verified."
-  rm -rf "$NODE_DIR" "$TOOLCHAIN/$NODE_NAME"
+  rm -rf "${NODE_DIR:?}" "${TOOLCHAIN:?}/$NODE_NAME"
   /usr/bin/tar -xzf "$tgz" -C "$TOOLCHAIN"
   mv "$TOOLCHAIN/$NODE_NAME" "$NODE_DIR"
   rm -f "$tgz"

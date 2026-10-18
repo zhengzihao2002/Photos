@@ -6,7 +6,6 @@
 #   4. repeat on a disk image mounted READ-ONLY: any write to it would fail loudly
 set -euo pipefail
 cd "$(dirname "$0")/.."
-ROOT="$(pwd -P)"
 W="${SMOKE_DIR:-${RUNNER_TEMP:-/tmp}/photos-smoke}"
 APP_CMD=("${SMOKE_APP:-./dev start}")
 rm -rf "$W"; mkdir -p "$W"
