@@ -139,6 +139,9 @@ function buildMenu(opts = {}) {
       // fields; the page handles the '.' key itself and this item sends the same action.
       label: 'Image',
       submenu: [
+        { label: 'Rotate Counterclockwise', accelerator: 'CmdOrCtrl+R', click: (mi, bw) => { if (bw && /\/index\.html(?:[?#]|$)/.test(bw.webContents.getURL())) bw.webContents.send('menu:rotate', -90); } }, // M12.11
+        { label: 'Rotate Clockwise', accelerator: 'Alt+CmdOrCtrl+R', click: (mi, bw) => { if (bw && /\/index\.html(?:[?#]|$)/.test(bw.webContents.getURL())) bw.webContents.send('menu:rotate', 90); } },
+        { type: 'separator' },
         {
           label: 'Favorite',
           click: (menuItem, browserWindow) => {

@@ -1142,6 +1142,7 @@
       return;
     }
     if (!res || !res.action) return;
+    if (res.action === 'rotate') { rotateSelection(90); return; } // M12.11: Rotate Clockwise
     if (res.action === 'info') {
       viewerStore.open(item.id);
       window.dispatchEvent(new CustomEvent('photos:show-info'));
@@ -1618,6 +1619,34 @@
   }
   window.__PhotosToggleFavoriteForSelection = toggleFavoriteForSelection;
 
+  // M12.11: rotate the viewer's photo (by id) when the viewer is open, else the selection.
+  // delta: -90 = counterclockwise (Apple's default), 90 = clockwise.
+  async function rotateSelection(delta) {
+    try {
+      if (viewerStore.get() !== null && window.__PhotosViewerRotate) { await window.__PhotosViewerRotate(delta); return; }
+      const f = selectionTargetFilter();
+      if (!f) return;
+      await window.api.rotateItems({ target: { filter: f }, delta });
+    } catch (err) { noticeStore.set('Could not rotate: ' + err.message); }
+  }
+  window.__PhotosRotateSelection = rotateSelection;
+
+  function RotateButton() {
+    const [has, setHas] = useState(!selectionStore.isEmpty());
+    useEffect(() => selectionStore.subscribe(() => setHas(!selectionStore.isEmpty())), []);
+    return h('button', {
+      type: 'button', title: 'Rotate Left (hold Option to rotate right)', 'aria-label': 'Rotate', disabled: !has,
+      onClick: (e) => rotateSelection(e.altKey ? 90 : -90),
+      style: {
+        WebkitAppRegion: 'no-drag', width: '34px', height: '28px', border: 'none', borderRadius: '14px',
+        cursor: has ? 'pointer' : 'default', opacity: has ? 1 : 0.35,
+        background: 'var(--control-bg, rgba(128,128,128,0.18))', color: 'var(--text-primary)', padding: 0,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      },
+    }, h('svg', { viewBox: '0 0 16 16', width: 16, height: 16, 'aria-hidden': 'true' },
+      h('path', { d: 'M3 8a5 5 0 1 0 1.6-3.7 M3 2.5v3h3', fill: 'none', stroke: 'currentColor', 'stroke-width': 1.3, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' })));
+  }
+
   function FavoriteButton() {
     const [state, setState] = useState('disabled');
     useEffect(() => {
@@ -1747,6 +1776,7 @@
       section === 'map' && mapArea && h('div', { style: { flex: '1 1 auto' } }),
       ((section === 'library' && mode === 'all') || /^source:\d+$/.test(section) || (section === 'map' && mapArea) || (section === 'people' && personSel && personViewSel !== 'review') || (section === 'people' && groupOpen)) && h(ViewFilterButton),
       hasGrid && h(FavoriteButton), // M12.3
+      hasGrid && h(RotateButton), // M12.11
       section === 'people' && !personSel && !addSel && !groupOpen && h('div', { style: { flex: '1 1 auto' } }),
       section === 'people' && !personSel && !addSel && !groupOpen && h('button', {
         type: 'button', title: 'Add People', onClick: () => addPeopleStore.set(true),
@@ -3037,6 +3067,7 @@
     if (inTextField()) { document.execCommand('redo'); return; }
     window.api.redoEdit().catch(() => {});
   });
+  if (window.api.onMenuRotate) window.api.onMenuRotate((delta) => rotateSelection(delta)); // M12.11
   if (window.api.onMenuFavorite) window.api.onMenuFavorite(() => {
     if (viewerStore.get() !== null && window.__PhotosViewerToggleFavorite) window.__PhotosViewerToggleFavorite();
     else toggleFavoriteForSelection();

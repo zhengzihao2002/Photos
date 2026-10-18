@@ -155,7 +155,7 @@ async function showPhotoContextMenu(event, payload = {}) {
       { type: 'separator' },
       { label: 'Rescan All Folders', click: () => pick('rescan-all') },
       { type: 'separator' },
-      disabled('Rotate'),
+      { label: 'Rotate Clockwise', click: () => pick('rotate') }, // M12.11
       disabled('Edit'),
       disabled('Hide'),
       disabled('Duplicate'),

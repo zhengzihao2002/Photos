@@ -844,6 +844,8 @@
       } catch (err) { /* the grid's notice path covers failures */ }
     }
     window.__PhotosViewerToggleFavorite = toggleShownFavorite;
+    // M12.11: rotate the shown photo by id; the item is re-read on library:edited.
+    window.__PhotosViewerRotate = async (delta) => { const it = itemRef.current; if (it) await window.api.rotateItems({ target: { ids: [it.id] }, delta }); };
     useEffect(() => (window.api.onLibraryEdited ? window.api.onLibraryEdited(() => {
       const it = itemRef.current;
       if (!it) return;
@@ -937,7 +939,7 @@
           h(ToolButton, { icon: 'info', label: 'Info', active: infoOpen, onClick: () => window.api.toggleInfo().catch(() => {}) }),
           h(ToolButton, { icon: 'share', label: 'Share', disabled: true }),
           h(ToolButton, { icon: 'heart', label: item && item.is_favorite === 1 ? 'Unfavorite' : 'Favorite', disabled: !item, active: !!(item && item.is_favorite === 1), onClick: toggleShownFavorite }), // M12.3
-          h(ToolButton, { icon: 'rotate', label: 'Rotate', disabled: true }),
+          h(ToolButton, { icon: 'rotate', label: 'Rotate Left (hold Option to rotate right)', disabled: !item, onClick: (e) => window.__PhotosViewerRotate(e && e.altKey ? 90 : -90) }), // M12.11
           h(ToolButton, { icon: 'trash', label: 'Delete', disabled: true })),
         h('div', { className: 'viewer-group' },
           h(ToolButton, { icon: 'edit', label: 'Edit', disabled: true }))),
