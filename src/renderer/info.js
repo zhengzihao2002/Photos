@@ -96,6 +96,12 @@
       return () => { live = false; };
     }, [itemId]);
 
+    // M12.3: follow edits made anywhere (toolbar, viewer, period key, menu).
+    useEffect(() => (window.api.onLibraryEdited ? window.api.onLibraryEdited(() => {
+      if (itemId == null) return;
+      window.api.getItemById({ id: itemId }).then((row) => { if (row) setItem(row); }).catch(() => {});
+    }) : undefined), [itemId]);
+
     // People recognised in this item, left to right, each shown by their KEY
     // PHOTO (as on their People tile), as in Apple's Info. A key photo still
     // being made is null: ask again shortly (a few times). None when People is off.
@@ -150,6 +156,14 @@
     const coords = item.has_gps ? F.coords(item.gps_latitude, item.gps_longitude) : null;
     const note = F.dateNote(item.capture_time_source);
 
+    async function toggleFavorite() {
+      try {
+        await window.api.setFavorite({ target: { ids: [item.id] }, value: item.is_favorite !== 1 });
+        const row = await window.api.getItemById({ id: item.id });
+        if (row) setItem(row);
+      } catch (err) { /* ignored: the heart simply stays as it was */ }
+    }
+
     async function reveal() {
       const r = await window.api.showInFinder({ id: item.id });
       if (!r || !r.ok) setFinderMsg(r && r.code === 'source_missing' ? 'Original unavailable' : 'Not found');
@@ -162,8 +176,8 @@
           h('div', { className: 'info-name', title: item.filename }, item.filename),
           h('div', { className: 'info-date' }, F.dateTime(item.capture_time_local) || 'No Date'),
           note && h('div', { className: 'info-note' }, note)),
-        h('button', { className: 'info-heart', 'aria-label': 'Favorite', 'aria-disabled': 'true',
-          onMouseDown: noFocus }, '\u2661')),
+        h('button', { className: 'info-heart' + (item.is_favorite === 1 ? ' is-on' : ''), 'aria-label': item.is_favorite === 1 ? 'Unfavorite' : 'Favorite',
+          onMouseDown: noFocus, onClick: toggleFavorite }, item.is_favorite === 1 ? '\u2665' : '\u2661')), // M12.3
       h('div', { className: 'info-card' },
         h('div', { className: 'info-camera' }, camera || 'No Camera Information'),
         h('div', null, item.lens_model || 'No Lens Information'),
