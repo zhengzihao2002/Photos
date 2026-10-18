@@ -54,5 +54,11 @@
       "text": "DOMContentLoaded",
       "reason": "DOM event name"
     }
+  ],
+  "placeholderExempt": [
+    "date.range.single",
+    "date.range.sameMonth",
+    "date.range.sameYear",
+    "date.range.differentYears"
   ]
 }

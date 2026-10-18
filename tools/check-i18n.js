@@ -43,7 +43,7 @@ for (const k of enKeys) if (!(k in zh)) fail('missing in zh-Hans: ' + k);
 for (const k of zhKeys) if (!(k in en)) fail('missing in en: ' + k);
 for (const k of enKeys) {
   if (!(k in zh)) continue;
-  if (placeholders(en[k]) !== placeholders(zh[k])) fail('placeholders differ: ' + k + ' (' + placeholders(en[k]) + ' vs ' + placeholders(zh[k]) + ')');
+  if (!(allow.placeholderExempt || []).includes(k) && placeholders(en[k]) !== placeholders(zh[k])) fail('placeholders differ: ' + k + ' (' + placeholders(en[k]) + ' vs ' + placeholders(zh[k]) + ')');
   if (typeof zh[k] === 'object' && zh[k] !== null) {
     for (const cat of Object.keys(zh[k])) if (cat !== 'other') fail('zh-Hans plural for ' + k + ' may only use "other", found "' + cat + '"');
   }

@@ -79,10 +79,16 @@ test('info formatting follows the language: dates, sizes, coordinates, short dat
   assert.strictEqual(Z.dateNote('file_mtime'), '日期来自文件的修改时间');
 });
 
-test('the date-range label formats in both languages (toolbar)', () => {
-  for (const [loc, re] of [['en', /Nov 10\s*[–-]\s*Dec 25,\s*2025/], ['zh-Hans', /2025年11月10日.*12月25日/]]) {
-    const intl = new Intl.DateTimeFormat(loc === 'en' ? 'en-US' : 'zh-Hans-CN', { year: 'numeric', month: loc === 'en' ? 'short' : 'long', day: 'numeric', timeZone: 'UTC' });
-    const txt = intl.formatRange(new Date(Date.UTC(2025, 10, 10)), new Date(Date.UTC(2025, 11, 25)));
-    assert.match(txt, re);
-  }
+test('date ranges are whole sentences per language', () => {
+  const { formatDateRange } = require('../src/renderer/lib/date-range');
+  const e = I18n.create({ en, 'zh-Hans': zh }, 'en');
+  assert.strictEqual(formatDateRange('2025-11-10', '2025-11-10', e.t), 'Nov 10, 2025');
+  assert.strictEqual(formatDateRange('2025-11-10', '2025-11-25', e.t), 'Nov 10 \u2013 25, 2025');
+  assert.strictEqual(formatDateRange('2025-11-10', '2025-12-25', e.t), 'Nov 10 \u2013 Dec 25, 2025');
+  assert.strictEqual(formatDateRange('2024-11-10', '2025-12-25', e.t), 'Nov 10, 2024 \u2013 Dec 25, 2025');
+  e.setLocale('zh-Hans');
+  assert.strictEqual(formatDateRange('2025-11-10', '2025-11-10', e.t), '2025年11月10日');
+  assert.strictEqual(formatDateRange('2025-11-10', '2025-11-25', e.t), '2025年11月10日至25日');
+  assert.strictEqual(formatDateRange('2025-11-10', '2025-12-25', e.t), '2025年11月10日至12月25日');
+  assert.strictEqual(formatDateRange('2024-11-10', '2025-12-25', e.t), '2024年11月10日至2025年12月25日');
 });

@@ -181,6 +181,15 @@ async function main() {
   }
   finalList.sort((a, b) => a.id - b.id);
 
+  // Large protected areas are recorded by one centre point: widen their match radius by name.
+  const PARK_CODES = new Set(['PRK', 'RES', 'RESN', 'RESV', 'RESW', 'RESF', 'PRKN']);
+  for (const r of finalList) {
+    if (!PARK_CODES.has(r.code)) continue;
+    if (/national park|nationalpark|parc national|parque nacional|国家公园/i.test(r.en)) r.radius = 20000;
+    else if (/national (forest|monument|recreation area|seashore|lakeshore|preserve|grassland|wildlife refuge|reserve)|wilderness/i.test(r.en)) r.radius = 8000;
+    else if (/(state|provincial|regional|county) park|nature reserve|wildlife (reserve|sanctuary|refuge|area)/i.test(r.en)) r.radius = 6000;
+  }
+
   // Chinese: tags zh-Hans/zh-CN/zh-SG kept; others converted with the macOS transform.
   const needConv = finalList.filter((r) => r.zh && r.zhScore < 400);
   if (needConv.length) {

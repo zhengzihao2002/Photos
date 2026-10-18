@@ -1170,12 +1170,7 @@
   }
 
   // M6 (B.6d): 'Nov 10 - Dec 25, 2025' style date ranges.
-  function formatDateRange(start, end) {
-    const parse = (d) => { const p = d.split('-').map(Number); return new Date(Date.UTC(p[0], p[1] - 1, p[2])); };
-    const a = parse(start); const b = parse(end);
-    const fmt = new Intl.DateTimeFormat(window.i18n.intlLocale(), { year: 'numeric', month: window.i18n.getLocale() === 'zh-Hans' ? 'long' : 'short', day: 'numeric', timeZone: 'UTC' });
-    try { return start === end ? fmt.format(a) : fmt.formatRange(a, b); } catch (err) { return fmt.format(a); }
-  }
+  const formatDateRange = (start, end) => window.DateRange.formatDateRange(start, end, tr);
 
   /** M6 (B.6d): 'Library' + visible date range, shown in All Photos only. */
   /**
