@@ -219,7 +219,7 @@
   const SECTION_MEDIA_TYPES = ['video', 'selfie', 'live', 'panorama', 'burst', 'gif', 'raw'];
   const SECTION_SOURCE_PATTERN = /^source:[1-9]\d{0,9}$/;
   function isValidSection(v) {
-    return v === 'library' || v === 'albums' || v === 'map' || v === 'people' || SECTION_MEDIA_TYPES.includes(v)
+    return v === 'library' || v === 'albums' || v === 'map' || v === 'people' || v === 'favorite' || SECTION_MEDIA_TYPES.includes(v)
       || (typeof v === 'string' && SECTION_SOURCE_PATTERN.test(v));
   }
   const sectionStore = (function () {
@@ -1237,7 +1237,7 @@
   // M6: toolbar titles for collection sections (labels mirror sidebar.js).
   const SECTION_TITLES = {
     video: 'Videos', selfie: 'Selfies', live: 'Live Photos', panorama: 'Panoramas',
-    burst: 'Bursts', gif: 'Animated', raw: 'RAW', albums: 'Albums', map: 'Map',
+    burst: 'Bursts', gif: 'Animated', raw: 'RAW', albums: 'Albums', map: 'Map', favorite: 'Favorites',
   };
 
   /**
@@ -1311,7 +1311,7 @@
       const isMap = section === 'map';
       const isPerson = section === 'people' && person != null;
       const isGroup = section === 'people' && person == null && group != null;
-      if (!isMap && !isPerson && !isGroup && !/^source:\d+$/.test(section)) return undefined;
+      if (!isMap && !isPerson && !isGroup && section !== 'favorite' && !/^source:\d+$/.test(section)) return undefined;
       const summaryFilter = isPerson ? 'person:' + person.id : (isGroup ? 'group:' + group.ids.join(',')
         : (isMap ? (area ? area.filter : 'gps') : section));
       let alive = true;
@@ -1353,7 +1353,7 @@
         }, '\u2039'),
         titleEl);
     }
-    if (!sourceMatch && section !== 'map' && !(section === 'people' && (person || group))) {
+    if (!sourceMatch && section !== 'map' && section !== 'favorite' && !(section === 'people' && (person || group))) {
       // M12.2: media-type views have no second line except the selection label.
       if (!selLabel) return titleEl;
       return h('div', { style: { display: 'flex', flexDirection: 'column', justifyContent: 'center', lineHeight: 1.2, minWidth: 0 } },
@@ -2901,6 +2901,7 @@
       const EMPTY_TITLES = {
         video: 'No Videos', selfie: 'No Selfies', live: 'No Live Photos', panorama: 'No Panoramas',
         burst: 'No Bursts', gif: 'No Animated Images', raw: 'No RAW Photos',
+        favorite: 'No Favorites', // M12.3
       };
       let title = 'No Photos';
       if (searchStore.get()) {
@@ -2922,7 +2923,7 @@
         hint = 'It may still be scanning, or contain no supported files.';
       } else if (EMPTY_TITLES[section]) {
         title = EMPTY_TITLES[section];
-        hint = null;
+        hint = section === 'favorite' ? 'Mark a photo or video as a favorite and it appears here.' : null; // M12.3
       }
       return h('div', { className: 'empty-state' },
         h('div', { style: { fontSize: '20px', fontWeight: 600, color: 'var(--text-primary)' } }, title),

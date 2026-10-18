@@ -47,7 +47,7 @@
   const PINNED = [
     { key: 'pinned:video', label: 'Videos', icon: 'video', section: 'video' },
     { key: 'pinned:map', label: 'Map', icon: 'map', section: 'map' },
-    { key: 'pinned:favorites', label: 'Favorites', icon: 'heart', disabled: NA },
+    { key: 'pinned:favorites', label: 'Favorites', icon: 'heart', section: 'favorite' }, // M12.3
     { key: 'pinned:people', label: 'People', icon: 'person', section: 'people' }, // M10
     { key: 'pinned:deleted', label: 'Recently Deleted', icon: 'trash', disabled: NA },
   ];
@@ -144,7 +144,7 @@
           restoredRef.current = true;
           const sec = saved.section;
           const sourceMatch = /^source:(\d+)$/.exec(sec || '');
-          const valid = sec === 'library' || sec === 'albums' || sec === 'map' || sec === 'people'
+          const valid = sec === 'library' || sec === 'albums' || sec === 'map' || sec === 'people' || sec === 'favorite'
             || (MEDIA_TYPES.some((t) => t.section === sec) && typeCounts && typeCounts[sec] > 0)
             || (sourceMatch && (sources || []).some((src) => src.id === Number(sourceMatch[1])));
           // Only if the user hasn't already picked something during startup.
