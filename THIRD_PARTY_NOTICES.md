@@ -1,0 +1,139 @@
+# Third-party notices
+
+Photos is an independent project. **Not affiliated with or endorsed by Apple.**
+Photos itself is MIT licensed (see LICENSE). It includes or uses the following components.
+
+## Components that are not npm packages
+
+### Electron
+**License:** MIT
+
+https://www.electronjs.org/. Electron ships LICENSES.chromium.html (Chromium and its third-party notices) inside the app bundle; it is kept.
+
+### Preact 10.24.3 (vendored: src/renderer/vendor/preact-bundle.js)
+**License:** MIT
+
+https://preactjs.com/
+
+### MapLibre GL JS 5.24.0 (vendored)
+**License:** BSD-3-Clause
+
+https://maplibre.org/ . Licence text: src/renderer/vendor/maplibre/LICENSE.txt
+
+### Supercluster 9.1.0 (vendored)
+**License:** ISC
+
+https://github.com/mapbox/supercluster . Licence text: src/renderer/vendor/supercluster/LICENSE.txt
+
+### YuNet face detection model (resources/models)
+**License:** MIT
+
+Copyright (c) 2020 Shiqi Yu, from OpenCV Zoo. Licence text: resources/models/LICENSE-yunet.txt
+
+### SFace face recognition model (resources/models)
+**License:** Apache-2.0
+
+From OpenCV Zoo. Licence text: resources/models/LICENSE-sface.txt
+
+### ONNX Runtime (onnxruntime-node)
+**License:** MIT
+
+https://onnxruntime.ai/ . Telemetry is disabled (ORT_DISABLE_TELEMETRY=1).
+
+### GeoNames (resources/geo)
+**License:** CC BY 4.0
+
+Place and landmark names © GeoNames, https://www.geonames.org/ , licensed under Creative Commons Attribution 4.0. Cities (population 500+, admin regions) and a filtered set of notable landmarks, with Simplified Chinese names where GeoNames has them. Data is processed into compact JSON by tools/build-geo-dataset.js and tools/build-landmarks-dataset.js.
+
+### OpenFreeMap, OpenMapTiles, OpenStreetMap
+**License:** ODbL / CC BY 4.0 / BSD
+
+Map tiles and styles from https://openfreemap.org/ (the only network use of the app). © OpenMapTiles https://openmaptiles.org/ , data © OpenStreetMap contributors https://www.openstreetmap.org/copyright (ODbL). The attribution stays visible on every map ("Legal").
+
+### FFmpeg and FFprobe (ffmpeg-static, ffprobe-static)
+**License:** GPL-3.0-or-later (ffmpeg-static builds) / MIT (wrapper)
+
+Run as separate command-line programs, never linked into the app. Source code of the FFmpeg build used by ffmpeg-static: https://github.com/eugeneware/ffmpeg-static and https://ffmpeg.org/ . The binaries are inside Photos.app/Contents/Resources/app.asar.unpacked/node_modules/ and can be replaced.
+
+### libvips (via sharp, @img/sharp-libvips-*)
+**License:** LGPL-3.0-or-later
+
+Shipped as a separate shared library inside app.asar.unpacked and can be replaced. https://www.libvips.org/
+
+## npm packages shipped in the app (from package-lock.json)
+
+| Package | Version | License |
+|---|---|---|
+| @derhuerst/http-basic | 8.2.4 | MIT |
+| @emnapi/runtime | 1.11.3 | MIT |
+| @img/colour | 1.1.0 | MIT |
+| @img/sharp-darwin-arm64 | 0.35.5 | Apache-2.0 |
+| @img/sharp-darwin-x64 | 0.35.5 | Apache-2.0 |
+| @img/sharp-freebsd-wasm32 | 0.35.5 | Apache-2.0 |
+| @img/sharp-libvips-darwin-arm64 | 1.3.4 | LGPL-3.0-or-later |
+| @img/sharp-libvips-darwin-x64 | 1.3.4 | LGPL-3.0-or-later |
+| @img/sharp-libvips-linux-arm | 1.3.4 | LGPL-3.0-or-later |
+| @img/sharp-libvips-linux-arm64 | 1.3.4 | LGPL-3.0-or-later |
+| @img/sharp-libvips-linux-ppc64 | 1.3.4 | LGPL-3.0-or-later |
+| @img/sharp-libvips-linux-riscv64 | 1.3.4 | LGPL-3.0-or-later |
+| @img/sharp-libvips-linux-s390x | 1.3.4 | LGPL-3.0-or-later |
+| @img/sharp-libvips-linux-x64 | 1.3.4 | LGPL-3.0-or-later |
+| @img/sharp-libvips-linuxmusl-arm64 | 1.3.4 | LGPL-3.0-or-later |
+| @img/sharp-libvips-linuxmusl-x64 | 1.3.4 | LGPL-3.0-or-later |
+| @img/sharp-linux-arm | 0.35.5 | Apache-2.0 |
+| @img/sharp-linux-arm64 | 0.35.5 | Apache-2.0 |
+| @img/sharp-linux-ppc64 | 0.35.5 | Apache-2.0 |
+| @img/sharp-linux-riscv64 | 0.35.5 | Apache-2.0 |
+| @img/sharp-linux-s390x | 0.35.5 | Apache-2.0 |
+| @img/sharp-linux-x64 | 0.35.5 | Apache-2.0 |
+| @img/sharp-linuxmusl-arm64 | 0.35.5 | Apache-2.0 |
+| @img/sharp-linuxmusl-x64 | 0.35.5 | Apache-2.0 |
+| @img/sharp-wasm32 | 0.35.5 | Apache-2.0 AND LGPL-3.0-or-later AND MIT |
+| @img/sharp-webcontainers-wasm32 | 0.35.5 | Apache-2.0 |
+| @img/sharp-win32-arm64 | 0.35.5 | Apache-2.0 AND LGPL-3.0-or-later |
+| @img/sharp-win32-ia32 | 0.35.5 | Apache-2.0 AND LGPL-3.0-or-later |
+| @img/sharp-win32-x64 | 0.35.5 | Apache-2.0 AND LGPL-3.0-or-later |
+| @types/node | 10.17.60 | MIT |
+| adm-zip | 0.6.1 | MIT |
+| agent-base | 6.0.2 | MIT |
+| better-sqlite3 | 13.0.3 | MIT |
+| buffer-from | 1.1.2 | MIT |
+| caseless | 0.12.0 | Apache-2.0 |
+| concat-stream | 2.0.0 | MIT |
+| debug | 4.4.3 | MIT |
+| define-data-property | 1.1.4 | MIT |
+| define-properties | 1.2.1 | MIT |
+| detect-libc | 2.1.2 | Apache-2.0 |
+| env-paths | 2.2.1 | MIT |
+| es-define-property | 1.0.1 | MIT |
+| es-errors | 1.3.0 | MIT |
+| escape-string-regexp | 4.0.0 | MIT |
+| exifr | 7.1.3 | MIT |
+| ffmpeg-static | 5.3.0 | GPL-3.0-or-later |
+| ffprobe-static | 3.1.0 | MIT |
+| global-agent | 4.1.3 | BSD-3-Clause |
+| globalthis | 1.0.4 | MIT |
+| gopd | 1.2.0 | MIT |
+| has-property-descriptors | 1.0.2 | MIT |
+| http-response-object | 3.0.2 | MIT |
+| https-proxy-agent | 5.0.1 | MIT |
+| inherits | 2.0.4 | ISC |
+| matcher | 4.0.0 | MIT |
+| ms | 2.1.3 | MIT |
+| node-addon-api | 8.9.2 | MIT |
+| object-keys | 1.1.1 | MIT |
+| onnxruntime-common | 1.30.0 | MIT |
+| onnxruntime-node | 1.30.0 | MIT |
+| parse-cache-control | 1.0.1 | see package |
+| progress | 2.0.3 | MIT |
+| readable-stream | 3.6.2 | MIT |
+| safe-buffer | 5.1.2 | MIT |
+| semver | 7.8.5 | ISC |
+| serialize-error | 8.1.0 | MIT |
+| sharp | 0.35.5 | Apache-2.0 |
+| string_decoder | 1.1.1 | MIT |
+| type-fest | 0.20.2 | (MIT OR CC0-1.0) |
+| typedarray | 0.0.6 | MIT |
+| util-deprecate | 1.0.2 | MIT |
+
+_Generated by `node tools/build-notices.js`. Build-time tools (electron-builder and its dependencies) are development dependencies and are not part of the app._

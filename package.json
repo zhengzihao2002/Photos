@@ -1,8 +1,8 @@
 {
   "name": "photos",
   "productName": "Photos",
-  "version": "0.1.0",
-  "description": "Local, offline photo library manager for macOS (M0 foundation).",
+  "version": "1.0.0",
+  "description": "A local, offline Photos-style library for macOS. Read-only: it never changes your photo folders. Not affiliated with Apple.",
   "private": true,
   "main": "src/main/main.js",
   "scripts": {
@@ -16,14 +16,22 @@
     "electron-builder": "26.15.3"
   },
   "build": {
-    "appId": "com.local.photos",
+    "appId": "io.github.zhengzihao2002.photos-clone",
     "productName": "Photos",
     "directories": {
       "output": "dist"
     },
     "files": [
       "src/**/*",
-      "package.json"
+      "package.json",
+      "!node_modules/onnxruntime-node/bin/napi-v6/{linux,win32}/**",
+      "!node_modules/onnxruntime-node/bin/napi-v6/darwin/x64/**",
+      "!node_modules/ffprobe-static/bin/{linux,win32}/**",
+      "!node_modules/ffprobe-static/bin/darwin/x64/**",
+      "!**/*.md",
+      "!**/*.map",
+      "!**/test/**",
+      "!**/docs/**"
     ],
     "mac": {
       "category": "public.app-category.photography",
@@ -31,8 +39,7 @@
         {
           "target": "dir",
           "arch": [
-            "arm64",
-            "x64"
+            "arm64"
           ]
         }
       ],
@@ -42,7 +49,15 @@
       "icon": "build/icon.icns",
       "extendInfo": {
         "LSHasLocalizedDisplayName": true,
-        "CFBundleDisplayName": "Photos"
+        "CFBundleDisplayName": "Photos",
+        "CFBundleLocalizations": [
+          "en",
+          "zh-Hans"
+        ],
+        "CFBundleDevelopmentRegion": "en",
+        "LSMinimumSystemVersion": "12.0",
+        "NSHighResolutionCapable": true,
+        "NSHumanReadableCopyright": "Copyright © 2026 The Photos contributors. MIT License. Not affiliated with Apple."
       },
       "extraResources": [
         {
@@ -52,6 +67,22 @@
         {
           "from": "build/zh-Hans.lproj",
           "to": "zh-Hans.lproj"
+        },
+        {
+          "from": "resources/geo",
+          "to": "geo"
+        },
+        {
+          "from": "resources/models",
+          "to": "models"
+        },
+        {
+          "from": "LICENSE",
+          "to": "LICENSE.txt"
+        },
+        {
+          "from": "THIRD_PARTY_NOTICES.md",
+          "to": "THIRD_PARTY_NOTICES.md"
         }
       ]
     },
@@ -61,9 +92,14 @@
       "node_modules/ffprobe-static/**",
       "node_modules/sharp/**",
       "node_modules/@img/**",
-      "**/*.node"
+      "node_modules/onnxruntime-node/**",
+      "node_modules/better-sqlite3/**",
+      "**/*.node",
+      "**/*.dylib"
     ],
-    "npmRebuild": false
+    "npmRebuild": false,
+    "copyright": "Copyright © 2026 The Photos contributors. MIT License.",
+    "afterPack": "build/after-pack.js"
   },
   "dependencies": {
     "better-sqlite3": "13.0.3",
@@ -72,5 +108,12 @@
     "ffprobe-static": "3.1.0",
     "onnxruntime-node": "1.30.0",
     "sharp": "0.35.5"
-  }
+  },
+  "license": "MIT",
+  "author": "The Photos contributors",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zhengzihao2002/Photos.git"
+  },
+  "homepage": "https://github.com/zhengzihao2002/Photos"
 }

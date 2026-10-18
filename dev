@@ -106,7 +106,7 @@ cmd_setup() {
 case "${1:-help}" in
   setup) cmd_setup ;;
   start) need_setup; shift; exec node_modules/.bin/electron . "$@" ;;
-  dist)  need_setup; private_env; shift; node_modules/.bin/electron-builder --mac "$@"; clean_cache ;;
+  dist)  need_setup; private_env; shift; node_modules/.bin/electron-builder --mac --arm64 "$@"; clean_cache ;;
   npm)   ensure_node; private_env; shift; exec npm "$@" ;;
   node)  ensure_node; private_env; shift; exec node "$@" ;;
   test)  ensure_node; private_env; shift; exec node --test "test/*.test.js" "$@" ;;
