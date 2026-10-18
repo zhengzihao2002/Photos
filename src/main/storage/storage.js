@@ -17,6 +17,7 @@ const paths = require('../paths');
 const db = require('../index/db');
 const bus = require('../window-bus');
 const { t } = require('../i18n'); // M14
+const { emptyCacheDir } = require('./safe-delete'); // M11
 
 const WEB_CACHE_DIRS = ['Cache', 'Code Cache', 'GPUCache', 'DawnGraphiteCache', 'DawnWebGPUCache', 'Shared Dictionary'];
 const CACHE_MS = 15000;
@@ -47,7 +48,7 @@ const ROWS = [
 
 function runWorker(jobs) {
   return new Promise((resolve, reject) => {
-    const w = new Worker(path.join(__dirname, 'worker-size.js'), { workerData: { jobs, freeSpacePath: paths.dataRoot() } });
+    const w = new Worker(path.join(__dirname, 'worker-size.js'), { workerData: { jobs, freeSpacePath: paths.dataRoot(), guard: require('../write-guard').workerConfig() } });
     w.once('message', resolve);
     w.once('error', reject);
     w.once('exit', (code) => { if (code !== 0) reject(new Error('size worker exited ' + code)); });
@@ -66,21 +67,10 @@ async function getSizes({ force = false } = {}) {
   return result;
 }
 
-// Deletes the CONTENTS of a cache folder; refuses anything not strictly inside the data root.
-async function emptyDir(dir, { minAgeMs = 0 } = {}) {
-  const root = fs.realpathSync(paths.dataRoot());
-  const real = fs.realpathSync(dir);
-  if (!real.startsWith(root + path.sep) || real === fs.realpathSync(path.dirname(paths.dbPath()))) {
-    throw new Error('storage: refusing to clear outside a cache folder: ' + real);
-  }
-  const now = Date.now();
-  for (const name of await fsp.readdir(real)) {
-    const p = path.join(real, name);
-    if (minAgeMs > 0) {
-      try { if (now - (await fsp.lstat(p)).mtimeMs < minAgeMs) continue; } catch (e) { continue; }
-    }
-    await fsp.rm(p, { recursive: true, force: true });
-  }
+// Deletes the CONTENTS of a cache folder; see safe-delete.js for what is refused.
+function cacheDirs() { return [paths.thumbnailsDir(), paths.faceCropsDir(), paths.logsDir(), paths.crashDumpsDir(), paths.tempDir()]; }
+function emptyDir(dir, { minAgeMs = 0 } = {}) {
+  return emptyCacheDir(dir, { dataRoot: paths.dataRoot(), cacheDirs: cacheDirs(), minAgeMs });
 }
 
 const CLEARERS = {

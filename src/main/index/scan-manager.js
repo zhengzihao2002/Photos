@@ -17,8 +17,20 @@ const path = require('path');
 const { geoDatasetPath } = require('../resource-paths');
 const bus = require('../window-bus');
 const paths = require('../paths'); // M8b.6
+const writeGuard = require('../write-guard'); // M11
 
 let activeWorker = null;
+
+// M11: where files changed since the last scan, one line each, in the app's own logs folder.
+function logMtimeChanges(list) {
+  if (!Array.isArray(list) || list.length === 0) return;
+  try {
+    const file = require('path').join(paths.logsDir(), 'source-file-changes.log');
+    const stamp = new Date().toISOString();
+    const lines = list.map((c) => stamp + '\t' + c.path + '\tmtime ' + c.oldMtime + ' -> ' + c.newMtime + '\t' + (c.sizeChanged ? 'size changed' : 'size unchanged')).join('\n') + '\n';
+    require('fs').appendFileSync(file, lines);
+  } catch (err) { /* a log must never fail a scan */ }
+}
 
 function isScanRunning() {
   return activeWorker !== null;
@@ -65,6 +77,7 @@ function runScan({ dbPath, sourceFolderId, sourceRootPath, dirs }) {
           dirs: Array.isArray(dirs) ? dirs : null,
           geoDatasetPath: geoDatasetPath(),
           protectedRoots: paths.protectedRoots(), // M8b.6: never indexed
+          guard: writeGuard.workerConfig(), // M11
         },
       });
     } catch (err) {
@@ -82,6 +95,7 @@ function runScan({ dbPath, sourceFolderId, sourceRootPath, dirs }) {
         });
       } else if (msg.type === 'done') {
         const sm = msg.summary || {};
+        logMtimeChanges(sm.mtimeChanges); // M11
         const changed = ((sm.inserted || 0) + (sm.updated || 0) + (sm.deleted || 0)) > 0;
         finish({ status: 'done', total: msg.total, summary: msg.summary, errors: msg.errors, changed }, 'Scan complete');
       } else if (msg.type === 'missing') {

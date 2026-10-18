@@ -28,6 +28,13 @@ const queued = new Set();
 const failed = new Set();
 let active = 0;
 
+/** photos-media URL of a crop (the renderer never gets a file path). ?v= busts the cache when a crop is remade. */
+function cropUrl(faceId, p) {
+  let v = 0;
+  try { v = Math.floor(fs.statSync(p).mtimeMs); } catch (e) { /* caller checked existence */ }
+  return 'photos-media://crop/' + faceId + '?v=' + v;
+}
+
 function cropPath(faceId) {
   return path.join(paths.faceCropsDir(), faceId + '.jpg');
 }
@@ -85,7 +92,7 @@ function pump() {
   }
 }
 
-/** { [personId]: absolute crop path | null }. null = not ready yet (queued) or no cover. */
+/** { [personId]: photos-media crop URL | null }. null = not ready yet (queued) or no cover. */
 function getCoverPaths(personIds) {
   const ids = [...new Set(personIds.filter(Number.isSafeInteger))].slice(0, 500);
   if (ids.length === 0) return {};
@@ -95,7 +102,7 @@ function getCoverPaths(personIds) {
     result[r.id] = null;
     if (r.cover_face_id == null) continue;
     const p = cropPath(r.cover_face_id);
-    if (fs.existsSync(p)) { result[r.id] = p; continue; }
+    if (fs.existsSync(p)) { result[r.id] = cropUrl(r.cover_face_id, p); continue; }
     if (queued.has(r.cover_face_id) === false && failed.has(r.cover_face_id) === false) {
       queued.add(r.cover_face_id);
       queue.push(r.cover_face_id);
@@ -105,13 +112,13 @@ function getCoverPaths(personIds) {
   return result;
 }
 
-/** { [faceId]: absolute crop path | null } for specific faces (the viewer's People section). */
+/** { [faceId]: photos-media crop URL | null } for specific faces (the viewer's People section). */
 function getFaceCropPaths(faceIds) {
   const ids = [...new Set(faceIds.filter(Number.isSafeInteger))].slice(0, 100);
   const result = {};
   for (const id of ids) {
     const p = cropPath(id);
-    if (fs.existsSync(p)) { result[id] = p; continue; }
+    if (fs.existsSync(p)) { result[id] = cropUrl(id, p); continue; }
     result[id] = null;
     if (queued.has(id) === false && failed.has(id) === false) { queued.add(id); queue.push(id); }
   }

@@ -5,7 +5,7 @@
  *
  * thumbnail:get-path
  *   Request:  { ids: number[], size: 'sm' | 'md' }
- *   Response: { [id]: string | null }   (object keys become strings over
+ *   Response: { [id]: photos-media URL string | null }   (object keys become strings over
  *              IPC; result[id] with a numeric id still works via JS's
  *              automatic coercion)
  *   Batch, not per-item: M3's grid should call this once per visible-range
@@ -38,12 +38,13 @@ const manager = require('../../thumbnails/thumbnail-manager');
 
 const MAX_BATCH_IDS = 2000;
 
-async function fileExists(p) {
+/** mtime of the file in ms, or null when it is not readable. Used as the cache-busting version. */
+async function fileVersion(p) {
   try {
     await fs.promises.access(p, fs.constants.R_OK);
-    return true;
+    return Math.floor((await fs.promises.stat(p)).mtimeMs);
   } catch (err) {
-    return false;
+    return null;
   }
 }
 
@@ -65,7 +66,9 @@ async function thumbnailGetPath(event, payload = {}) {
   await Promise.all(ids.map(async (id) => {
     if (statusById.get(id) !== 'done') { result[id] = null; return; }
     const p = thumbPaths.absolutePath(thumbRoot, id, size);
-    if (await fileExists(p)) result[id] = p;
+    const v = await fileVersion(p);
+    // M11: a photos-media URL, never a file path.
+    if (v !== null) result[id] = 'photos-media://thumb/' + id + '/' + size + '?v=' + v;
     else { result[id] = null; missing.push(id); }
   }));
 

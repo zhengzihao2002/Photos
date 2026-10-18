@@ -69,8 +69,10 @@ function spawn() {
       tmpFolder: path.join(paths.tempDir(), 'faces'),
       thumbRoot: paths.thumbnailsDir(),
       logsDir: paths.logsDir(),
+      guard: require('../write-guard').workerConfig(), // M11
     },
   });
+  require('../write-guard').registerWorker(worker);
   worker.on('message', (msg) => {
     if (msg.type === 'started') { restarts = 0; report('waiting', msg); gate(); }
     else if (msg.type === 'progress') report('analyzing', msg);

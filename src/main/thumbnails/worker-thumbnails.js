@@ -19,6 +19,7 @@
 const fs = require('fs');
 const path = require('path');
 const { parentPort, workerData } = require('worker_threads');
+require('../write-guard').installInWorker(workerData.guard); // M11: the first thing a worker does
 const sharp = require('sharp');
 const { openWorkerConnection } = require('../index/worker-db');
 const { createQueue } = require('./queue-core');

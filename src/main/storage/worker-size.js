@@ -10,6 +10,7 @@
  * unreadable entries are skipped. Read-only: never writes anything.
  */
 const { parentPort, workerData } = require('worker_threads');
+require('../write-guard').installInWorker(workerData.guard); // M11: the first thing a worker does
 const fs = require('fs');
 const path = require('path');
 

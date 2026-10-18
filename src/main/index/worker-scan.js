@@ -27,10 +27,11 @@
 const fs = require('fs');
 const path = require('path');
 const { parentPort, workerData } = require('worker_threads');
+require('../write-guard').installInWorker(workerData.guard); // M11: the first thing a worker does
 const { openWorkerConnection } = require('./worker-db');
 const { createUpsertStatements } = require('./upsert-item');
 const { discoverFiles, discoverFilesByDirectory, isHidden, isBundleDirectory } = require('./discover');
-const { processDirectoryBatch } = require('./scan-directory-batch');
+const { processDirectoryBatch, drainMtimeChanges } = require('./scan-directory-batch');
 const { markMissing, markScanned } = require('./source-folders');
 const { createPlaceResolver, peekDatasetVersion } = require('../places/place-resolver'); // M13
 const { runPlacePassLazy } = require('../places/place-pass');
@@ -158,6 +159,7 @@ async function run() {
     // M7.3: fill place names for new, changed, and not-yet-computed rows.
     aggregate.places = runPlacePassSafely(db, geoDatasetPath);
     aggregate.moves = reconcileMovesSafely(db, sourceFolderId, now);
+    aggregate.mtimeChanges = drainMtimeChanges(); // M11
 
     markScanned(db, sourceFolderId, now);
 
@@ -272,6 +274,7 @@ async function runScoped() {
 
     aggregate.places = runPlacePassSafely(db, geoDatasetPath);
     aggregate.moves = reconcileMovesSafely(db, sourceFolderId, now);
+    aggregate.mtimeChanges = drainMtimeChanges(); // M11
     markScanned(db, sourceFolderId, now);
     db.pragma('wal_checkpoint(PASSIVE)');
     db.close();

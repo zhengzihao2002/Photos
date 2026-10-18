@@ -43,8 +43,10 @@ function spawn() {
       thumbRoot: paths.thumbnailsDir(),
       logsDir: paths.logsDir(),
       concurrency: CONCURRENCY,
+      guard: require('../write-guard').workerConfig(), // M11
     },
   });
+  require('../write-guard').registerWorker(worker);
 
   worker.on('message', (msg) => {
     if (msg.type === 'started' || msg.type === 'progress' || msg.type === 'idle') {

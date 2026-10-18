@@ -78,7 +78,7 @@ clean_cache() {
     echo "Download caches kept (PHOTOS_KEEP_CACHE=1)."
     return 0
   fi
-  find "$CACHE" -mindepth 1 -maxdepth 1 ! -name residue -exec rm -rf {} +
+  find "$CACHE" -mindepth 1 -maxdepth 1 ! -name residue ! -name fingerprints -exec rm -rf {} +
   echo "Download caches cleared."
 }
 

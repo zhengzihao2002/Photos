@@ -90,7 +90,7 @@ const SF_DATALESS = 0x40000000;
 function isDataless(fullPath, stat) {
   if (!(stat.blocks === 0 && stat.size > 0)) return Promise.resolve(false);
   return new Promise((resolve) => {
-    require('child_process').execFile('/usr/bin/stat', ['-f', '%Xf', fullPath], { timeout: 5000 }, (err, out) => {
+    require('../safe-exec').safeExecFile('/usr/bin/stat', ['-f', '%Xf', fullPath], { timeout: 5000 }, (err, out) => {
       if (err) { resolve(false); return; }
       const flags = parseInt(String(out).trim(), 16);
       resolve(Number.isFinite(flags) && (flags & SF_DATALESS) !== 0);
@@ -111,6 +111,12 @@ function unchangedResult(existing, relativePath) {
   };
 }
 
+// M11: every time a file's modification time or size differs from the last scan, remember it
+// (path, old and new mtime, whether the size changed). The app never writes to a source file,
+// so this log is the evidence trail if a file's timestamp ever changes unexpectedly.
+const mtimeChanges = [];
+function drainMtimeChanges() { return mtimeChanges.splice(0, mtimeChanges.length); }
+
 async function classifyFile(file, sourceFolderId, relativePath, stmts) {
   let stat;
   try {
@@ -129,6 +135,9 @@ async function classifyFile(file, sourceFolderId, relativePath, stmts) {
     return { valid: false, error: { path: file.fullPath, message: 'iCloud file not downloaded; skipped until it is' } };
   }
 
+  if (existing && (existing.file_mtime !== mtimeSeconds || existing.file_size_bytes !== stat.size) && mtimeChanges.length < 500) {
+    mtimeChanges.push({ path: file.fullPath, oldMtime: existing.file_mtime, newMtime: mtimeSeconds, sizeChanged: existing.file_size_bytes !== stat.size });
+  }
   if (existing && existing.file_size_bytes === stat.size && existing.file_mtime === mtimeSeconds
       && !needsReextraction(existing)) {
     return {
@@ -302,7 +311,7 @@ async function processDirectoryBatch({ db, stmts, sourceFolderId, sourceRootPath
   return { summary, errors };
 }
 
-module.exports = { processDirectoryBatch };
+module.exports = { processDirectoryBatch, drainMtimeChanges };
 
 // Exported for verification only.
 module.exports.needsReextraction = needsReextraction;

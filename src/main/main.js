@@ -18,7 +18,14 @@ const fs = require('fs');
 const path = require('path');
 const { app, BrowserWindow, dialog, Menu } = require('electron');
 
+require('./security').install(); // M11: navigation, window.open, permissions
 const paths = require('./paths');
+// M11: refuse any write to a source folder, or outside the data/temp folders (see write-guard.js).
+try {
+  require('./write-guard').install({ allowedRoots: [paths.dataRoot(), paths.tempDir(), require('os').tmpdir()] });
+} catch (err) {
+  console.error('write guard not installed:', err.message); // the data-folder check below reports the real problem
+}
 const config = require('./config');
 const { buildMenu } = require('./menu');
 const { registerIpcHandlers } = require('./ipc');
@@ -167,6 +174,7 @@ app.whenReady().then(() => {
     app.quit();
     return;
   }
+  require('./index/source-guard').sync(); // M11
 
   Menu.setApplicationMenu(buildMenu());
   // M6 (B.9): app identity. In development the Dock icon is set here (the

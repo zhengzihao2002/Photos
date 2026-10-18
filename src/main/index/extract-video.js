@@ -14,7 +14,7 @@
  * limitation, not a silent wrong answer dressed up as a precise one.
  */
 
-const { execFile } = require('child_process');
+const { safeExecFile: execFile } = require('../safe-exec'); // M11
 const ffprobePath = require('ffprobe-static').path;
 const { cleanTitle, cleanCaption, cleanKeywords } = require('./embedded-text'); // M12.4
 const { parseFilenameTimestamp, isPlausibleCaptureParts } = require('./metadata-helpers');

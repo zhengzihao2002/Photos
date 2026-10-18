@@ -106,7 +106,7 @@
       onDblClick: handleDblClick,
     },
       resolved && h('img', {
-        className: 'tile-img', src: 'file://' + thumbPath,
+        className: 'tile-img', src: thumbPath,
         style: { 'object-view-box': faceBox && !item.rotation ? faceInset(faceBox) : 'inset(0% 0% 0% 0%)', transition: 'object-view-box 0.35s ease',
           transform: item.rotation ? 'rotate(' + item.rotation + 'deg)' : undefined }, // M12.11
       }),
@@ -1842,7 +1842,7 @@
     const resolved = typeof thumbPath === 'string';
     return h('div', { className: 'timeline-tile', onClick: () => navigateToPeriod({ year: year.year }) },
       h('div', { className: 'timeline-tile-thumb' },
-        resolved && h('img', { src: 'file://' + thumbPath })),
+        resolved && h('img', { src: thumbPath })),
       h('div', { className: 'timeline-tile-label' }, String(year.year)),
       h('div', { className: 'timeline-tile-count' }, year.count + (year.count === 1 ? ' item' : ' items'))
     );
@@ -1903,7 +1903,7 @@
     const labelText = window.i18n.date(label, { month: 'long', year: 'numeric', timeZone: 'UTC' });
     return h('div', { className: 'timeline-tile', onClick: () => navigateToPeriod({ year: month.year, month: month.month }) },
       h('div', { className: 'timeline-tile-thumb' },
-        resolved && h('img', { src: 'file://' + thumbPath })),
+        resolved && h('img', { src: thumbPath })),
       h('div', { className: 'timeline-tile-label' }, labelText),
       h('div', { className: 'timeline-tile-count' }, tr('count.items', { count: month.count }))
     );

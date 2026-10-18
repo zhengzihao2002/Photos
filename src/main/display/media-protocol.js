@@ -7,6 +7,8 @@
  *   photos-media://item/<id>/original   native image or playable video
  *   photos-media://item/<id>/display    cached JPEG (HEIC/RAW/TIFF) or MP4 copy (B.7)
  *   photos-media://item/<id>/live       Live Photo's paired video
+ *   photos-media://thumb/<id>/<sm|md>   the app's own thumbnail of an item   (M11)
+ *   photos-media://crop/<faceId>        the app's own face crop              (M11)
  *   (an optional ?v=<stamp> query is ignored here; it only busts caches)
  *
  * id must be a positive integer; route must be one of the three. The path
@@ -25,6 +27,8 @@ const path = require('path');
 const { Readable } = require('stream');
 const { protocol } = require('electron');
 const service = require('./display-service');
+const paths = require('../paths');
+const thumbPaths = require('../thumbnails/thumbnail-paths');
 
 const ROUTES = new Set(['original', 'display', 'live']);
 const MIME = {
@@ -58,13 +62,16 @@ async function serve(request) {
   let url;
   try { url = new URL(request.url); } catch (e) { return plain(400, 'Bad URL'); }
   const parts = url.pathname.split('/').filter(Boolean);
-  if (url.hostname !== 'item' || parts.length !== 2 || !/^\d+$/.test(parts[0]) || !ROUTES.has(parts[1])) {
+  let file = null;
+  if (url.hostname === 'item' && parts.length === 2 && /^\d{1,10}$/.test(parts[0]) && ROUTES.has(parts[1])) {
+    file = await service.resolveFile(Number(parts[0]), parts[1]);
+  } else if (url.hostname === 'thumb' && parts.length === 2 && /^\d{1,10}$/.test(parts[0]) && (parts[1] === 'sm' || parts[1] === 'md')) {
+    file = thumbPaths.absolutePath(paths.thumbnailsDir(), Number(parts[0]), parts[1]);
+  } else if (url.hostname === 'crop' && parts.length === 1 && /^\d{1,10}$/.test(parts[0])) {
+    file = path.join(paths.faceCropsDir(), Number(parts[0]) + '.jpg');
+  } else {
     return plain(400, 'Bad request');
   }
-  const id = Number(parts[0]);
-  const route = parts[1];
-
-  const file = await service.resolveFile(id, route);
   if (!file) return plain(404, 'Not found');
   let st;
   try { st = await fs.promises.stat(file); } catch (e) { return plain(404, 'Not found'); }

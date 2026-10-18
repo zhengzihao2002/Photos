@@ -1,0 +1,193 @@
+{
+  "sites": [
+    {
+      "file": "src/main/config.js",
+      "id": "fs-mutate",
+      "max": 2,
+      "writes": "config.json (temp file, then rename) in the data folder",
+      "safe": "Path comes from paths.configPath(); the write guard allows only the data folder."
+    },
+    {
+      "file": "src/main/display/display-cache.js",
+      "id": "fs-mutate",
+      "max": 10,
+      "writes": "Full-size preview / converted-video cache under <data>/display-cache (create, touch for LRU, evict, clear)",
+      "safe": "All paths are built from paths.displayCacheDir() and numeric item ids; never a source path."
+    },
+    {
+      "file": "src/main/display/display-service.js",
+      "id": "fs-mutate",
+      "max": 2,
+      "writes": "Deletes a half-made preview file after a cancel",
+      "safe": "The path is the output the converter just created inside the display cache."
+    },
+    {
+      "file": "src/main/display/video-transcode.js",
+      "id": "fs-mutate",
+      "max": 2,
+      "writes": "Creates the temp folder; deletes a failed MP4 output",
+      "safe": "tmpFolder is the display cache temp folder; the output path is checked to be inside it and not equal to the source before ffmpeg runs, and safe-exec.js checks it again."
+    },
+    {
+      "file": "src/main/faces/face-analyze.js",
+      "id": "fs-mutate",
+      "max": 1,
+      "writes": "Deletes its own temp JPEG",
+      "safe": "The temp file was made by sips into <data>/tmp/faces."
+    },
+    {
+      "file": "src/main/faces/worker-faces.js",
+      "id": "fs-mutate",
+      "max": 3,
+      "writes": "faces.log (append, rotate) and <data>/tmp/faces",
+      "safe": "logsDir and tmpFolder arrive from the main process and are inside the data folder."
+    },
+    {
+      "file": "src/main/index/db.js",
+      "id": "sqlite-open",
+      "max": 1,
+      "writes": "library.db and its -wal / -shm files in the data folder",
+      "safe": "paths.dbPath()."
+    },
+    {
+      "file": "src/main/index/worker-db.js",
+      "id": "sqlite-open",
+      "max": 1,
+      "writes": "The same library.db from a worker thread",
+      "safe": "dbPath comes from the main process (paths.dbPath())."
+    },
+    {
+      "file": "src/main/ipc/handlers/media.js",
+      "id": "shell-action",
+      "max": 1,
+      "writes": "Nothing: reveals a file in Finder",
+      "safe": "shell.showItemInFolder only selects a file in Finder; the renderer sends an id, the path is looked up from the database."
+    },
+    {
+      "file": "src/main/ipc/handlers/menu.js",
+      "id": "shell-action",
+      "max": 2,
+      "writes": "Nothing: opens a source folder / reveals a file in Finder",
+      "safe": "openPath on a folder opens it in Finder; showItemInFolder selects a file. Neither changes anything; paths come from the database, not the page."
+    },
+    {
+      "file": "src/main/main.js",
+      "id": "electron-path",
+      "max": 4,
+      "writes": "Redirects Electron’s own folders into the data folder",
+      "safe": "setPath(userData, sessionData, crashDumps, temp) all point inside the data folder."
+    },
+    {
+      "file": "src/main/main.js",
+      "id": "fs-mutate",
+      "max": 1,
+      "writes": "Empties <data>/tmp at launch",
+      "safe": "tempDir is paths.tempDir()."
+    },
+    {
+      "file": "src/main/paths.js",
+      "id": "fs-mutate",
+      "max": 1,
+      "writes": "Creates the data folders",
+      "safe": "Every path comes from the data root (paths.js is the only place data paths are built)."
+    },
+    {
+      "file": "src/main/people/face-crops.js",
+      "id": "image-output",
+      "max": 1,
+      "writes": "Face crop JPEG (temp name) in <data>/face-crops",
+      "safe": "tmpOut is inside paths.faceCropsDir()."
+    },
+    {
+      "file": "src/main/people/face-crops.js",
+      "id": "fs-mutate",
+      "max": 4,
+      "writes": "Renames the crop into place; deletes temp / orphaned crops",
+      "safe": "All inside paths.faceCropsDir(); names are <numeric id>.jpg or dot-prefixed temp names."
+    },
+    {
+      "file": "src/main/people/people-privacy.js",
+      "id": "fs-mutate",
+      "max": 1,
+      "writes": "Empties the face-crop folder when the user chooses Delete All People Data",
+      "safe": "dir is paths.faceCropsDir()."
+    },
+    {
+      "file": "src/main/residue-cleanup.js",
+      "id": "child-process",
+      "max": 1,
+      "writes": "After quit, removes the app’s own preference / shader-cache entries that macOS filed under its bundle id",
+      "safe": "Runs a fixed shell script with one validated argument (the bundle id, letters/digits/dots/dashes only, so no path separators). Touches only ~/Library entries named after the bundle id."
+    },
+    {
+      "file": "src/main/safe-exec.js",
+      "id": "child-process",
+      "max": 1,
+      "writes": "Starts sips / ffmpeg / ffprobe / stat / mount / plutil",
+      "safe": "Every command line is validated first; outputs must be accepted by the write guard (data/temp folders only)."
+    },
+    {
+      "file": "src/main/security.js",
+      "id": "shell-action",
+      "max": 1,
+      "writes": "Nothing: opens an https link in the browser",
+      "safe": "Only URLs in a fixed allowlist."
+    },
+    {
+      "file": "src/main/storage/safe-delete.js",
+      "id": "fs-mutate",
+      "max": 1,
+      "writes": "Contents of a known cache folder (Clear in Settings > Storage)",
+      "safe": "Folder must equal one of the known cache folders inside the data folder (real paths); links are removed, never followed."
+    },
+    {
+      "file": "src/main/thumbnails/generate.js",
+      "id": "fs-mutate",
+      "max": 6,
+      "writes": "Thumbnail files and their temp files under <data>/thumbnails",
+      "safe": "thumbRoot comes from the main process; paths are built from numeric ids by thumbnail-paths.js."
+    },
+    {
+      "file": "src/main/thumbnails/generate.js",
+      "id": "image-output",
+      "max": 1,
+      "writes": "Thumbnail JPEG (temp name) under <data>/thumbnails",
+      "safe": "tmpPath is inside the thumbnail folder."
+    },
+    {
+      "file": "src/main/thumbnails/orphan-sweep.js",
+      "id": "fs-mutate",
+      "max": 1,
+      "writes": "Deletes thumbnail files whose item no longer exists",
+      "safe": "Walks only the thumbnail folder and matches the <id>_<size>.jpg name pattern."
+    },
+    {
+      "file": "src/main/thumbnails/sips-decode.js",
+      "id": "fs-mutate",
+      "max": 2,
+      "writes": "Creates the temp folder; deletes a failed sips output",
+      "safe": "outPath is inside tmpFolder (<data>/tmp); sips also runs with --out validated by safe-exec.js."
+    },
+    {
+      "file": "src/main/thumbnails/video-frame.js",
+      "id": "fs-mutate",
+      "max": 2,
+      "writes": "Creates the temp folder; deletes a failed frame",
+      "safe": "Output path checked to be inside tmpFolder and not the source; safe-exec.js checks it again."
+    },
+    {
+      "file": "src/main/thumbnails/worker-thumbnails.js",
+      "id": "fs-mutate",
+      "max": 4,
+      "writes": "thumbnails.log (append, rotate) and <data>/tmp/thumbs",
+      "safe": "logsDir and tmp are inside the data folder."
+    }
+  ],
+  "notes": [
+    "SQLite (better-sqlite3) writes library.db, library.db-wal and library.db-shm in the data folder through native code. No SQLite statement attaches another file (no ATTACH, no VACUUM INTO).",
+    "sharp / libvips writes only the file named in `.toFile(...)` (listed above, all inside the data folder) and reads originals read-only.",
+    "onnxruntime reads the model files shipped in the app and the thumbnail JPEGs; it writes nothing (telemetry is disabled with ORT_DISABLE_TELEMETRY).",
+    "Chromium (the renderer) writes to the data folder because Electron’s userData / sessionData / crashDumps / temp paths are redirected there at startup; a few entries that macOS itself files under the bundle id are removed after quit by the residue cleanup.",
+    "Originals are opened only for reading: image-dimensions.js uses open(path, 'r'); sharp, sips, ffmpeg and ffprobe receive the original as input only. `sips` is never run without --out when it changes something, which would edit the original in place."
+  ]
+}

@@ -97,7 +97,7 @@
       },
         h('div', { class: 'album-cover' },
           path
-            ? h('img', { src: 'file://' + path, alt: '', draggable: false })
+            ? h('img', { src: path, alt: '', draggable: false })
             : h(SvgIcon, { d: ALBUM, className: 'album-cover-placeholder' }),
           missing && h('span', { class: 'album-badge album-badge-missing' }, h(SvgIcon, { d: WARNING, className: 'album-badge-icon' })),
           !missing && scanningId === source.id && h('span', { class: 'album-badge album-badge-scanning', 'aria-label': t('sidebar.scanningAria') })),

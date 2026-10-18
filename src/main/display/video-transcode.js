@@ -16,10 +16,9 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const { execFile } = require('child_process');
-const { promisify } = require('util');
+const { safeExecFileAsync } = require('../safe-exec'); // M11: command lines are validated before they run
 
-const execFileAsync = promisify(execFile);
+const execFileAsync = safeExecFileAsync;
 const ffmpegStatic = require('ffmpeg-static');
 const ffprobeStatic = require('ffprobe-static');
 const FFMPEG = ffmpegStatic ? ffmpegStatic.replace('app.asar', 'app.asar.unpacked') : null;

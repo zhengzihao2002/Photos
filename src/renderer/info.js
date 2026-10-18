@@ -347,7 +347,7 @@
       h(window.InfoKeywords, { keywords: item.keywords || [], onChange: (c) => saveKeywords(c) }), // M12.4
       faces.length > 0 && h('div', { className: 'info-faces' },
         faces.map((p) => p.crop
-          ? h('img', { key: p.faceId, className: 'info-face', src: 'file://' + p.crop, alt: '',
+          ? h('img', { key: p.faceId, className: 'info-face', src: p.crop, alt: '',
               draggable: false, title: p.name || t('info.unnamedPerson') })
           : h('span', { key: p.faceId, className: 'info-face', title: p.name || t('info.unnamedPerson') }))),
       item.has_gps

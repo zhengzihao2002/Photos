@@ -51,7 +51,10 @@ function localizeReason(res) {
 }
 
 // M8b.5: watchers follow the source list immediately.
-function refreshWatchers() { require('../../index/folder-watcher').refresh(); }
+function refreshWatchers() {
+  require('../../index/folder-watcher').refresh();
+  require('../../index/source-guard').sync(); // M11: the write guard follows the source list
+}
 
 async function sourceAdd(event, payload) {
   const res = await addSourceFolder(db.get(), payload.rootPath, { protectedRoots: paths.protectedRoots() });

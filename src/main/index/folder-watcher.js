@@ -14,7 +14,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { execFile } = require('child_process');
+const { safeExecFile: execFile } = require('../safe-exec'); // M11
 const db = require('./db');
 const scanQueue = require('./scan-queue');
 const ev = require('./watch-events');

@@ -16,7 +16,8 @@
  */
 
 const path = require('path');
-const { spawn, execFileSync } = require('child_process');
+const { spawn } = require('child_process');
+const { safeExecFileSync: execFileSync } = require('./safe-exec'); // M11
 const { app } = require('electron');
 
 const SCRIPT = `

@@ -467,7 +467,7 @@
       // 1. sm: already cached for nearly every item.
       window.api.getThumbnailPaths({ ids: [itemId], size: 'sm' }).then((r) => {
         const p = r && r[itemId];
-        if (p) show('file://' + p, 1);
+        if (p) show(p, 1);
       });
 
       // 2. md: on demand. Re-assert priority every 4th poll, because the
@@ -480,7 +480,7 @@
         window.api.getThumbnailPaths({ ids: [itemId], size: 'md' }).then((r) => {
           if (!live) return;
           const p = r && r[itemId];
-          if (p) show('file://' + p, 2);
+          if (p) show(p, 2);
           else if (mdTries < MD_MAX_TRIES) timers.push(setTimeout(pollMd, MD_POLL_MS));
           else if (shownRank === 0) setNotice(tr('viewer.err.noPreview'));
         });

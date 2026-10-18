@@ -67,7 +67,12 @@ async function getCountsByDate(event, payload = {}) {
 }
 
 async function getItemById(event, payload) {
-  return queries.getItemById(db.get(), payload.id);
+  const id = payload && Number.isSafeInteger(payload.id) && payload.id > 0 ? payload.id : null;
+  const row = id === null ? null : queries.getItemById(db.get(), id);
+  if (!row) return null;
+  // M11: page script never sees where a file lives on disk.
+  const { absolute_path: _a, live_photo_video_absolute_path: _l, source_root_path: _s, ...safe } = row;
+  return safe;
 }
 
 async function getPhotoVideoCounts(event, payload = {}) {

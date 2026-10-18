@@ -12,6 +12,7 @@
  */
 
 const { ipcMain } = require('electron');
+const { isTrustedSender } = require('../security'); // M11
 
 const systemHandlers = require('./handlers/system');
 const dialogHandlers = require('./handlers/dialog');
@@ -47,9 +48,13 @@ const handlers = [
 
 function registerIpcHandlers() {
   // M14: pages ask for the language synchronously while they load, so the first render is already translated.
-  ipcMain.on('i18n:get-locale', (event) => { event.returnValue = require('../i18n').getLocale(); });
+  ipcMain.on('i18n:get-locale', (event) => { event.returnValue = isTrustedSender(event) ? require('../i18n').getLocale() : 'en'; });
   for (const { channel, handle } of handlers) {
-    ipcMain.handle(channel, handle);
+    // M11: only the app's own pages may call a handler.
+    ipcMain.handle(channel, (event, payload) => {
+      if (!isTrustedSender(event)) throw new Error('Untrusted sender for ' + channel);
+      return handle(event, payload);
+    });
   }
 }
 

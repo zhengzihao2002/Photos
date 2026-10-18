@@ -213,7 +213,7 @@
         boxShadow: selected.includes(p.id) ? '0 0 0 3px var(--accent, #2f7ff7)' : 'none',
       },
     },
-      covers[p.id] && h('img', { src: 'file://' + covers[p.id], alt: '', draggable: false, style: { width: '100%', height: '100%', objectFit: 'cover', display: 'block' } }),
+      covers[p.id] && h('img', { src: covers[p.id], alt: '', draggable: false, style: { width: '100%', height: '100%', objectFit: 'cover', display: 'block' } }),
       naming === p.id && h('input', {
         type: 'text', defaultValue: p.name || '', placeholder: t('people.addName'), maxLength: 100,
         ref: (el) => { if (el && el.dataset.focused !== '1') { el.dataset.focused = '1'; el.focus(); el.select(); } },
@@ -249,7 +249,7 @@
                 borderRadius: '10px', overflow: 'hidden', cursor: 'pointer', background: 'rgba(128,128,128,0.18)',
                 boxShadow: groupSel === key ? '0 0 0 3px var(--accent, #2f7ff7)' : 'none' },
             },
-              groupThumbs[g.coverItemId] && h('img', { src: 'file://' + groupThumbs[g.coverItemId], alt: '', draggable: false,
+              groupThumbs[g.coverItemId] && h('img', { src: groupThumbs[g.coverItemId], alt: '', draggable: false,
                 style: { width: '100%', height: '100%', objectFit: 'cover', display: 'block' } }),
               h('div', { style: { position: 'absolute', left: 0, right: 0, bottom: 0, padding: '28px 12px 10px', textAlign: 'left',
                 background: 'linear-gradient(transparent, rgba(0,0,0,0.55))', color: '#fff', fontSize: '13px', fontWeight: 700,
@@ -328,7 +328,7 @@
             onClick: () => open(p.personId),
             style: { flex: '0 0 auto', width: '136px', height: '136px', padding: 0, border: 'none', borderRadius: '10px',
               overflow: 'hidden', cursor: 'pointer', background: 'rgba(128,128,128,0.25)' },
-          }, crops[p.personId] && h('img', { src: 'file://' + crops[p.personId], alt: '', draggable: false,
+          }, crops[p.personId] && h('img', { src: crops[p.personId], alt: '', draggable: false,
             style: { width: '100%', height: '100%', objectFit: 'cover', display: 'block' } }))))));
   }
 
@@ -470,11 +470,11 @@
         background: 'rgba(128,128,128,0.22)', cursor: 'pointer',
         boxShadow: selected.includes(faceId) ? '0 0 0 3px var(--accent, #2f7ff7)' : 'none' },
     }, extra || {}), (itemId != null && thumbs[itemId])
-      ? h('img', { src: 'file://' + thumbs[itemId], alt: '', draggable: false,
+      ? h('img', { src: thumbs[itemId], alt: '', draggable: false,
         style: { width: '100%', height: '100%', objectFit: 'cover', display: 'block',
           'object-view-box': (display === 'faces' && box) ? reviewInset(box) : 'inset(0% 0% 0% 0%)',
           transition: 'object-view-box 0.35s ease' } })
-      : crops[faceId] && h('img', { src: 'file://' + crops[faceId], alt: '', draggable: false,
+      : crops[faceId] && h('img', { src: crops[faceId], alt: '', draggable: false,
         // Crops are head-and-shoulders portraits; show the face region so it fills the tile.
         style: { width: '100%', height: '100%', objectFit: 'cover', display: 'block', 'object-view-box': 'inset(14% 20% 24% 20%)' } }));
 
