@@ -72,11 +72,11 @@
       try {
         const r = await window.api.renamePerson(person.id, name);
         if (r && r.ok === false && r.sameNameId) {
-          if (window.confirm('A person named \u201C' + name + '\u201D already exists. Merge these people?')) {
+          if (window.confirm(t('people.confirm.exists', { name }))) {
             await window.api.mergePeople(r.sameNameId, [person.id]);
           }
         }
-      } catch (err) { S.noticeStore.set('Could not name this person: ' + err.message); }
+      } catch (err) { S.noticeStore.set(t('people.err.name', { details: err.message })); }
       changed();
     }
     async function onMenu(e, person) {
@@ -87,7 +87,7 @@
       let res;
       try {
         res = await window.api.showPersonContextMenu({ count: ids.length, named: Boolean(person.name), hidden: chosen.every((p) => p.hidden) });
-      } catch (err) { S.noticeStore.set('Could not open the menu: ' + err.message); return; }
+      } catch (err) { S.noticeStore.set(t('err.menu', { details: err.message })); return; }
       const action = res && res.action;
       try {
         if (action === 'name') { committing.current = false; setNaming(person.id); }
@@ -97,13 +97,13 @@
           changed();
         } else if (action === 'merge') {
           const target = chosen.slice().sort((a, b) => (b.name ? 1 : 0) - (a.name ? 1 : 0) || b.photoCount - a.photoCount)[0];
-          if (window.confirm('Merge ' + ids.length + ' people into one?')) {
+          if (window.confirm(t('people.confirm.merge', { count: ids.length }))) {
             await window.api.mergePeople(target.id, ids.filter((id) => id !== target.id));
             setSelected([target.id]);
             changed();
           }
         }
-      } catch (err) { S.noticeStore.set('Could not change people: ' + err.message); }
+      } catch (err) { S.noticeStore.set(t('people.err.change', { details: err.message })); }
     }
     const [cols, setCols] = useState(S.columnsStore ? S.columnsStore.get() : 5);
     useEffect(() => (S.columnsStore ? S.columnsStore.subscribe(setCols) : undefined), []);
@@ -162,27 +162,27 @@
 
     const heading = h('div', { style: { display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', margin: '0 0 14px' } },
       h('div', null,
-        h('div', { style: { fontSize: '17px', fontWeight: 700, color: 'var(--text-primary)' } }, unnamed ? 'Add People' : 'People'),
-        unnamed && h('div', { style: { fontSize: '12px', marginTop: '3px', color: 'var(--text-secondary, #8e8e93)' } }, 'Name people to add them to People.')),
+        h('div', { style: { fontSize: '17px', fontWeight: 700, color: 'var(--text-primary)' } }, unnamed ? t('people.addPeople') : t('people.title')),
+        unnamed && h('div', { style: { fontSize: '12px', marginTop: '3px', color: 'var(--text-secondary, #8e8e93)' } }, t('people.addPeople.hint'))),
       unnamed === false && people.length > 1 && h('button', {
-        type: 'button', title: 'Sort',
+        type: 'button', title: t('people.sort'),
         onClick: async (e) => {
           e.stopPropagation();
           const r = e.currentTarget.getBoundingClientRect();
           try {
             const res = await window.api.showPeopleSortMenu({ current: sortByName ? 'name' : 'custom', x: r.left, y: r.bottom + 4 });
             if (res && res.choice) setSortByName(res.choice === 'name');
-          } catch (err) { S.noticeStore.set('Could not open the menu: ' + err.message); }
+          } catch (err) { S.noticeStore.set(t('err.menu', { details: err.message })); }
         },
         style: { marginLeft: 'auto', border: 'none', background: 'transparent', color: 'var(--accent, #2f7ff7)', fontSize: '13px', cursor: 'pointer', padding: '2px 4px' },
-      }, 'Sort'));
+      }, t('people.sort')));
 
     const empty = people.length === 0 && h('div', { style: { padding: '48px 0', textAlign: 'center', color: 'var(--text-secondary, #8e8e93)' } },
-      h('div', { style: { fontSize: '17px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '6px' } }, unnamed ? 'Everyone Is Named' : 'No People'),
-      h('div', { style: { fontSize: '13px' } }, unnamed ? 'Unnamed people appear here as faces are found in your photos.' : 'Name people from Add People to see them here.'));
+      h('div', { style: { fontSize: '17px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '6px' } }, unnamed ? t('people.everyoneNamed') : t('people.none')),
+      h('div', { style: { fontSize: '13px' } }, unnamed ? t('people.none.unnamedHint') : t('people.none.namedHint')));
 
     const cards = list.map((p) => h('button', {
-      key: p.id, type: 'button', title: (p.name || 'Unnamed') + ' \u00B7 ' + p.photoCount + (p.photoCount === 1 ? ' photo' : ' photos'),
+      key: p.id, type: 'button', title: t('people.cardTip', { name: p.name || t('people.unnamed'), count: p.photoCount }),
       onClick: (e) => {
         e.stopPropagation();
         if (e.metaKey || e.shiftKey) setSelected(selected.includes(p.id) ? selected.filter((id) => id !== p.id) : selected.concat(p.id));
@@ -203,7 +203,7 @@
         const ids = people.map((x) => x.id).filter((id) => id !== from);
         ids.splice(ids.indexOf(p.id) + (oldFrom < oldTo ? 1 : 0), 0, from);
         setPeople(ids.map((id) => people.find((x) => x.id === id)));
-        window.api.setPeopleOrder(ids).catch((err) => S.noticeStore.set('Could not save the order: ' + err.message));
+        window.api.setPeopleOrder(ids).catch((err) => S.noticeStore.set(t('people.err.order', { details: err.message })));
       },
       onDblClick: () => S.personStore.set({ id: p.id }),
       style: {
@@ -215,7 +215,7 @@
     },
       covers[p.id] && h('img', { src: 'file://' + covers[p.id], alt: '', draggable: false, style: { width: '100%', height: '100%', objectFit: 'cover', display: 'block' } }),
       naming === p.id && h('input', {
-        type: 'text', defaultValue: p.name || '', placeholder: 'Add Name', maxLength: 100,
+        type: 'text', defaultValue: p.name || '', placeholder: t('people.addName'), maxLength: 100,
         ref: (el) => { if (el && el.dataset.focused !== '1') { el.dataset.focused = '1'; el.focus(); el.select(); } },
         onClick: (e) => e.stopPropagation(), onDblClick: (e) => e.stopPropagation(),
         onKeyDown: (e) => {
@@ -232,12 +232,12 @@
         whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } }, p.name)));
 
     return h('div', { ref: fadeIn, onClick: () => setSelected([]), style: { height: '100%', overflowY: 'auto', padding: '20px 32px 32px', boxSizing: 'border-box' } },
-      unnamed === false && h('div', { style: { fontSize: '17px', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 14px' } }, 'Groups'),
+      unnamed === false && h('div', { style: { fontSize: '17px', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 14px' } }, t('people.groups')),
       unnamed === false && (groups.length === 0
         ? h('div', { style: { borderRadius: '12px', background: 'rgba(128,128,128,0.12)', padding: '18px 20px', margin: '0 0 30px' } },
-          h('div', { style: { fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' } }, 'No Groups Available'),
+          h('div', { style: { fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' } }, t('people.noGroups')),
           h('div', { style: { fontSize: '12px', color: 'var(--text-secondary, #8e8e93)' } },
-            'After enough photos of people together are found, Photos will organise them into groups.'))
+            t('people.noGroups.hint')))
         : h('div', { style: { display: 'flex', flexWrap: 'wrap', gap: '24px', margin: '0 0 30px' } },
           groups.map((g) => {
             const key = g.ids.join(',');
@@ -259,7 +259,7 @@
       heading,
       empty,
       people.length > 0 && h('div', { style: { display: 'flex', flexWrap: 'wrap', gap: '24px' } }, cards),
-      finding && h('div', { style: { marginTop: '22px', textAlign: 'center', fontSize: '12px', color: 'var(--text-secondary, #8e8e93)' } }, 'Finding People\u2026'));
+      finding && h('div', { style: { marginTop: '22px', textAlign: 'center', fontSize: '12px', color: 'var(--text-secondary, #8e8e93)' } }, t('people.finding')));
   }
 
   window.__PhotosPeopleView = PeopleView;
@@ -301,7 +301,6 @@
 
     const shown = list || [];
     const active = sheet > 0 && shown.length > 0;
-    const zh = false /* M8c.2 (U13): English UI */;
     const open = (personId) => {
       // K12: remember the photo (and the page it was on), so the person page's
       // Back returns there, scrolled to this People section.
@@ -322,10 +321,10 @@
       style: { height: height + 'px', transform: 'translateY(' + (-sheet) + 'px)', visibility: active ? 'visible' : 'hidden' },
     },
       h('div', { class: 'vp-inner' },
-        h('div', { class: 'vp-head' }, h('span', { class: 'vp-title' }, zh ? '\u4EBA\u7269' : 'People')),
+        h('div', { class: 'vp-head' }, h('span', { class: 'vp-title' }, t('people.title'))),
         h('div', { style: { display: 'flex', gap: '28px', overflowX: 'auto', padding: '10px 0 6px' } },
           shown.map((p) => h('button', {
-            key: p.faceId, type: 'button', title: p.name || (zh ? '\u672A\u547D\u540D' : 'Unnamed'),
+            key: p.faceId, type: 'button', title: p.name || t('people.unnamed'),
             onClick: () => open(p.personId),
             style: { flex: '0 0 auto', width: '136px', height: '136px', padding: 0, border: 'none', borderRadius: '10px',
               overflow: 'hidden', cursor: 'pointer', background: 'rgba(128,128,128,0.25)' },
@@ -363,14 +362,14 @@
       try {
         const list = await window.api.getClusterFaces(clusterId);
         setExpanded((m) => Object.assign({}, m, { [clusterId]: list }));
-      } catch (err) { S.noticeStore.set('Could not load the group: ' + err.message); }
+      } catch (err) { S.noticeStore.set(t('people.err.group', { details: err.message })); }
     }
     const [crops, setCrops] = useState({});
     const [selected, setSelected] = useState([]);
     const wanted = useRef(new Set());
     const timer = useRef(null);
     const observer = useRef(null);
-    const name = (info && info.name) || 'this person';
+    const name = (info && info.name) || t('people.thisPerson');
 
     useEffect(() => {
       let alive = true;
@@ -393,7 +392,7 @@
             const list = await window.api.getPersonFaces(personId);
             if (alive) setFaces(list);
           }
-        } catch (err) { S.noticeStore.set('Could not load faces: ' + err.message); }
+        } catch (err) { S.noticeStore.set(t('people.err.faces', { details: err.message })); }
       };
       load();
       const off = S.peopleChangeStore.subscribe(load);
@@ -424,8 +423,8 @@
 
     const changed = () => S.peopleChangeStore.bump();
     async function removeGroup(g) {
-      if (window.confirm('These ' + g.faceCount + ' faces are not ' + name + '? They will become a separate person.') === false) return;
-      try { await window.api.removeClusterFromPerson(personId, g.clusterId); } catch (err) { S.noticeStore.set('Could not remove the group: ' + err.message); }
+      if (window.confirm(t('people.confirm.removeGroup', { count: g.faceCount, name })) === false) return;
+      try { await window.api.removeClusterFromPerson(personId, g.clusterId); } catch (err) { S.noticeStore.set(t('people.err.removeGroup', { details: err.message })); }
       changed();
     }
 
@@ -434,7 +433,7 @@
       try {
         if (yes) await window.api.addClusterToPerson(personId, sg.clusterId);
         else await window.api.rejectClusterForPerson(personId, sg.clusterId);
-      } catch (err) { S.noticeStore.set('Could not update: ' + err.message); }
+      } catch (err) { S.noticeStore.set(t('people.err.update', { details: err.message })); }
       changed();
     }
 
@@ -483,7 +482,7 @@
       key: 'more' + clusterId, type: 'button', onClick: () => toggleExpand(clusterId),
       style: { width: size + 'px', height: size + 'px', borderRadius: '8px', border: 'none', cursor: 'pointer', flex: '0 0 auto',
         background: 'rgba(128,128,128,0.22)', color: 'var(--text-primary)', fontSize: Math.max(13, Math.round(size / 5)) + 'px', fontWeight: 600 },
-    }, expanded[clusterId] ? 'Less' : '+' + extra);
+    }, expanded[clusterId] ? t('people.less') : '+' + extra);
     const rowFaces = (clusterId, samples, total, size) => {
       const list = expanded[clusterId] || samples;
       const tiles = list.map((x) => tile(x.faceId, size, null, x.itemId, x.box));
@@ -498,28 +497,28 @@
       if (groups == null) return null;
       return h('div', { ref: fadeIn, style: page },
         h('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '6px' } },
-          h('div', { style: { fontSize: '17px', fontWeight: 700, color: 'var(--text-primary)' } }, 'Review ' + (info && info.name ? info.name : 'Faces')),
+          h('div', { style: { fontSize: '17px', fontWeight: 700, color: 'var(--text-primary)' } }, info && info.name ? t('people.review.title', { name: info.name }) : t('people.review.titleFaces')),
           h('button', { type: 'button', onClick: () => S.personViewStore.set('photos'),
-            style: { border: 'none', background: 'var(--accent, #2f7ff7)', color: '#fff', borderRadius: '6px', padding: '4px 14px', cursor: 'pointer' } }, 'Done')),
-        h('div', { style: Object.assign({ marginBottom: '16px' }, muted) }, 'Each row is a group of very alike faces. Remove a group that is someone else.'),
-        h('div', { style: { fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', margin: '6px 0 10px' } }, 'Is this ' + name + '?'),
+            style: { border: 'none', background: 'var(--accent, #2f7ff7)', color: '#fff', borderRadius: '6px', padding: '4px 14px', cursor: 'pointer' } }, t('people.done'))),
+        h('div', { style: Object.assign({ marginBottom: '16px' }, muted) }, t('people.review.hint')),
+        h('div', { style: { fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', margin: '6px 0 10px' } }, t('people.isThis', { name })),
         (suggestions || []).length === 0
-          ? h('div', { style: Object.assign({ marginBottom: '20px' }, muted) }, suggestions == null ? 'Looking\u2026' : 'No more suggestions.')
+          ? h('div', { style: Object.assign({ marginBottom: '20px' }, muted) }, suggestions == null ? t('people.looking') : t('people.noMore'))
           : (suggestions || []).map((sg) => h('div', { key: 's' + sg.clusterId, style: { display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' } },
             h('div', { style: { display: 'flex', gap: '6px', flexWrap: 'wrap', flex: '1 1 auto' } }, rowFaces(sg.clusterId, sg.faces, sg.faceCount, zoom(88))),
-            h('div', { style: Object.assign({ minWidth: '60px' }, muted) }, sg.faceCount + (sg.faceCount === 1 ? ' face' : ' faces')),
+            h('div', { style: Object.assign({ minWidth: '60px' }, muted) }, t('people.faces', { count: sg.faceCount })),
             h('button', { type: 'button', onClick: () => answer(sg, true),
-              style: { border: 'none', background: 'var(--accent, #2f7ff7)', color: '#fff', borderRadius: '6px', padding: '4px 14px', cursor: 'pointer' } }, 'Yes'),
+              style: { border: 'none', background: 'var(--accent, #2f7ff7)', color: '#fff', borderRadius: '6px', padding: '4px 14px', cursor: 'pointer' } }, t('people.yes')),
             h('button', { type: 'button', onClick: () => answer(sg, false),
-              style: { border: '1px solid rgba(128,128,128,0.5)', background: 'transparent', color: 'var(--text-primary)', borderRadius: '6px', padding: '4px 14px', cursor: 'pointer' } }, 'No'))),
+              style: { border: '1px solid rgba(128,128,128,0.5)', background: 'transparent', color: 'var(--text-primary)', borderRadius: '6px', padding: '4px 14px', cursor: 'pointer' } }, t('people.no')))),
         h('div', { style: { fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', margin: '22px 0 10px' } },
-          (info && info.name ? info.name + '\u2019s' : 'This person\u2019s') + ' groups'),
+          info && info.name ? t('people.namedGroups', { name: info.name }) : t('people.thisPersons')),
         groups.map((g, i) => h('div', { key: g.clusterId, style: { marginBottom: '18px' } },
           h('div', { style: { display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '6px' } },
-            h('div', { style: { fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' } }, 'Group ' + (i + 1) + ' \u00B7 ' + g.faceCount + (g.faceCount === 1 ? ' face' : ' faces')),
+            h('div', { style: { fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' } }, t('people.groupN', { n: i + 1, faces: t('people.faces', { count: g.faceCount }) })),
             groups.length > 1 && h('button', { type: 'button', onClick: () => removeGroup(g),
               style: { border: '1px solid var(--accent, #2f7ff7)', background: 'transparent', color: 'var(--accent, #2f7ff7)', borderRadius: '6px', padding: '2px 10px', fontSize: '12px', cursor: 'pointer' } },
-              'Not ' + name)),
+              t('people.not', { name }))),
           h('div', { style: { display: 'flex', gap: '8px', flexWrap: 'wrap' } }, rowFaces(g.clusterId, g.faces, g.faceCount, zoom(96))))));
     }
 

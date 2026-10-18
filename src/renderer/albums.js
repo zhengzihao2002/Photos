@@ -81,7 +81,7 @@
       onClick: () => window.__PhotosFolderActions.pickAndAdd(),
     },
       h('div', { class: 'album-cover album-cover-add' }, h(SvgIcon, { d: PLUS, className: 'album-add-icon' })),
-      h('div', { class: 'album-name' }, 'Add Folder\u2026'),
+      h('div', { class: 'album-name' }, t('menu.file.addFolder')),
       h('div', { class: 'album-count' }, '\u00A0'));
 
     const cards = albums.map(({ source, count, coverId }) => {
@@ -91,7 +91,7 @@
         key: source.id,
         class: 'album-card' + (missing ? ' is-missing' : ''),
         type: 'button',
-        title: missing ? 'Folder not found. Right-click to relink.' : source.rootPath,
+        title: missing ? t('sidebar.folderMissingTip') : source.rootPath,
         onClick: () => S.sectionStore.set('source:' + source.id),
         onContextMenu: (e) => window.__PhotosAlbumContextMenu && window.__PhotosAlbumContextMenu(e, source),
       },
@@ -100,9 +100,9 @@
             ? h('img', { src: 'file://' + path, alt: '', draggable: false })
             : h(SvgIcon, { d: ALBUM, className: 'album-cover-placeholder' }),
           missing && h('span', { class: 'album-badge album-badge-missing' }, h(SvgIcon, { d: WARNING, className: 'album-badge-icon' })),
-          !missing && scanningId === source.id && h('span', { class: 'album-badge album-badge-scanning', 'aria-label': 'Scanning' })),
+          !missing && scanningId === source.id && h('span', { class: 'album-badge album-badge-scanning', 'aria-label': t('sidebar.scanningAria') })),
         h('div', { class: 'album-name' }, source.displayName),
-        h('div', { class: 'album-count' }, count.toLocaleString('en-US') + (count === 1 ? ' item' : ' items')));
+        h('div', { class: 'album-count' }, t('count.items', { count })));
     });
 
     return h('div', { class: 'albums-view' }, h('div', { class: 'albums-grid' }, addCard, cards));

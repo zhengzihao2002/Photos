@@ -135,6 +135,7 @@ function looksLikeUiText(text, lineText) {
   if (/^[A-Z0-9_]+$/.test(t)) return false;                          // CONSTANT
   if (SQL.test(t) || /\b(FROM|WHERE|ORDER BY|GROUP BY|LIMIT)\b/.test(t) && /[A-Z]{4,}/.test(t)) return false;
   if (SVGPATH.test(t)) return false;
+  if (/^(Escape|Enter|ArrowUp|ArrowDown|ArrowLeft|ArrowRight|Backspace|Delete|Tab|Shift|Alt|Control|Meta|Space|Home|End|PageUp|PageDown|Files|Return)$/.test(t)) return false; // key names, drag types
   if (t === 'use strict' || /^(Shift|Alt|Cmd|Command|CmdOrCtrl|Ctrl|Control)\+/.test(t)) return false; // directive, accelerator
   if (/\b(AND|OR|IS NULL|IS NOT NULL|DESC|ASC|BETWEEN)\b/.test(t) && /[=<>.]|\bIS\b/.test(t)) return false; // SQL fragment
   if (/^(::|-?\d)/.test(t) || /^[a-z-]+\(/.test(t) || /\)$/.test(t) && !/\s\(/.test(t) || /^(var|calc|inset|rotate|translate)/.test(t)) return false; // filter segments, CSS values

@@ -27,7 +27,8 @@
   const MD_MAX_TRIES = 60;     // ~15 s
   const NEIGHBOR_PRELOAD_MS = 600; // warm neighbors only once the user settles
   const MAX_ZOOM = 3;              // max scale vs full-resolution pixels (300%)
-  const READ_ONLY_TIP = 'Not available — this library is read-only';
+  const tr = window.t; // 't' is a variable name in this file (video time), so the translator is 'tr' here
+  const READ_ONLY_TIP = tr('readOnly.long');
 
   // ── icons (stroke SVG, currentColor) ───────────────────────────────────
   const ICONS = {
@@ -120,7 +121,7 @@
     if (!m) return { date: '' };
     const d = new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +(m[6] || 0));
     return {
-      date: d.toLocaleString('en-US', { year: 'numeric', month: 'long', day: 'numeric',
+      date: window.i18n.date(d, { year: 'numeric', month: 'long', day: 'numeric',
         hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true }),
     };
   }
@@ -260,20 +261,20 @@
       h('div', { className: 'viewer-vbar',
           onMouseEnter: () => { overBarRef.current = true; wakeRef.current(); },
           onMouseLeave: () => { overBarRef.current = false; wakeRef.current(); } },
-        h('button', { className: 'viewer-vbtn', 'aria-label': playing ? 'Pause' : 'Play', onMouseDown: noFocus, onClick: toggle },
+        h('button', { className: 'viewer-vbtn', 'aria-label': playing ? tr('viewer.pause') : tr('viewer.play'), onMouseDown: noFocus, onClick: toggle },
           h(Icon, { name: playing ? 'pause' : 'play', size: 18 })),
         h('span', { className: 'viewer-vtime' }, fmtTime(t)),
-        h('input', { className: 'viewer-vscrub', type: 'range', min: 0, max: dur || 0, step: 0.01, value: t, 'aria-label': 'Seek',
+        h('input', { className: 'viewer-vscrub', type: 'range', min: 0, max: dur || 0, step: 0.01, value: t, 'aria-label': tr('viewer.seek'),
           onInput: (e) => { const v = vref.current; if (v) { v.currentTime = Number(e.currentTarget.value); setT(v.currentTime); } },
           // Silence while scrubbing (no sped-up audio fragments); resume after if it was playing.
           onPointerDown: () => { const v = vref.current; if (v) { scrubRef.current = { wasPlaying: !v.paused }; v.pause(); } },
           onPointerUp: (e) => endScrub(e.currentTarget),
           onPointerCancel: (e) => endScrub(e.currentTarget) }),
         h('span', { className: 'viewer-vtime' }, '-' + fmtTime(Math.max(0, dur - t))),
-        h('button', { className: 'viewer-vbtn', 'aria-label': muted ? 'Unmute' : 'Mute', onMouseDown: noFocus,
+        h('button', { className: 'viewer-vbtn', 'aria-label': muted ? tr('viewer.unmute') : tr('viewer.mute'), onMouseDown: noFocus,
           onClick: () => { const v = vref.current; if (v) v.muted = !v.muted; } },
           h(Icon, { name: muted || vol === 0 ? 'mute' : 'sound', size: 18 })),
-        h('input', { className: 'viewer-vvol', type: 'range', min: 0, max: 1, step: 0.05, value: muted ? 0 : vol, 'aria-label': 'Volume',
+        h('input', { className: 'viewer-vvol', type: 'range', min: 0, max: 1, step: 0.05, value: muted ? 0 : vol, 'aria-label': tr('viewer.volume'),
           onInput: (e) => { const v = vref.current; if (v) { v.volume = Number(e.currentTarget.value); v.muted = v.volume === 0; } },
           onPointerUp: (e) => e.currentTarget.blur() })));
   }
@@ -322,7 +323,7 @@
       title: disabled ? label + ' — ' + READ_ONLY_TIP : label,
       onMouseDown: noFocus,
       onClick: disabled ? (e) => e.preventDefault() : onClick,
-    }, icon === 'edit' ? h('span', { className: 'viewer-btn-text' }, 'Edit') : h(Icon, { name: icon }));
+    }, icon === 'edit' ? h('span', { className: 'viewer-btn-text' }, tr('viewer.edit')) : h(Icon, { name: icon }));
   }
 
   function Viewer() {
@@ -457,7 +458,7 @@
           setImg({ url, rank });
         }).catch(() => {
           preloaders.delete(pre);
-          if (live && rank === 3) setNotice("Couldn't load full quality");
+          if (live && rank === 3) setNotice(tr('viewer.err.fullQuality'));
         });
       }
 
@@ -481,7 +482,7 @@
           const p = r && r[itemId];
           if (p) show('file://' + p, 2);
           else if (mdTries < MD_MAX_TRIES) timers.push(setTimeout(pollMd, MD_POLL_MS));
-          else if (shownRank === 0) setNotice('Preview not available');
+          else if (shownRank === 0) setNotice(tr('viewer.err.noPreview'));
         });
       }
       pollMd();
@@ -492,20 +493,20 @@
         const src = await window.api.getDisplaySource({ id: itemId });
         if (!live) return;
         if (!src.ok) {
-          setNotice(src.code === 'source_missing' ? 'Original unavailable — showing preview'
-                                                  : 'This item is no longer in the library');
+          setNotice(src.code === 'source_missing' ? tr('viewer.err.origPreview')
+                                                  : tr('viewer.err.gone'));
           return;
         }
         if (src.kind === 'video' && src.needsDecode) {
           // M6 B.7: AVI or multi-audio-track video -> wait for the MP4 copy.
           // 'video-preparing' keeps the player unmounted (thumbnail shows).
           setMedia({ kind: 'video-preparing', url: null, liveUrl: src.liveUrl || null });
-          setNotice('Preparing video\u2026');
+          setNotice(tr('viewer.preparingVideo'));
           const res = await window.api.ensureDisplay({ id: itemId });
           if (!live) return;
           if (!res.ok) {
             if (res.code !== 'cancelled') {
-              setNotice(res.code === 'source_missing' ? 'Original unavailable' : "This video can't be played");
+              setNotice(res.code === 'source_missing' ? tr('info.originalUnavailable') : tr('viewer.err.videoCantPlay'));
             }
             return;
           }
@@ -514,15 +515,15 @@
           return;
         }
         setMedia({ kind: src.kind, url: src.url, liveUrl: src.liveUrl || null });
-        if (src.kind === 'unplayable-video') { setNotice("This video format can't be played"); return; }
+        if (src.kind === 'unplayable-video') { setNotice(tr('viewer.err.videoFormat')); return; }
         if (src.kind !== 'image') return; // playable video: VideoPlayer takes over
         let url = src.url;
         if (src.needsDecode) {
           const res = await window.api.ensureDisplay({ id: itemId });
           if (!live) return;
           if (!res.ok) {
-            if (res.code === 'source_missing') setNotice('Original unavailable — showing preview');
-            else if (res.code !== 'cancelled') setNotice("Couldn't load full quality");
+            if (res.code === 'source_missing') setNotice(tr('viewer.err.origPreview'));
+            else if (res.code !== 'cancelled') setNotice(tr('viewer.err.fullQuality'));
             return;
           }
           url = res.url;
@@ -907,8 +908,8 @@
     const title = formatTitle(item && item.capture_time_local);
     // M8c.2 (U12): a located item's title shows the place on line 1 and
     // 'date · position' on line 2, as in Apple Photos (scrolled or not).
-    const posText = pos ? pos.i.toLocaleString('en-US') + '/' + pos.n.toLocaleString('en-US') : '';
-    const viewerLocale = 'en'; // M14 replaces this with the active locale
+    const posText = pos ? window.i18n.number(pos.i) + '/' + window.i18n.number(pos.n) : '';
+    const viewerLocale = window.i18n.getLocale();
     const hasUserTitle = !!(item && item.title);
     const titlePlace = item ? (window.PlaceText.placeTitle(item, viewerLocale) || '') : '';
     const placeParts = item ? window.PlaceText.viewerPlaceParts(item, viewerLocale, hasUserTitle) : []; // M13: landmark first, city and country on line 2
@@ -938,20 +939,20 @@
         // the sidebar is hidden).
         window.__PhotosSidebarToggleButton && h(window.__PhotosSidebarToggleButton),
         h('div', { className: 'viewer-group is-round' },
-          h(ToolButton, { icon: 'back', label: 'Back', onClick: () => S.viewerStore.close() })),
+          h(ToolButton, { icon: 'back', label: tr('viewer.back'), onClick: () => S.viewerStore.close() })),
         // Zoom slider (M5.6): log scale between fit and max.
         // M8c.1 (U7): slider in a capsule with - / + steps, as in Apple Photos.
         h('div', { className: 'viewer-group is-zoom' },
-          h('button', { className: 'viewer-zoom-step', 'aria-label': 'Zoom Out', title: 'Zoom Out', disabled: !sliderEnabled, onMouseDown: (e) => e.preventDefault(), onClick: () => { const g = geomRef.current; if (!g) return; const t = Math.max(0, Math.min(100, sliderValue(g) + (-20))) / 100; zoomRef.current.applyZoom(() => g.fitW * Math.pow(g.maxW / g.fitW, t), 0, 0, true); } }, '−'),
+          h('button', { className: 'viewer-zoom-step', 'aria-label': tr('viewer.zoomOut'), title: tr('viewer.zoomOut'), disabled: !sliderEnabled, onMouseDown: (e) => e.preventDefault(), onClick: () => { const g = geomRef.current; if (!g) return; const t = Math.max(0, Math.min(100, sliderValue(g) + (-20))) / 100; zoomRef.current.applyZoom(() => g.fitW * Math.pow(g.maxW / g.fitW, t), 0, 0, true); } }, '−'),
         h('input', { className: 'viewer-zoom', type: 'range', min: 0, max: 100, step: 1,
-          value: sliderValue(geom), disabled: !sliderEnabled, 'aria-label': 'Zoom', title: 'Zoom',
+          value: sliderValue(geom), disabled: !sliderEnabled, 'aria-label': tr('viewer.zoom'), title: tr('viewer.zoom'),
           onInput: (e) => {
             const g = geomRef.current;
             if (!g) return;
             const t = Number(e.currentTarget.value) / 100;
             zoomRef.current.applyZoom(() => g.fitW * Math.pow(g.maxW / g.fitW, t));
           } }),
-          h('button', { className: 'viewer-zoom-step', 'aria-label': 'Zoom In', title: 'Zoom In', disabled: !sliderEnabled, onMouseDown: (e) => e.preventDefault(), onClick: () => { const g = geomRef.current; if (!g) return; const t = Math.max(0, Math.min(100, sliderValue(g) + (20))) / 100; zoomRef.current.applyZoom(() => g.fitW * Math.pow(g.maxW / g.fitW, t), 0, 0, true); } }, '+')),
+          h('button', { className: 'viewer-zoom-step', 'aria-label': tr('viewer.zoomIn'), title: tr('viewer.zoomIn'), disabled: !sliderEnabled, onMouseDown: (e) => e.preventDefault(), onClick: () => { const g = geomRef.current; if (!g) return; const t = Math.max(0, Math.min(100, sliderValue(g) + (20))) / 100; zoomRef.current.applyZoom(() => g.fitW * Math.pow(g.maxW / g.fitW, t), 0, 0, true); } }, '+')),
         h('div', { className: 'viewer-title' },
           h('div', { className: 'viewer-title-date' }, (item && item.title) || titlePlace || title.date), // M12.4: a title replaces the place/date line
           h('div', { className: 'viewer-title-time' },
@@ -959,18 +960,18 @@
         h('div', { className: 'viewer-toolbar-spacer' }),
         // M8c.1 (U7): Apple's order. Trash stays visible and disabled (write feature).
         h('div', { className: 'viewer-group' },
-          h(ToolButton, { icon: 'info', label: 'Info', active: infoOpen, onClick: () => window.api.toggleInfo().catch(() => {}) }),
-          h(ToolButton, { icon: 'share', label: 'Share', disabled: true }),
-          h(ToolButton, { icon: 'heart', label: item && item.is_favorite === 1 ? 'Unfavorite' : 'Favorite', disabled: !item, active: !!(item && item.is_favorite === 1), onClick: toggleShownFavorite }), // M12.3
-          h(ToolButton, { icon: 'rotate', label: 'Rotate Left (hold Option to rotate right)', disabled: !item, onClick: (e) => window.__PhotosViewerRotate(e && e.altKey ? 90 : -90) }), // M12.11
-          h(ToolButton, { icon: 'trash', label: 'Delete', disabled: true })),
+          h(ToolButton, { icon: 'info', label: tr('viewer.info'), active: infoOpen, onClick: () => window.api.toggleInfo().catch(() => {}) }),
+          h(ToolButton, { icon: 'share', label: tr('viewer.share'), disabled: true }),
+          h(ToolButton, { icon: 'heart', label: item && item.is_favorite === 1 ? tr('unfavorite') : tr('favorite'), disabled: !item, active: !!(item && item.is_favorite === 1), onClick: toggleShownFavorite }), // M12.3
+          h(ToolButton, { icon: 'rotate', label: tr('viewer.rotateLeft'), disabled: !item, onClick: (e) => window.__PhotosViewerRotate(e && e.altKey ? 90 : -90) }), // M12.11
+          h(ToolButton, { icon: 'trash', label: tr('viewer.delete'), disabled: true })),
         h('div', { className: 'viewer-group' },
-          h(ToolButton, { icon: 'edit', label: 'Edit', disabled: true }))),
+          h(ToolButton, { icon: 'edit', label: tr('viewer.edit'), disabled: true }))),
       h('div', { className: 'viewer-stage' + (geom && geom.zoomed ? ' is-zoomed' : '') + (panning ? ' is-panning' : ''), ref: stageRef,
         style: sheet > 0 ? { transform: 'translateY(' + (-sheet) + 'px)' } : undefined },
         isVideo && h(VideoPlayer, {
           key: media.url, url: media.url, poster: img ? img.url : null, apiRef: videoApiRef, rotation: item && item.rotation ? item.rotation : 0, stageBox: stageSize, // M12.11
-          onError: () => { setMedia((m) => (m ? { ...m, kind: 'unplayable-video' } : m)); setNotice("This video format can't be played"); },
+          onError: () => { setMedia((m) => (m ? { ...m, kind: 'unplayable-video' } : m)); setNotice(tr('viewer.err.videoFormat')); },
         }),
         img && !isVideo && h('img', {
           ref: imgElRef,
@@ -989,7 +990,7 @@
         hasLive && h('div', {
           className: 'viewer-live-badge' + (livePlaying ? ' is-playing' : ''),
           style: liveBadgeStyle,
-          title: 'Hover or press to play the Live Photo',
+          title: tr('viewer.livePlay'),
           onPointerEnter: () => { setLiveSound(true); setLivePlaying(true); }, // M6: Live Photos always play with sound
           onPointerLeave: () => setLivePlaying(false),
           onPointerDown: (e) => { e.stopPropagation(); setLiveSound(true); setLivePlaying(true); },
@@ -999,9 +1000,9 @@
         img && notice && h('div', { className: 'viewer-notice' }, notice),
         // M8b.9 fix: '<' goes older (next), '>' goes newer (prev), as the
         // arrow keys do; each is shown only when that neighbor exists.
-        nbrs.next && h('button', { className: 'viewer-chev viewer-chev-prev', 'aria-label': 'Previous',
+        nbrs.next && h('button', { className: 'viewer-chev viewer-chev-prev', 'aria-label': tr('viewer.previous'),
           onClick: () => goRef.current('next'), onDblClick: (e) => e.stopPropagation() }, h(Icon, { name: 'back', size: 26 })),
-        nbrs.prev && h('button', { className: 'viewer-chev viewer-chev-next', 'aria-label': 'Next',
+        nbrs.prev && h('button', { className: 'viewer-chev viewer-chev-next', 'aria-label': tr('viewer.next'),
           onClick: () => goRef.current('prev'), onDblClick: (e) => e.stopPropagation() }, h(Icon, { name: 'fwd', size: 26 }))),
       window.__PhotosViewerPeople && peopleH > 0 && h(window.__PhotosViewerPeople, {
         item, sheet, height: PEOPLE_H, list: peopleList,

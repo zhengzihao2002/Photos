@@ -13,18 +13,21 @@
   const { h, render } = window.preact;
   const { useState, useEffect, useRef } = window.preactHooks;
   const F = window.InfoFormat;
+  const t = window.t;
+  document.title = t('window.info');
   const noFocus = (e) => e.preventDefault();
 
   // Location map, as in Apple's Info: interactive, red pin, Legal credits.
   // One map per Info page; it recentres as the item changes.
   const WORKER_URL = 'vendor/maplibre/maplibre-gl-csp-worker.js';
-  const LEGAL_FULL = '\u00A9 OpenStreetMap contributors \u00B7 \u00A9 OpenMapTiles \u00B7 OpenFreeMap \u00B7 Place names: GeoNames';
+  const LEGAL_FULL = t('map.credits');
   let workerUrlSet = false;
   function addLegal(container) { // keep in step with addLegal() in places.js
     const el = document.createElement('div');
     el.className = 'info-legal';
-    el.textContent = 'Legal';
-    el.addEventListener('click', (ev) => { ev.stopPropagation(); el.textContent = el.textContent === 'Legal' ? LEGAL_FULL : 'Legal'; });
+    const legal = t('map.legal');
+    el.textContent = legal;
+    el.addEventListener('click', (ev) => { ev.stopPropagation(); el.textContent = el.textContent === legal ? LEGAL_FULL : legal; });
     container.appendChild(el);
   }
   function InfoMap({ lat, lng }) {
@@ -42,7 +45,7 @@
       if (!gl || !styles || !elRef.current) return;
       if (!workerUrlSet) { gl.setWorkerUrl(WORKER_URL); workerUrlSet = true; }
       const theme = window.matchMedia('(prefers-color-scheme: dark)');
-      const map = new gl.Map({ container: elRef.current, style: theme.matches ? styles.dark : styles.light,
+      const map = new gl.Map({ container: elRef.current, style: window.__PhotosMapStyleFor(theme.matches),
         center: [lng, lat], zoom: 13, dragRotate: false, pitchWithRotate: false, attributionControl: false });
       map.touchZoomRotate.disableRotation();
       map.addControl(new gl.NavigationControl({ showCompass: false }), 'bottom-right');
@@ -51,7 +54,7 @@
         if (ev.target && ev.target.closest && ev.target.closest('a')) ev.preventDefault();
       }, true);
       pinRef.current = new gl.Marker({ color: '#ff3b30' }).setLngLat([lng, lat]).addTo(map);
-      const onTheme = () => map.setStyle(theme.matches ? styles.dark : styles.light);
+      const onTheme = () => map.setStyle(window.__PhotosMapStyleFor(theme.matches));
       theme.addEventListener('change', onTheme);
       map.on('error', (e) => console.warn('[info map]', e && e.error ? e.error.message : e));
       mapRef.current = map;
@@ -63,7 +66,7 @@
     }, [lat, lng]);
     return h('div', { className: 'info-map' },
       h('div', { ref: elRef, className: 'info-map-canvas' }),
-      !online && h('div', { className: 'info-map-offline' }, 'Map unavailable offline'));
+      !online && h('div', { className: 'info-map-offline' }, t('map.offline')));
   }
 
   // M12.4: click-to-edit text. Return commits (Shift+Return = new line when multiline),
@@ -124,7 +127,7 @@
       if (!gl || !styles || !elRef.current) return;
       if (!workerUrlSet) { gl.setWorkerUrl(WORKER_URL); workerUrlSet = true; }
       const theme = window.matchMedia('(prefers-color-scheme: dark)');
-      const map = new gl.Map({ container: elRef.current, style: theme.matches ? styles.dark : styles.light,
+      const map = new gl.Map({ container: elRef.current, style: window.__PhotosMapStyleFor(theme.matches),
         center: [points.lngs[0], points.lats[0]], zoom: 3, dragRotate: false, pitchWithRotate: false, attributionControl: false });
       map.touchZoomRotate.disableRotation();
       map.addControl(new gl.NavigationControl({ showCompass: false }), 'bottom-right');
@@ -132,7 +135,7 @@
       elRef.current.addEventListener('click', (ev) => {
         if (ev.target && ev.target.closest && ev.target.closest('a')) ev.preventDefault();
       }, true);
-      const onTheme = () => map.setStyle(theme.matches ? styles.dark : styles.light);
+      const onTheme = () => map.setStyle(window.__PhotosMapStyleFor(theme.matches));
       theme.addEventListener('change', onTheme);
       map.on('error', (e) => console.warn('[info map]', e && e.error ? e.error.message : e));
       mapRef.current = map;
@@ -155,7 +158,7 @@
     }, [points.ids.join(',')]);
     return h('div', { className: 'info-map' },
       h('div', { ref: elRef, className: 'info-map-canvas' }),
-      !online && h('div', { className: 'info-map-offline' }, 'Map unavailable offline'));
+      !online && h('div', { className: 'info-map-offline' }, t('map.offline')));
   }
 
   // M12.6: Info for two or more selected items (Apple's summary).
@@ -166,8 +169,7 @@
     async function keywordsAll(change) {
       try { await window.api.updateKeywords({ target: { filter }, add: change.add, remove: change.remove }); } catch (err) { /* ignored */ }
     }
-    const n = s.count.toLocaleString('en-US');
-    const heading = s.videos === 0 ? n + ' Photos' : (s.photos === 0 ? n + ' Videos' : n + ' Items');
+    const heading = s.videos === 0 ? t('count.photos', { count: s.count }) : (s.photos === 0 ? t('count.videos', { count: s.count }) : t('count.items', { count: s.count }));
     const a = F.shortDate(s.firstTime), b = F.shortDate(s.lastTime);
     const range = a && b ? (a === b ? a : a + ' \u2013 ' + b) : '';
     return h('div', null,
@@ -176,12 +178,12 @@
           h('div', { className: 'info-name' }, heading),
           range && h('div', { className: 'info-date' }, range),
           h('div', { className: 'info-date' }, F.bytes(s.totalBytes) || '-'))),
-      h(EditableField, { className: 'info-field', value: s.title === 'mixed' ? '' : s.title, placeholder: s.title === 'mixed' ? 'Multiple Titles' : 'Add a Title',
+      h(EditableField, { className: 'info-field', value: s.title === 'mixed' ? '' : s.title, placeholder: s.title === 'mixed' ? t('info.multipleTitles') : t('info.addTitle'),
         onCommit: (v) => saveAll('setTitle', v) }),
-      h(EditableField, { className: 'info-field', value: s.caption === 'mixed' ? '' : s.caption, placeholder: s.caption === 'mixed' ? 'Multiple Captions' : 'Add a Caption', multiline: true,
+      h(EditableField, { className: 'info-field', value: s.caption === 'mixed' ? '' : s.caption, placeholder: s.caption === 'mixed' ? t('info.multipleCaptions') : t('info.addCaption'), multiline: true,
         onCommit: (v) => saveAll('setCaption', v) }),
       h(window.InfoKeywords, { keywords: s.keywords, onChange: keywordsAll }),
-      h('div', { className: 'info-place' + (s.points.ids.length ? '' : ' is-empty') }, s.points.ids.length ? (s.points.ids.length === s.count ? 'Locations' : 'Multiple Locations') : 'Assign Location'),
+      h('div', { className: 'info-place' + (s.points.ids.length ? '' : ' is-empty') }, s.points.ids.length ? (s.points.ids.length === s.count ? t('info.locations') : t('info.multipleLocations')) : t('info.assignLocation')),
       !!s.points.ids.length && h(MultiMap, { points: s.points }));
   }
 
@@ -280,12 +282,12 @@
 
     if (selection && summary && summary.count > 1) return h(SummaryView, { s: summary, filter: selection }); // M12.6
     if (!loaded) return h('div', { className: 'info-empty' }, '\u00a0');
-    if (!item) return h('div', { className: 'info-empty' }, 'No Selection');
+    if (!item) return h('div', { className: 'info-empty' }, t('info.noSelection'));
 
     const isVideo = item.media_type === 'video';
     const camera = F.cameraName(item.camera_make, item.camera_model);
-    const badges = [F.formatBadge(item.extension), item.is_live_photo && 'LIVE', item.is_raw && 'RAW',
-      item.is_panorama && 'PANO'].filter(Boolean);
+    const badges = [F.formatBadge(item.extension), item.is_live_photo && t('badge.live'), item.is_raw && 'RAW',
+      item.is_panorama && t('badge.pano')].filter(Boolean);
     const place = item.has_gps ? F.placeLine(item) : null;
     const coords = item.has_gps ? F.coords(item.gps_latitude, item.gps_longitude) : null;
     const note = F.dateNote(item.capture_time_source);
@@ -316,22 +318,22 @@
 
     async function reveal() {
       const r = await window.api.showInFinder({ id: item.id });
-      if (!r || !r.ok) setFinderMsg(r && r.code === 'source_missing' ? 'Original unavailable' : 'Not found');
+      if (!r || !r.ok) setFinderMsg(r && r.code === 'source_missing' ? t('info.originalUnavailable') : t('info.notFound'));
     }
 
     return h('div', null,
       h('div', { className: 'info-head' },
         h('div', { className: 'info-head-text' },
-          h(EditableField, { className: 'info-title-field', value: item.title, placeholder: 'Add a Title',
+          h(EditableField, { className: 'info-title-field', value: item.title, placeholder: t('info.addTitle'),
             onCommit: (v) => saveText('setTitle', v) }), // M12.4
           h('div', { className: 'info-name', title: item.filename }, item.filename),
-          h('div', { className: 'info-date' }, F.dateTime(item.capture_time_local) || 'No Date'),
+          h('div', { className: 'info-date' }, F.dateTime(item.capture_time_local) || t('info.noDate')),
           note && h('div', { className: 'info-note' }, note)),
-        h('button', { className: 'info-heart' + (item.is_favorite === 1 ? ' is-on' : ''), 'aria-label': item.is_favorite === 1 ? 'Unfavorite' : 'Favorite',
+        h('button', { className: 'info-heart' + (item.is_favorite === 1 ? ' is-on' : ''), 'aria-label': item.is_favorite === 1 ? t('unfavorite') : t('favorite'),
           onMouseDown: noFocus, onClick: toggleFavorite }, item.is_favorite === 1 ? '\u2665' : '\u2661')), // M12.3
       h('div', { className: 'info-card' },
-        h('div', { className: 'info-camera' }, camera || 'No Camera Information'),
-        h('div', null, item.lens_model || 'No Lens Information'),
+        h('div', { className: 'info-camera' }, camera || t('info.noCamera')),
+        h('div', null, item.lens_model || t('info.noLens')),
         h('div', { className: 'info-file-row' },
           h('span', null, F.dims(item.width, item.height) || '-'),
           h('span', { className: 'info-size' },
@@ -340,22 +342,22 @@
           badges.map((b) => h('span', { key: b, className: 'info-badge' }, b))),
         !isVideo && h('div', { className: 'info-exposure' },
           F.exposureCells(item).map((c, i) => h('span', { key: i }, c)))),
-      h(EditableField, { className: 'info-field', value: item.caption, placeholder: 'Add a Caption', multiline: true,
+      h(EditableField, { className: 'info-field', value: item.caption, placeholder: t('info.addCaption'), multiline: true,
         onCommit: (v) => saveText('setCaption', v) }), // M12.4
       h(window.InfoKeywords, { keywords: item.keywords || [], onChange: (c) => saveKeywords(c) }), // M12.4
       faces.length > 0 && h('div', { className: 'info-faces' },
         faces.map((p) => p.crop
           ? h('img', { key: p.faceId, className: 'info-face', src: 'file://' + p.crop, alt: '',
-              draggable: false, title: p.name || 'Unnamed Person' })
-          : h('span', { key: p.faceId, className: 'info-face', title: p.name || 'Unnamed Person' }))),
+              draggable: false, title: p.name || t('info.unnamedPerson') })
+          : h('span', { key: p.faceId, className: 'info-face', title: p.name || t('info.unnamedPerson') }))),
       item.has_gps
         ? h('div', { className: 'info-place' },
-            h('div', null, place || 'Unknown Place'),
+            h('div', null, place || t('info.unknownPlace')),
             coords && h('div', { className: 'info-coords' }, coords))
-        : h('div', { className: 'info-place is-empty' }, 'Assign Location'),
+        : h('div', { className: 'info-place is-empty' }, t('info.assignLocation')),
       !!item.has_gps && h(InfoMap, { lat: item.gps_latitude, lng: item.gps_longitude }), // has_gps is 0/1: never render a bare 0
       h('div', { className: 'info-footer' },
-        h('button', { className: 'info-finder', onMouseDown: noFocus, onClick: reveal }, finderMsg || 'Show in Finder')));
+        h('button', { className: 'info-finder', onMouseDown: noFocus, onClick: reveal }, finderMsg || t('info.showInFinder'))));
   }
 
   render(h(Info), document.getElementById('info-root'));

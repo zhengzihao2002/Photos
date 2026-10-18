@@ -18,6 +18,7 @@
  * heights shift from a resize.
  */
 (function () {
+  const tr = window.t; // 't' is a common local name in this file; 'tr' is the translator here
   const { h, render, Fragment } = window.preact;
   const { useState, useEffect, useRef, useCallback } = window.preactHooks;
 
@@ -42,7 +43,7 @@
     const opts = daysAgo < 6
       ? { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }
       : { day: 'numeric', month: 'long', year: 'numeric' };
-    return d.toLocaleDateString('en-US', opts);
+    return window.i18n.date(d, opts);
   }
 
   function formatDuration(seconds) {
@@ -116,11 +117,11 @@
       ),
       !isPlaceholderItem && item.is_live_photo === 1 && h('div', { className: 'tile-live-badge' }, h('svg', { viewBox: '0 0 16 16', 'aria-hidden': 'true' }, h('circle', { cx: 8, cy: 8, r: 2, fill: 'currentColor' }), h('circle', { cx: 8, cy: 8, r: 4.4, fill: 'none', stroke: 'currentColor', 'stroke-width': 1.3 }), h('circle', { cx: 8, cy: 8, r: 6.8, fill: 'none', stroke: 'currentColor', 'stroke-width': 1.1, 'stroke-dasharray': '0.9 1.5', 'stroke-linecap': 'round' })), 'LIVE') /* U16: Apple-style pill */,
       // U14: map-pin symbol on located items, as in Apple Photos (the '!' takes its place when unavailable).
-      !isPlaceholderItem && !!item.has_gps && !unavailable && h('div', { className: 'tile-gps-badge', title: 'Has location' },
+      !isPlaceholderItem && !!item.has_gps && !unavailable && h('div', { className: 'tile-gps-badge', title: tr('tile.hasLocation') },
         h('svg', { viewBox: '0 0 16 16', 'aria-hidden': 'true' }, h('circle', { cx: 8, cy: 4.6, r: 2.4, fill: 'none', stroke: 'currentColor', 'stroke-width': 1.5 }), h('path', { d: 'M8 7v6', fill: 'none', stroke: 'currentColor', 'stroke-width': 1.5, 'stroke-linecap': 'round' }), h('ellipse', { cx: 8, cy: 13, rx: 4.6, ry: 1.7, fill: 'none', stroke: 'currentColor', 'stroke-width': 1.3 }))),
-      unavailable && h('div', { className: 'tile-unavailable-badge', title: 'Original unavailable' }, '!'),
+      unavailable && h('div', { className: 'tile-unavailable-badge', title: tr('info.originalUnavailable') }, '!'),
       // M12.3: Apple's small white heart, bottom left, on favorites.
-      !isPlaceholderItem && item.is_favorite === 1 && h('div', { className: 'tile-fav-badge', 'aria-label': 'Favorite' },
+      !isPlaceholderItem && item.is_favorite === 1 && h('div', { className: 'tile-fav-badge', 'aria-label': tr('favorite') },
         h('svg', { viewBox: '0 0 16 16', 'aria-hidden': 'true' }, h('path', { fill: 'currentColor', d: 'M8 14.2 2.3 8.6C.6 6.9.6 4.2 2.3 2.8c1.5-1.3 3.7-1 5 .5l.7.8.7-.8c1.3-1.5 3.5-1.8 5-.5 1.7 1.4 1.7 4.1 0 5.8z' })))
     );
   }
@@ -289,7 +290,7 @@
       get: () => value,
       set(v) {
         const next = v && typeof v.filter === 'string' && v.filter.startsWith('geo:')
-          ? { filter: v.filter, title: String(v.title || 'Map') } : null;
+          ? { filter: v.filter, title: String(v.title || tr('places.mapFallbackTitle')) } : null;
         if (next === null && value === null) return;
         value = next;
         listeners.forEach((fn) => fn(next));
@@ -617,13 +618,13 @@
     useEffect(() => modeStore.subscribe(setMode), []);
     useEffect(() => { if (modeStore.get() === 'days') modeStore.set('months'); }, []);
     const options = [
-      { key: 'years', label: 'Years' },
-      { key: 'months', label: 'Months' },
-      { key: 'all', label: 'All Photos' },
+      { key: 'years', label: tr('seg.years') },
+      { key: 'months', label: tr('seg.months') },
+      { key: 'all', label: tr('seg.all') },
     ];
     const effective = mode === 'days' ? 'months' : mode;
     const activeIndex = Math.max(0, options.findIndex((o) => o.key === effective));
-    return h('div', { className: 'seg', role: 'tablist', 'aria-label': 'View' },
+    return h('div', { className: 'seg', role: 'tablist', 'aria-label': tr('seg.view') },
       h('span', {
         className: 'seg-indicator',
         'aria-hidden': 'true',
@@ -950,7 +951,7 @@
       enqueue(job) {
         window.api.enqueueScan({ sourceFolderId: job.sourceFolderId, kind: 'full' })
           .then((res) => { if (!res || !res.queued) console.warn('Scan not queued:', res && res.reason); })
-          .catch((err) => noticeStore.set('Could not start a scan: ' + err.message));
+          .catch((err) => noticeStore.set(tr('folder.err.startScan', { details: err.message })));
       },
     };
   })();
@@ -995,7 +996,7 @@
   const folderName = (p) => String(p).split('/').filter(Boolean).pop() || String(p);
   // B.5: native alert sheet when an add attempt added nothing.
   function showAddProblems(title, lines) {
-    window.api.showMessage({ type: 'warning', message: title, detail: lines.join('\n'), buttons: ['OK'] })
+    window.api.showMessage({ type: 'warning', message: title, detail: lines.join('\n'), buttons: [tr('dialog.ok')] })
       .catch((err) => console.error('Alert failed:', err));
   }
   const folderActions = {
@@ -1006,19 +1007,19 @@
         try {
           const res = await window.api.addSource({ rootPath });
           if (!res || !res.added) {
-            problems.push('\u201C' + folderName(rootPath) + '\u201D: ' + ((res && res.reason) || 'could not be added'));
+            problems.push(tr('folder.problem', { name: folderName(rootPath), reason: (res && res.reason) || tr('folder.couldNotBeAdded') }));
             continue;
           }
           addedAny = true;
           scanQueue.enqueue({ sourceFolderId: res.id, sourceRootPath: rootPath });
         } catch (err) {
-          problems.push('\u201C' + folderName(rootPath) + '\u201D: ' + err.message);
+          problems.push(tr('folder.problem', { name: folderName(rootPath), reason: err.message }));
         }
       }
       const allProblems = problems.concat(extraProblems);
       if (!addedAny && allProblems.length) {
         noticeStore.set(null);
-        showAddProblems(paths.length > 1 ? 'Couldn\u2019t Add Folders' : 'Couldn\u2019t Add Folder', allProblems);
+        showAddProblems(tr('folder.couldntAdd', { count: paths.length }), allProblems);
       } else {
         noticeStore.set(allProblems.length ? allProblems.join('\n') : null);
       }
@@ -1032,7 +1033,7 @@
     },
     rescan(source) {
       if (source.status !== 'ok') {
-        noticeStore.set('\u201C' + source.displayName + '\u201D cannot be found. Use Relink\u2026 to locate it.');
+        noticeStore.set(tr('folder.cantBeFound', { name: source.displayName }));
         return;
       }
       scanQueue.enqueue({ sourceFolderId: source.id, sourceRootPath: source.rootPath });
@@ -1040,7 +1041,7 @@
     async remove(source) {
       const res = await window.api.removeSource({ sourceFolderId: source.id });
       if (!res || !res.removed) {
-        noticeStore.set('Could not remove \u201C' + source.displayName + '\u201D: ' + ((res && res.reason) || 'unknown error'));
+        noticeStore.set(tr('folder.err.remove', { name: source.displayName, reason: (res && res.reason) || tr('folder.unknownError') }));
         return res;
       }
       if (sectionStore.get() === 'source:' + source.id) sectionStore.set('library');
@@ -1050,17 +1051,16 @@
     async rescanAll() {
       const sources = (await window.api.listSources()) || []; // also refreshes found/missing
       if (sources.length === 0) {
-        noticeStore.set('There are no folders to rescan. Add one with File \u2192 Add Folder\u2026');
+        noticeStore.set(tr('folder.noneToRescan'));
         return;
       }
       const skipped = [];
       sources.forEach((src) => {
         if (src.status === 'ok') scanQueue.enqueue({ sourceFolderId: src.id, sourceRootPath: src.rootPath });
-        else skipped.push('\u201C' + src.displayName + '\u201D');
+        else skipped.push('\u201C' + src.displayName + '\u201D'); // quotes are the same in both languages
       });
       if (skipped.length) {
-        noticeStore.set('Skipped (not found): ' + skipped.join(', ') + '. Use Relink\u2026 to locate '
-          + (skipped.length === 1 ? 'it.' : 'them.'));
+        noticeStore.set(tr('folder.skipped', { count: skipped.length, names: skipped.join(window.i18n.getLocale() === 'zh-Hans' ? '\u3001' : ', ') }));
       }
     },
     async relinkViaPicker(source) {
@@ -1071,7 +1071,7 @@
     async relink(source, newRootPath) {
       const res = await window.api.relinkSource({ sourceFolderId: source.id, newRootPath });
       if (!res || !res.relinked) {
-        noticeStore.set('Could not relink \u201C' + source.displayName + '\u201D: ' + ((res && res.reason) || 'unknown error'));
+        noticeStore.set(tr('folder.err.relink', { name: source.displayName, reason: (res && res.reason) || tr('folder.unknownError') }));
         return res;
       }
       scanQueue.enqueue({ sourceFolderId: source.id, sourceRootPath: newRootPath });
@@ -1093,7 +1093,7 @@
     try {
       res = await window.api.showAlbumContextMenu(source.id);
     } catch (err) {
-      noticeStore.set('Could not open the menu: ' + err.message);
+      noticeStore.set(tr('err.menu', { details: err.message }));
       return;
     }
     if (!res || !res.action) return;
@@ -1104,16 +1104,16 @@
       if (scanStatusStore.get() === source.id) {
         window.api.showMessage({
           type: 'info',
-          message: '\u201C' + source.displayName + '\u201D is being scanned',
-          detail: 'Please wait until scanning finishes, then try again.',
+          message: tr('folder.beingScanned', { name: source.displayName }),
+          detail: tr('folder.beingScanned.detail'),
         }).catch(() => {});
         return;
       }
       const { response } = await window.api.showMessage({
         type: 'warning',
-        message: 'Remove \u201C' + source.displayName + '\u201D from Photos?',
-        detail: 'Its photos and videos will no longer appear in Photos. The folder and every file in it stay exactly where they are on your Mac \u2014 nothing is deleted, moved, or changed.\n\nYou can add the folder again at any time.',
-        buttons: ['Cancel', 'Remove'],
+        message: tr('folder.remove.message', { name: source.displayName }),
+        detail: tr('folder.remove.detail'),
+        buttons: [tr('folder.remove.cancel'), tr('folder.remove.confirm')],
         defaultId: 0,
         cancelId: 0,
       });
@@ -1138,7 +1138,7 @@
     try {
       res = await window.api.showPhotoContextMenu(item.id, onPerson ? onPerson.id : null);
     } catch (err) {
-      noticeStore.set('Could not open the menu: ' + err.message);
+      noticeStore.set(tr('err.menu', { details: err.message }));
       return;
     }
     if (!res || !res.action) return;
@@ -1149,7 +1149,7 @@
       return;
     }
     if (res.action === 'rescan-all') {
-      folderActions.rescanAll().catch((err) => noticeStore.set('Could not rescan: ' + err.message));
+      folderActions.rescanAll().catch((err) => noticeStore.set(tr('folder.err.rescan', { details: err.message })));
     }
     if (onPerson && (res.action === 'not-person' || res.action === 'remove-group' || res.action === 'key-photo')) {
       try {
@@ -1160,26 +1160,21 @@
           await window.api.removePhotoFromPerson(onPerson.id, item.id);
         } else {
           const info = await window.api.getPerson(onPerson.id);
-          const who = (info && info.name) || 'this person';
-          if (window.confirm('These faces are not ' + who + '? They will become a separate person.') === false) return;
+          const who = (info && info.name) || tr('people.thisPerson');
+          if (window.confirm(tr('people.confirm.notThese', { name: who })) === false) return;
           await window.api.removeClusterFromPerson(onPerson.id, res.clusterId);
         }
-      } catch (err) { noticeStore.set('Could not change this person: ' + err.message); }
+      } catch (err) { noticeStore.set(tr('people.err.person', { details: err.message })); }
       peopleChangeStore.bump();
     }
   }
 
   // M6 (B.6d): 'Nov 10 - Dec 25, 2025' style date ranges.
-  const MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   function formatDateRange(start, end) {
-    const a = start.split('-').map(Number);
-    const b = end.split('-').map(Number);
-    const md = (p) => MONTHS_SHORT[p[1] - 1] + ' ' + p[2];
-    const dash = ' \u2013 ';
-    if (start === end) return md(a) + ', ' + a[0];
-    if (a[0] !== b[0]) return md(a) + ', ' + a[0] + dash + md(b) + ', ' + b[0];
-    if (a[1] === b[1]) return MONTHS_SHORT[a[1] - 1] + ' ' + a[2] + dash + b[2] + ', ' + a[0];
-    return md(a) + dash + md(b) + ', ' + a[0];
+    const parse = (d) => { const p = d.split('-').map(Number); return new Date(Date.UTC(p[0], p[1] - 1, p[2])); };
+    const a = parse(start); const b = parse(end);
+    const fmt = new Intl.DateTimeFormat(window.i18n.intlLocale(), { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' });
+    try { return start === end ? fmt.format(a) : fmt.formatRange(a, b); } catch (err) { return fmt.format(a); }
   }
 
   /** M6 (B.6d): 'Library' + visible date range, shown in All Photos only. */
@@ -1192,10 +1187,9 @@
   function selectionLabel(photos, videos) {
     const n = photos + videos;
     if (n < 2) return null;
-    const num = n.toLocaleString('en-US');
-    if (videos === 0) return num + ' Photos Selected';
-    if (photos === 0) return num + ' Videos Selected';
-    return num + ' Items Selected';
+    if (videos === 0) return tr('count.photosSelected', { count: n });
+    if (photos === 0) return tr('count.videosSelected', { count: n });
+    return tr('count.itemsSelected', { count: n });
   }
   function useSelectionLabel() {
     const [label, setLabel] = useState(null);
@@ -1231,15 +1225,15 @@
     useEffect(() => dateRangeStore.subscribe(setRange), []);
     const selLabel = useSelectionLabel(); // M12.2
     return h('div', { style: { display: 'flex', flexDirection: 'column', justifyContent: 'center', lineHeight: 1.2, minWidth: 0 } },
-      h('div', { style: { fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)' } }, 'Library'),
+      h('div', { style: { fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)' } }, tr('toolbar.library')),
       h('div', { style: { fontSize: '12px', fontWeight: 500, color: 'var(--text-primary)', opacity: 0.8, whiteSpace: 'nowrap' } },
         [range ? formatDateRange(range.start, range.end) : null, selLabel].filter(Boolean).join(' \u00b7 ') || '\u00A0'));
   }
 
   // M6: toolbar titles for collection sections (labels mirror sidebar.js).
   const SECTION_TITLES = {
-    video: 'Videos', selfie: 'Selfies', live: 'Live Photos', panorama: 'Panoramas',
-    burst: 'Bursts', gif: 'Animated', raw: 'RAW', albums: 'Albums', map: 'Map', favorite: 'Favorites',
+    video: tr('sidebar.videos'), selfie: tr('sidebar.selfies'), live: tr('sidebar.live'), panorama: tr('sidebar.panoramas'),
+    burst: tr('sidebar.bursts'), gif: tr('sidebar.animated'), raw: tr('sidebar.raw'), albums: tr('sidebar.section.albums'), map: tr('sidebar.map'), favorite: tr('sidebar.favorites'),
   };
 
   /**
@@ -1281,12 +1275,12 @@
       try {
         const r = await window.api.renamePerson(person.id, name);
         if (r && r.ok === false && r.sameNameId) {
-          if (window.confirm('A person named \u201C' + name + '\u201D already exists. Merge these people?')) {
+          if (window.confirm(tr('people.confirm.exists', { name }))) {
             await window.api.mergePeople(r.sameNameId, [person.id]);
             personStore.set({ id: r.sameNameId });
           }
         }
-      } catch (err) { noticeStore.set('Could not name this person: ' + err.message); }
+      } catch (err) { noticeStore.set(tr('people.err.name', { details: err.message })); }
       peopleChangeStore.bump();
     }
     useEffect(() => {
@@ -1299,11 +1293,11 @@
       return () => { alive = false; off(); };
     }, [section, person]);
     const title = section === 'people'
-      ? (person ? ((personInfo && personInfo.name) || 'Add Name') : (group ? groupTitle : (addPeopleOpen ? 'Add People' : 'People')))
+      ? (person ? ((personInfo && personInfo.name) || tr('toolbar.addName')) : (group ? groupTitle : (addPeopleOpen ? tr('title.addPeople') : tr('people.title'))))
       : sourceMatch
-      ? (sourceNames[Number(sourceMatch[1])] || 'Folder')
+      ? (sourceNames[Number(sourceMatch[1])] || tr('toolbar.folder'))
       : (section === 'map' && area
-        ? (false /* M8c.2 (U13): English UI */ ? '\u5730\u70B9' : 'Places')
+        ? tr('places.title')
         : (SECTION_TITLES[section] || ''));
     const selLabel = useSelectionLabel(); // M12.2
     const [summary, setSummary] = useState(null);
@@ -1347,7 +1341,7 @@
       // M10.7: back from Add People to the People page.
       return h('div', { style: { display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 } },
         h('button', {
-          type: 'button', title: 'Back to People', onClick: () => addPeopleStore.set(false),
+          type: 'button', title: tr('toolbar.backToPeople'), onClick: () => addPeopleStore.set(false),
           style: {
             WebkitAppRegion: 'no-drag', border: 'none', background: 'transparent', cursor: 'pointer',
             color: 'var(--text-primary)', fontSize: '24px', fontWeight: 400, lineHeight: 1, padding: '0 8px 4px', borderRadius: '6px', whiteSpace: 'nowrap',
@@ -1363,18 +1357,17 @@
         h('div', { style: { fontSize: '12px', fontWeight: 500, color: 'var(--text-primary)', opacity: 0.8, whiteSpace: 'nowrap' } }, selLabel));
     }
 
-    const count = (n, one, many) => n.toLocaleString('en-US') + ' ' + (n === 1 ? one : many);
     const parts = [];
     if (summary) {
-      if (summary.photos > 0) parts.push(count(summary.photos, 'Photo', 'Photos'));
-      if (summary.videos > 0) parts.push(count(summary.videos, 'Video', 'Videos'));
+      if (summary.photos > 0) parts.push(tr('count.photos', { count: summary.photos }));
+      if (summary.videos > 0) parts.push(tr('count.videos', { count: summary.videos }));
       if (summary.start && summary.end) parts.push(formatDateRange(summary.start, summary.end));
     }
     if (selLabel) parts.push(selLabel); // M12.2
     const nameEl = section === 'people' && person
       ? (editingName
         ? h('input', {
-          type: 'text', defaultValue: (personInfo && personInfo.name) || '', placeholder: 'Add Name', maxLength: 100,
+          type: 'text', defaultValue: (personInfo && personInfo.name) || '', placeholder: tr('toolbar.addName'), maxLength: 100,
           ref: (el) => { if (el && el.dataset.focused !== '1') { el.dataset.focused = '1'; el.focus(); el.select(); } },
           onKeyDown: (e) => {
             e.stopPropagation();
@@ -1388,7 +1381,7 @@
           },
         })
         : h('button', {
-          type: 'button', title: (personInfo && personInfo.name) ? 'Rename' : 'Name this person', onClick: () => setEditingName(true),
+          type: 'button', title: (personInfo && personInfo.name) ? tr('toolbar.rename') : tr('toolbar.nameThisPerson'), onClick: () => setEditingName(true),
           style: { WebkitAppRegion: 'no-drag', border: 'none', background: 'transparent', padding: 0, cursor: 'text', textAlign: 'left', minWidth: 0 },
         }, titleEl))
       : titleEl;
@@ -1400,7 +1393,7 @@
       // M10.7: back from a group's grid to the People page.
       return h('div', { style: { display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 } },
         h('button', {
-          type: 'button', title: 'Back to People', onClick: () => groupStore.set(null),
+          type: 'button', title: tr('toolbar.backToPeople'), onClick: () => groupStore.set(null),
           style: {
             WebkitAppRegion: 'no-drag', border: 'none', background: 'transparent', cursor: 'pointer',
             color: 'var(--text-primary)', fontSize: '24px', fontWeight: 400, lineHeight: 1, padding: '0 8px 4px', borderRadius: '6px', whiteSpace: 'nowrap',
@@ -1412,7 +1405,7 @@
       // M10.6: back from a person's grid to the People page.
       return h('div', { style: { display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 } },
         h('button', {
-          type: 'button', title: 'Back', onClick: () => goBackFromPerson(), // K12
+          type: 'button', title: tr('places.back'), onClick: () => goBackFromPerson(), // K12
           style: {
             WebkitAppRegion: 'no-drag', border: 'none', background: 'transparent', cursor: 'pointer',
             color: 'var(--text-primary)', fontSize: '24px', fontWeight: 400, lineHeight: 1, padding: '0 8px 4px', borderRadius: '6px', whiteSpace: 'nowrap',
@@ -1424,7 +1417,7 @@
     // M7.6: back from a map-area grid to the map (same position).
     return h('div', { style: { display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 } },
       h('button', {
-        type: 'button', title: 'Back to Map', onClick: () => mapAreaStore.set(null),
+        type: 'button', title: tr('toolbar.backToMap'), onClick: () => mapAreaStore.set(null),
         style: {
           WebkitAppRegion: 'no-drag', border: 'none', background: 'transparent', cursor: 'pointer',
           color: 'var(--text-primary)', fontSize: '24px', fontWeight: 400, lineHeight: 1, padding: '0 8px 4px', borderRadius: '6px', whiteSpace: 'nowrap',
@@ -1446,8 +1439,8 @@
     return h('button', {
       className: 'toolbar-sidebar-toggle',
       type: 'button',
-      title: 'Show Sidebar',
-      'aria-label': 'Show Sidebar',
+      title: tr('sidebar.show'),
+      'aria-label': tr('sidebar.show'),
       onClick: () => sidebarVisibleStore.toggle(),
     }, h('svg', { viewBox: '0 0 16 16', 'aria-hidden': 'true' },
       h('path', {
@@ -1474,7 +1467,7 @@
       },
     },
       h('span', { style: { color: '#ff9f0a', fontSize: '13px' } }, '\u26A0'),
-      h('span', null, 'Folder not found'),
+      h('span', null, tr('toolbar.folderNotFound')),
       h('button', {
         type: 'button',
         onClick: () => folderActions.relinkViaPicker(src),
@@ -1482,7 +1475,7 @@
           WebkitAppRegion: 'no-drag', background: 'none', border: '1px solid var(--divider)', borderRadius: '6px',
           color: 'var(--text-primary)', padding: '3px 10px', fontSize: '12px', cursor: 'default',
         },
-      }, 'Relink\u2026'));
+      }, tr('toolbar.relink')));
   }
 
   /**
@@ -1515,7 +1508,7 @@
         console.error('View filter menu failed:', err);
       }
     };
-    const label = kind === 'photos' ? 'View: Photos' : kind === 'videos' ? 'View: Videos' : 'View: All Items';
+    const label = kind === 'photos' ? tr('toolbar.view.photos') : kind === 'videos' ? tr('toolbar.view.videos') : tr('toolbar.view.all');
     return h('div', { className: 'filter-pill' + (kind !== 'all' ? ' is-active' : '') },
       h('button', { ref: btnRef, type: 'button', className: 'filter-btn', title: label, 'aria-label': label, onClick: openMenu },
         h('svg', { viewBox: '0 0 16 16', 'aria-hidden': 'true' },
@@ -1542,9 +1535,9 @@
       h('input', {
         className: 'search-input',
         type: 'text',
-        placeholder: 'Search',
+        placeholder: tr('toolbar.search'),
         spellcheck: false,
-        'aria-label': 'Search by file name',
+        'aria-label': tr('toolbar.searchAria'),
         value: text,
         onInput: (e) => { setText(e.target.value); commitSoon(e.target.value); },
         onKeyDown: (e) => {
@@ -1553,7 +1546,7 @@
         },
       }),
       text && h('button', {
-        className: 'search-clear', type: 'button', title: 'Clear', 'aria-label': 'Clear search', onClick: clear,
+        className: 'search-clear', type: 'button', title: tr('toolbar.clear'), 'aria-label': tr('toolbar.clearSearch'), onClick: clear,
       }, '\u00D7'));
   }
 
@@ -1577,13 +1570,13 @@
       h('path', { d, fill: 'none', stroke: 'currentColor', 'stroke-width': 1.6, 'stroke-linecap': 'round' }));
     return h('div', { className: 'zoom-pill' },
       h('button', {
-        type: 'button', className: 'zoom-btn', title: 'Zoom Out', 'aria-label': 'Zoom Out',
+        type: 'button', className: 'zoom-btn', title: tr('viewer.zoomOut'), 'aria-label': tr('viewer.zoomOut'),
         disabled: cols >= GRID_COLUMNS_MAX,
         onClick: () => columnsStore.set(nextZoomLevel(columnsStore.get(), +1)),
       }, icon('M4 8h8')),
       h('span', { className: 'zoom-divider', 'aria-hidden': 'true' }),
       h('button', {
-        type: 'button', className: 'zoom-btn', title: 'Zoom In', 'aria-label': 'Zoom In',
+        type: 'button', className: 'zoom-btn', title: tr('viewer.zoomIn'), 'aria-label': tr('viewer.zoomIn'),
         disabled: cols <= GRID_COLUMNS_MIN,
         onClick: () => columnsStore.set(nextZoomLevel(columnsStore.get(), -1)),
       }, icon('M4 8h8 M8 4v8')));
@@ -1615,7 +1608,7 @@
     try {
       const state = await favoriteState();
       await window.api.setFavorite({ target: { filter: f }, value: state !== 'on' });
-    } catch (err) { noticeStore.set('Could not change favorites: ' + err.message); }
+    } catch (err) { noticeStore.set(tr('err.favorites', { details: err.message })); }
   }
   window.__PhotosToggleFavoriteForSelection = toggleFavoriteForSelection;
 
@@ -1627,7 +1620,7 @@
       const f = selectionTargetFilter();
       if (!f) return;
       await window.api.rotateItems({ target: { filter: f }, delta });
-    } catch (err) { noticeStore.set('Could not rotate: ' + err.message); }
+    } catch (err) { noticeStore.set(tr('err.rotate', { details: err.message })); }
   }
   window.__PhotosRotateSelection = rotateSelection;
 
@@ -1635,7 +1628,7 @@
     const [has, setHas] = useState(!selectionStore.isEmpty());
     useEffect(() => selectionStore.subscribe(() => setHas(!selectionStore.isEmpty())), []);
     return h('button', {
-      type: 'button', title: 'Rotate Left (hold Option to rotate right)', 'aria-label': 'Rotate', disabled: !has,
+      type: 'button', title: tr('toolbar.rotateTip'), 'aria-label': tr('toolbar.rotateAria'), disabled: !has,
       onClick: (e) => rotateSelection(e.altKey ? 90 : -90),
       style: {
         WebkitAppRegion: 'no-drag', width: '34px', height: '28px', border: 'none', borderRadius: '14px',
@@ -1667,7 +1660,7 @@
     const on = state === 'on';
     const disabled = state === 'disabled';
     return h('button', {
-      type: 'button', title: on ? 'Unfavorite' : 'Favorite', 'aria-label': 'Favorite', disabled,
+      type: 'button', title: on ? tr('unfavorite') : tr('favorite'), 'aria-label': tr('favorite'), disabled,
       onClick: async () => { setState(on ? 'off' : 'on'); await toggleFavoriteForSelection(); },
       style: {
         WebkitAppRegion: 'no-drag', width: '34px', height: '28px', border: 'none', borderRadius: '14px',
@@ -1723,7 +1716,7 @@
           peopleChangeStore.bump();
           if (action === 'hide') personStore.set(null);
         }
-      } catch (err) { noticeStore.set('Could not open the menu: ' + err.message); }
+      } catch (err) { noticeStore.set(tr('err.menu', { details: err.message })); }
     }
     const [sourceNames, setSourceNames] = useState({});
     const [sourceRows, setSourceRows] = useState({});
@@ -1779,14 +1772,14 @@
       hasGrid && h(RotateButton), // M12.11
       section === 'people' && !personSel && !addSel && !groupOpen && h('div', { style: { flex: '1 1 auto' } }),
       section === 'people' && !personSel && !addSel && !groupOpen && h('button', {
-        type: 'button', title: 'Add People', onClick: () => addPeopleStore.set(true),
+        type: 'button', title: tr('toolbar.addPeopleTip'), onClick: () => addPeopleStore.set(true),
         style: {
           WebkitAppRegion: 'no-drag', height: '28px', padding: '0 12px', border: 'none', borderRadius: '14px', cursor: 'pointer',
           background: 'var(--control-bg, rgba(128,128,128,0.18))', color: 'var(--text-primary)', fontSize: '13px',
         },
-      }, '+ Add People'),
+      }, tr('toolbar.addPeopleButton')),
       section === 'people' && personSel && h('button', {
-        type: 'button', title: 'More', 'aria-label': 'More', onClick: openPersonPageMenu,
+        type: 'button', title: tr('toolbar.more'), 'aria-label': tr('toolbar.more'), onClick: openPersonPageMenu,
         style: {
           WebkitAppRegion: 'no-drag', width: '34px', height: '28px', border: 'none', borderRadius: '14px', cursor: 'pointer',
           background: (personViewSel === 'photos' && faceDisplaySel === 'photos') ? 'var(--control-bg, rgba(128,128,128,0.18))' : 'var(--accent, #2f7ff7)',
@@ -1899,8 +1892,8 @@
       return () => { cancelled = true; tl.destroy(); };
     }, []);
 
-    if (years === null) return h('div', { className: 'timeline-loading' }, 'Loading years\u2026');
-    if (years.length === 0) return h('div', { className: 'timeline-loading' }, 'No photos yet.');
+    if (years === null) return h('div', { className: 'timeline-loading' }, tr('timeline.loadingYears'));
+    if (years.length === 0) return h('div', { className: 'timeline-loading' }, tr('timeline.empty'));
 
     return h('div', { className: 'timeline-scroll', ref: scrollRef },
       h('div', { className: 'timeline-grid is-years' }, // M6 (B.6c): bigger Year tiles
@@ -1911,13 +1904,13 @@
 
   function MonthTile({ month, thumbPath }) {
     const resolved = typeof thumbPath === 'string';
-    const label = new Date(Date.UTC(month.year, month.month - 1, 1))
-      .toLocaleDateString('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' });
+    const label = new Date(Date.UTC(month.year, month.month - 1, 1));
+    const labelText = window.i18n.date(label, { month: 'long', year: 'numeric', timeZone: 'UTC' });
     return h('div', { className: 'timeline-tile', onClick: () => navigateToPeriod({ year: month.year, month: month.month }) },
       h('div', { className: 'timeline-tile-thumb' },
         resolved && h('img', { src: 'file://' + thumbPath })),
-      h('div', { className: 'timeline-tile-label' }, label),
-      h('div', { className: 'timeline-tile-count' }, month.count + (month.count === 1 ? ' item' : ' items'))
+      h('div', { className: 'timeline-tile-label' }, labelText),
+      h('div', { className: 'timeline-tile-count' }, tr('count.items', { count: month.count }))
     );
   }
 
@@ -1940,8 +1933,8 @@
       return () => { cancelled = true; tl.destroy(); };
     }, []);
 
-    if (months === null) return h('div', { className: 'timeline-loading' }, 'Loading months\u2026');
-    if (months.length === 0) return h('div', { className: 'timeline-loading' }, 'No photos yet.');
+    if (months === null) return h('div', { className: 'timeline-loading' }, tr('timeline.loadingMonths'));
+    if (months.length === 0) return h('div', { className: 'timeline-loading' }, tr('timeline.empty'));
 
     const groups = [];
     for (const m of months) {
@@ -1967,7 +1960,7 @@
   function formatFullDate(dateStr) {
     // dateStr is 'YYYY-MM-DD'; parsed at UTC noon to avoid local-timezone shifting.
     const d = new Date(dateStr + 'T12:00:00');
-    return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+    return window.i18n.date(d, { month: 'long', day: 'numeric', year: 'numeric' });
   }
 
   function TimelineView({ mode }) {
@@ -2930,31 +2923,31 @@
       // M6: section-aware empty state (Grid is keyed by section).
       const section = sectionStore.get();
       const EMPTY_TITLES = {
-        video: 'No Videos', selfie: 'No Selfies', live: 'No Live Photos', panorama: 'No Panoramas',
-        burst: 'No Bursts', gif: 'No Animated Images', raw: 'No RAW Photos',
-        favorite: 'No Favorites', // M12.3
+        video: tr('section.noVideos'), selfie: tr('section.noSelfies'), live: tr('section.noLive'), panorama: tr('section.noPanoramas'),
+        burst: tr('section.noBursts'), gif: tr('section.noAnimated'), raw: tr('section.noRaw'),
+        favorite: tr('section.noFavorites'), // M12.3
       };
-      let title = 'No Photos';
+      let title = tr('section.noPhotos');
       if (searchStore.get()) {
         return h('div', { className: 'empty-state' },
           h('div', { style: { fontSize: '20px', fontWeight: 600, color: 'var(--text-primary)' } },
-            'No Results for \u201C' + searchStore.get() + '\u201D'),
-          h('div', { style: { marginTop: '6px', fontSize: '13px', color: 'var(--text-secondary)' } }, 'Try a different name.'));
+            tr('section.noResults', { text: searchStore.get() })),
+          h('div', { style: { marginTop: '6px', fontSize: '13px', color: 'var(--text-secondary)' } }, tr('section.noResults.hint')));
       }
       if ((filterStore.get() || '').includes('::kind:')) {
         return h('div', { className: 'empty-state' },
           h('div', { style: { fontSize: '20px', fontWeight: 600, color: 'var(--text-primary)' } },
-            kindStore.get() === 'videos' ? 'No Videos' : 'No Photos'),
+            kindStore.get() === 'videos' ? tr('section.noVideos') : tr('section.noPhotos')),
           h('div', { style: { marginTop: '6px', fontSize: '13px', color: 'var(--text-secondary)' } },
-            'Choose All Items to see everything here.'));
+            tr('section.chooseAll')));
       }
-      let hint = 'Add a folder with File \u2192 Add Folder\u2026, or drag a folder onto this window.';
+      let hint = tr('section.empty.hint');
       if (section.startsWith('source:')) {
-        title = 'No Photos in This Album';
-        hint = 'It may still be scanning, or contain no supported files.';
+        title = tr('section.noPhotosInAlbum');
+        hint = tr('section.noPhotosInAlbum.hint');
       } else if (EMPTY_TITLES[section]) {
         title = EMPTY_TITLES[section];
-        hint = section === 'favorite' ? 'Mark a photo or video as a favorite and it appears here.' : null; // M12.3
+        hint = section === 'favorite' ? tr('section.noFavorites.hint') : null; // M12.3
       }
       return h('div', { className: 'empty-state' },
         h('div', { style: { fontSize: '20px', fontWeight: 600, color: 'var(--text-primary)' } }, title),
@@ -2999,10 +2992,9 @@
 
     // M6 (B.6f): centered counts in a gap below the last row.
     if (footerCounts) {
-      const count = (n, one, many) => n.toLocaleString('en-US') + ' ' + (n === 1 ? one : many);
       const parts = [];
-      if (footerCounts.photos > 0) parts.push(count(footerCounts.photos, 'Photo', 'Photos'));
-      if (footerCounts.videos > 0) parts.push(count(footerCounts.videos, 'Video', 'Videos'));
+      if (footerCounts.photos > 0) parts.push(tr('count.photos', { count: footerCounts.photos }));
+      if (footerCounts.videos > 0) parts.push(tr('count.videos', { count: footerCounts.videos }));
       if (parts.length) {
         children.push(h('div', {
           key: 'grid-footer',
@@ -3144,14 +3136,14 @@
         else ignored += 1;
       });
       if (folders.length === 0) {
-        if (ignored) showAddProblems('Couldn\u2019t Add Items', ['Only folders can be added. Drag a folder from Finder onto the window.']);
+        if (ignored) showAddProblems(tr('folder.couldntAddItems'), [tr('folder.onlyFolders')]);
         return;
       }
       const extra = ignored
-        ? [ignored + (ignored === 1 ? ' item was' : ' items were') + ' ignored \u2014 only folders can be added.']
+        ? [tr('folder.ignored', { count: ignored })]
         : [];
       folderActions.addPaths(folders, extra)
-        .catch((err) => noticeStore.set('Could not add folder: ' + err.message));
+        .catch((err) => noticeStore.set(tr('folder.err.add', { details: err.message })));
     });
   }
 
@@ -3186,12 +3178,12 @@
     installFolderDrop();
     // B.5: File > Rescan All Folders.
     window.api.onRescanAll(() => {
-      folderActions.rescanAll().catch((err) => noticeStore.set('Could not rescan: ' + err.message));
+      folderActions.rescanAll().catch((err) => noticeStore.set(tr('folder.err.rescan', { details: err.message })));
     });
     // B.5: File > Add Folder... (Shift+Cmd+I) -> the shared add flow.
     window.api.onAddFolder(() => {
       folderActions.pickAndAdd()
-        .catch((err) => noticeStore.set('Could not add folder: ' + err.message));
+        .catch((err) => noticeStore.set(tr('folder.err.add', { details: err.message })));
     });
     sidebarVisibleStore.subscribe((visible) => {
       window.api.setSidebarMenuState(visible)

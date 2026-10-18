@@ -6,6 +6,7 @@
  */
 (function () {
   'use strict';
+  const t = window.t;
   const { h } = window.preact;
   const { useState, useEffect, useRef } = window.preactHooks;
 
@@ -81,14 +82,14 @@
       return h('div', { className: 'info-field info-kw' + (list.length ? ' has-value' : ''), onClick: start },
         list.length
           ? list.map((k) => h('span', { key: k, className: 'info-token' }, k))
-          : 'Add Keywords');
+          : t('info.addKeywords'));
     }
     return h('div', { className: 'info-field info-kw is-editing has-value' },
       list.map((k) => h('span', { key: k, className: 'info-token' }, k,
-        h('button', { className: 'info-token-x', type: 'button', 'aria-label': 'Remove ' + k,
+        h('button', { className: 'info-token-x', type: 'button', 'aria-label': t('info.removeKeyword', { name: k }),
           onMouseDown: (e) => e.preventDefault(), onClick: () => onChange({ remove: [k] }) }, '\u00d7'))),
       h('input', { ref: inputRef, className: 'info-kw-input', type: 'text', value: draft, maxLength: 64,
-        placeholder: list.length ? '' : 'Add Keywords',
+        placeholder: list.length ? '' : t('info.addKeywords'),
         onInput: (e) => setDraft(e.currentTarget.value), onKeyDown, onBlur: () => finish(true) }),
       suggestions.length > 0 && h('div', { className: 'info-suggest' },
         suggestions.map((s, i) => h('div', { key: s, className: 'info-suggest-row' + (i === active ? ' is-active' : ''),

@@ -1,7 +1,8 @@
 {
   "sameAsEnglish": [
     "lang.en",
-    "storage.row.app"
+    "storage.row.app",
+    "sidebar.raw"
   ],
   "dynamicKeyPrefixes": [
     "storage.row.",
@@ -17,6 +18,41 @@
       "file": "src/main/storage/storage.js",
       "text": "size worker exited ",
       "reason": "internal error text; reaches the user only inside a localized 'Could not measure storage: {details}' notice"
+    },
+    {
+      "file": "src/renderer/sidebar.js",
+      "text": "DOMContentLoaded",
+      "reason": "DOM event name"
+    },
+    {
+      "file": "src/renderer/places.js",
+      "regex": "^(Feature|Point)$",
+      "reason": "GeoJSON type names"
+    },
+    {
+      "file": "src/renderer/viewer.js",
+      "regex": "^(Arrow|DOMContentLoaded|\"\\], \\.pa-tile\\[data-id=\")",
+      "reason": "key-name prefix, DOM event name, CSS selector fragment"
+    },
+    {
+      "file": "src/main/ipc/handlers/source.js",
+      "regex": "^(Folder not found or not accessible|Not a folder|Source folder not found|Overlaps with an existing source folder: |This folder contains the Photos app|This folder is part of the Photos app)",
+      "reason": "English reason strings produced by source-folders.js; this file only matches them to translate them"
+    },
+    {
+      "file": "src/renderer/renderer.js",
+      "regex": "^(Scan complete|Source folder not found|Scan failed)$",
+      "reason": "protocol messages compared against the scan worker's progress text, never displayed (the sidebar shows its own translated text)"
+    },
+    {
+      "file": "src/renderer/renderer.js",
+      "text": "group|",
+      "reason": "React key"
+    },
+    {
+      "file": "src/renderer/renderer.js",
+      "text": "DOMContentLoaded",
+      "reason": "DOM event name"
     }
   ]
 }

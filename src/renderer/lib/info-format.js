@@ -2,14 +2,15 @@
  * info-format.js (M8c.2b)
  *
  * Formatting helpers for the Info window (info.js), moved from viewer.js's
- * former Info panel. English UI (M8c.2 U13). Exposed as window.InfoFormat.
+ * former Info panel. Texts come from the catalog (M14). Exposed as window.InfoFormat.
  */
 (function () {
   'use strict';
+  const t = window.t;
 
   const DATE_SOURCE_NOTE = {
-    file_mtime: "Date from the file's modification time",
-    filename_pattern: 'Date from the filename',
+    file_mtime: 'date.note.mtime',
+    filename_pattern: 'date.note.filename',
   };
   const FORMAT_NAME = { jpg: 'JPEG', jpeg: 'JPEG', tif: 'TIFF', tiff: 'TIFF', heic: 'HEIF', heif: 'HEIF' };
 
@@ -18,13 +19,13 @@
     const m = /^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?/.exec(s || '');
     if (!m) return null;
     const d = new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +(m[6] || 0));
-    return d.toLocaleString('en-US', { year: 'numeric', month: 'long', day: 'numeric',
+    return window.i18n.date(d, { year: 'numeric', month: 'long', day: 'numeric',
       hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true });
   }
   // M12.6: 'M/D/YYYY' from capture_time_local, for the summary's date range.
   function shortDate(s) {
     const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(s || '');
-    return m ? (+m[2]) + '/' + (+m[3]) + '/' + m[1] : null;
+    return m ? t('date.short', { m: +m[2], d: +m[3], y: m[1] }) : null;
   }
   function cameraName(make, model) {
     make = (make || '').trim(); model = (model || '').trim();
@@ -52,10 +53,11 @@
   }
   function bytes(b) { // decimal units, like Finder / Preview
     if (!(b > 0)) return null;
-    if (b < 1e3) return b + ' bytes';
-    if (b < 1e6) return Math.round(b / 1e3) + ' KB';
-    if (b < 1e9) return (b / 1e6).toFixed(1) + ' MB';
-    return (b / 1e9).toFixed(2) + ' GB';
+    const num = (v, digits) => window.i18n.number(v, { minimumFractionDigits: digits, maximumFractionDigits: digits });
+    if (b < 1e3) return t('size.bytes', { count: b });
+    if (b < 1e6) return t('size.kb', { value: num(Math.round(b / 1e3), 0) });
+    if (b < 1e9) return t('size.mb', { value: num(b / 1e6, 1) });
+    return t('size.gb', { value: num(b / 1e9, 2) });
   }
   function dims(w, h) {
     return w && h ? w + ' \u00d7 ' + h : null;
@@ -66,8 +68,10 @@
   }
   function coords(lat, lon) {
     if (lat == null || lon == null) return null;
-    const f = (v, pos, neg) => Math.abs(v).toFixed(4) + '\u00b0 ' + (v >= 0 ? pos : neg);
-    return f(lat, 'N', 'S') + ', ' + f(lon, 'E', 'W');
+    return t('coords.line', {
+      lat: Math.abs(lat).toFixed(4), ns: t(lat >= 0 ? 'coords.n' : 'coords.s'),
+      lon: Math.abs(lon).toFixed(4), ew: t(lon >= 0 ? 'coords.e' : 'coords.w'),
+    });
   }
   function duration(t) {
     if (!isFinite(t) || t < 0) t = 0;
@@ -75,12 +79,12 @@
     return m + ':' + String(sec).padStart(2, '0');
   }
   // M13: one implementation for every window (lib/place-text.js).
-  function placeLine(item, locale) {
-    return window.PlaceText ? window.PlaceText.placeLine(item, locale) : null;
+  function placeLine(item) {
+    return window.PlaceText ? window.PlaceText.placeLine(item, window.i18n.getLocale()) : null;
   }
 
   window.InfoFormat = {
     dateTime, shortDate, cameraName, exposureCells, bytes, dims, formatBadge, coords, duration, placeLine,
-    dateNote: (source) => DATE_SOURCE_NOTE[source] || null,
+    dateNote: (source) => (DATE_SOURCE_NOTE[source] ? t(DATE_SOURCE_NOTE[source]) : null),
   };
 })();

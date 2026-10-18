@@ -85,8 +85,8 @@
   function addLegal(container) {
     const el = document.createElement('div');
     el.className = 'places-legal';
-    const label = false /* M8c.2 (U13): English UI */ ? '\u6CD5\u5F8B\u4FE1\u606F' : 'Legal';
-    const full = '\u00A9 OpenStreetMap contributors \u00B7 \u00A9 OpenMapTiles \u00B7 OpenFreeMap \u00B7 Place names: GeoNames';
+    const label = t('map.legal');
+    const full = t('map.credits');
     el.textContent = label;
     el.addEventListener('click', (ev) => { ev.stopPropagation(); el.textContent = el.textContent === label ? full : label; });
     container.appendChild(el);
@@ -146,7 +146,7 @@
       const theme = window.matchMedia('(prefers-color-scheme: dark)');
       const map = new gl.Map({
         container: elRef.current,
-        style: theme.matches ? styles.dark : styles.light,
+        style: window.__PhotosMapStyleFor(theme.matches),
         center: focus ? [focus.lng, focus.lat] : (session.view ? session.view.center : [0, 20]),
         zoom: focus ? focus.zoom : (session.view ? session.view.zoom : 1),
         maxZoom: MAP_MAX_ZOOM, dragRotate: false, pitchWithRotate: false,
@@ -163,7 +163,7 @@
       }, true);
       map.addControl(new gl.NavigationControl({ showCompass: false }), 'bottom-right');
       map.on('error', (e) => console.warn('[map]', e && e.error ? e.error.message : e));
-      const onTheme = () => map.setStyle(theme.matches ? styles.dark : styles.light);
+      const onTheme = () => map.setStyle(window.__PhotosMapStyleFor(theme.matches));
       theme.addEventListener('change', onTheme);
 
       let alive = true;
@@ -173,7 +173,7 @@
 
       function placeTitle(item) {
         if (!item) return null;
-        return window.PlaceText.placeTitle(item, isZh() ? 'zh-Hans' : 'en');
+        return window.PlaceText.placeTitle(item, window.i18n.getLocale());
       }
 
       // M7.6: open the photo grid of one marker's area. The box is the
@@ -198,7 +198,7 @@
         const lo = (v, limit) => Math.max(-limit, Math.floor(v * 1e6) / 1e6 - 0.00001).toFixed(6);
         const hi = (v, limit) => Math.min(limit, Math.ceil(v * 1e6) / 1e6 + 0.00001).toFixed(6);
         const filter = 'geo:' + [lo(s, 90), lo(w, 180), hi(n, 90), hi(e, 180)].join(',');
-        const title = 'Places'; // the page title is fixed, so no lookup is needed
+        const title = t('places.title'); // the page title is fixed, so no lookup is needed
         if (!alive) return;
         if (focus) { // opened over the viewer: show the area as a layer above this map
           if (props.onOpenArea) props.onOpenArea({ filter, title });
@@ -344,11 +344,11 @@
     return h('div', { class: 'places-page', style: { height: focus ? '100%' : height + 'px' } },
       h('div', { class: 'places-map', ref: elRef }),
       !online && h('div', { class: 'places-note is-top' },
-        false /* M8c.2 (U13): English UI */ ? '\u79BB\u7EBF\u65F6\u65E0\u6CD5\u663E\u793A\u5730\u56FE' : 'Map unavailable offline'),
+        t('map.offline')),
       !focus && count === 0 && h('div', { class: 'places-note is-center' },
-        h('strong', null, 'No Places'),
-        h('span', null, 'Photos and videos with location information will appear here.')),
-      focus && h('button', { class: 'places-back', type: 'button', title: 'Back', 'aria-label': 'Back',
+        h('strong', null, t('places.empty.title')),
+        h('span', null, t('places.empty.body'))),
+      focus && h('button', { class: 'places-back', type: 'button', title: t('places.back'), 'aria-label': t('places.back'),
         onClick: () => window.__PhotosMapOverlay.back() }, '\u2039'));
   }
 
@@ -368,7 +368,6 @@
       setLeaving(true);
       setTimeout(() => { setArea(null); setLeaving(false); }, 170);
     };
-    const zh = false /* M8c.2 (U13): English UI */;
     const AreaView = window.__PhotosPlacesAreaView;
     const step = (d) => S.columnsStore.set(S.columnsStore.get() + d);
     // K2: the page and the viewer use the same filter, so arrows stay within it.
@@ -378,12 +377,12 @@
       h(PlacesView, { focus, onOpenArea: (a) => { setKind('all'); setArea(a); } }),
       area && AreaView && h('div', { class: 'places-overlay-area' + (leaving ? ' is-closing' : ''), key: area.filter },
         h('div', { class: 'places-overlay-bar' },
-          h('button', { class: 'places-back is-inline', type: 'button', title: 'Back', onClick: () => api.back() }, '\u2039'),
-          h('span', { class: 'places-overlay-title' }, zh ? '\u5730\u70B9' : 'Places'),
+          h('button', { class: 'places-back is-inline', type: 'button', title: t('places.back'), onClick: () => api.back() }, '\u2039'),
+          h('span', { class: 'places-overlay-title' }, t('places.title')),
           h('span', { style: { flex: '1 1 auto' } }),
           FilterBtn && h(FilterBtn, { value: kind, onChange: setKind }),
-          h('button', { class: 'places-zoom', type: 'button', title: 'Zoom Out', onClick: () => step(1) }, '\u2212'),
-          h('button', { class: 'places-zoom', type: 'button', title: 'Zoom In', onClick: () => step(-1) }, '+')),
+          h('button', { class: 'places-zoom', type: 'button', title: t('places.zoomOut'), onClick: () => step(1) }, '\u2212'),
+          h('button', { class: 'places-zoom', type: 'button', title: t('places.zoomIn'), onClick: () => step(-1) }, '+')),
         h('div', { class: 'places-overlay-scroll', ref: scrollRef },
           h(AreaView, { filter: effArea.filter, scroller: () => scrollRef.current, onOpenItem: (id) => api.leaveToItem(effArea, id) }))));
   }
@@ -522,7 +521,7 @@
   ].join('\n');
   document.head.appendChild(css);
 
-  const isZh = () => false /* M8c.2 (U13): English UI */;
+  const isZh = () => window.i18n.getLocale() === 'zh-Hans';
   const placeName = (s) => (isZh() && (s.landmarkZh || (!s.landmarkEn && s.localityZh))) || s.landmarkEn || s.localityEn || '';
   function parseDay(text) {
     const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(text || '');
@@ -531,7 +530,7 @@
   function dateText(s) {
     const a = parseDay(s.startDate); const b = parseDay(s.endDate);
     if (!a) return '';
-    const fmt = new Intl.DateTimeFormat('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+    const fmt = new Intl.DateTimeFormat(window.i18n.intlLocale(), { year: 'numeric', month: 'long', day: 'numeric' });
     try { return b && s.endDate !== s.startDate ? fmt.formatRange(a, b) : fmt.format(a); } catch (err) { return fmt.format(a); }
   }
   // Same format as the grid's badge (renderer.js formatDuration): m:ss.
@@ -680,11 +679,11 @@
             },
           }, path ? h('img', { src: 'file://' + path, alt: '', draggable: false, style: data.rot && data.rot[s.start + k] ? { transform: 'rotate(' + (data.rot[s.start + k] * 90) + 'deg)' } : undefined }) : null,
             duration >= 0 ? h('span', { class: 'pa-duration' }, formatDuration(duration))
-              : duration === -2 ? h('span', { class: 'pa-duration', title: 'Video' }, '\u25B6') : null, // K3: unknown length
-            data.live && data.live[s.start + k] ? h('div', { class: 'tile-live-badge' }, h('svg', { viewBox: '0 0 16 16', 'aria-hidden': 'true' }, h('circle', { cx: 8, cy: 8, r: 2, fill: 'currentColor' }), h('circle', { cx: 8, cy: 8, r: 4.4, fill: 'none', stroke: 'currentColor', 'stroke-width': 1.3 }), h('circle', { cx: 8, cy: 8, r: 6.8, fill: 'none', stroke: 'currentColor', 'stroke-width': 1.1, 'stroke-dasharray': '0.9 1.5', 'stroke-linecap': 'round' })), 'LIVE') /* U16 */ : null,
-            data.fav && data.fav[s.start + k] ? h('div', { class: 'tile-fav-badge', 'aria-label': 'Favorite' }, h('svg', { viewBox: '0 0 16 16', 'aria-hidden': 'true' }, h('path', { fill: 'currentColor', d: 'M8 14.2 2.3 8.6C.6 6.9.6 4.2 2.3 2.8c1.5-1.3 3.7-1 5 .5l.7.8.7-.8c1.3-1.5 3.5-1.8 5-.5 1.7 1.4 1.7 4.1 0 5.8z' }))) : null, // M12.3
-            unavailable ? h('div', { class: 'tile-unavailable-badge', title: 'Original unavailable' }, '!')
-              : h('div', { class: 'tile-gps-badge', title: 'Has location' }, h('svg', { viewBox: '0 0 16 16', 'aria-hidden': 'true' }, h('circle', { cx: 8, cy: 4.6, r: 2.4, fill: 'none', stroke: 'currentColor', 'stroke-width': 1.5 }), h('path', { d: 'M8 7v6', fill: 'none', stroke: 'currentColor', 'stroke-width': 1.5, 'stroke-linecap': 'round' }), h('ellipse', { cx: 8, cy: 13, rx: 4.6, ry: 1.7, fill: 'none', stroke: 'currentColor', 'stroke-width': 1.3 }))))); // U14: every Places item is located
+              : duration === -2 ? h('span', { class: 'pa-duration', title: t('tile.video') }, '\u25B6') : null, // K3: unknown length
+            data.live && data.live[s.start + k] ? h('div', { class: 'tile-live-badge' }, h('svg', { viewBox: '0 0 16 16', 'aria-hidden': 'true' }, h('circle', { cx: 8, cy: 8, r: 2, fill: 'currentColor' }), h('circle', { cx: 8, cy: 8, r: 4.4, fill: 'none', stroke: 'currentColor', 'stroke-width': 1.3 }), h('circle', { cx: 8, cy: 8, r: 6.8, fill: 'none', stroke: 'currentColor', 'stroke-width': 1.1, 'stroke-dasharray': '0.9 1.5', 'stroke-linecap': 'round' })), t('badge.live')) /* U16 */ : null,
+            data.fav && data.fav[s.start + k] ? h('div', { class: 'tile-fav-badge', 'aria-label': t('favorite') }, h('svg', { viewBox: '0 0 16 16', 'aria-hidden': 'true' }, h('path', { fill: 'currentColor', d: 'M8 14.2 2.3 8.6C.6 6.9.6 4.2 2.3 2.8c1.5-1.3 3.7-1 5 .5l.7.8.7-.8c1.3-1.5 3.5-1.8 5-.5 1.7 1.4 1.7 4.1 0 5.8z' }))) : null, // M12.3
+            unavailable ? h('div', { class: 'tile-unavailable-badge', title: t('info.originalUnavailable') }, '!')
+              : h('div', { class: 'tile-gps-badge', title: t('tile.hasLocation') }, h('svg', { viewBox: '0 0 16 16', 'aria-hidden': 'true' }, h('circle', { cx: 8, cy: 4.6, r: 2.4, fill: 'none', stroke: 'currentColor', 'stroke-width': 1.5 }), h('path', { d: 'M8 7v6', fill: 'none', stroke: 'currentColor', 'stroke-width': 1.5, 'stroke-linecap': 'round' }), h('ellipse', { cx: 8, cy: 13, rx: 4.6, ry: 1.7, fill: 'none', stroke: 'currentColor', 'stroke-width': 1.3 }))))); // U14: every Places item is located
         }
       }
     }
@@ -731,7 +730,7 @@
     }, [visibleKey, wantMd]);
 
     if (data && data.count === 0) return h('div', { class: 'pa-empty', ref: rootRef },
-      /::kind:videos/.test(filter || '') ? 'No Videos' : 'No Photos'); // M8c.5: matches the view filter
+      /::kind:videos/.test(filter || '') ? t('empty.noVideos') : t('empty.noPhotos')); // M8c.5: matches the view filter
     return h('div', { class: 'pa-root', ref: rootRef, style: { height: total + 'px' },
       onClick: (e) => { if (shared && !e.target.closest('.pa-tile')) S.selectionStore.set(null); } }, children);
   }
@@ -752,10 +751,9 @@
   const S = window.__PhotosStores;
   const WORKER_URL = 'vendor/maplibre/maplibre-gl-csp-worker.js';
   const NEARBY_DEGREES = 0.005; // about 550 m of latitude
-  const isZh = () => false /* M8c.2 (U13): English UI */;
 
   function placeLine(item) {
-    return item ? window.PlaceText.placeLine(item, isZh() ? 'zh-Hans' : 'en') : null;
+    return item ? window.PlaceText.placeLine(item, window.i18n.getLocale()) : null;
   }
   window.__PhotosPlaceLine = placeLine;
 
@@ -810,12 +808,12 @@
         gl.setWorkerUrl(WORKER_URL);
         const theme = window.matchMedia('(prefers-color-scheme: dark)');
         const map = new gl.Map({
-          container: boxRef.current, style: theme.matches ? styles.dark : styles.light,
+          container: boxRef.current, style: window.__PhotosMapStyleFor(theme.matches),
           center: [lng, lat], zoom: 14.5, interactive: false,
           attributionControl: false,
         });
         map.on('error', (e) => console.warn('[map]', e && e.error ? e.error.message : e));
-        const onTheme = () => map.setStyle(theme.matches ? styles.dark : styles.light);
+        const onTheme = () => map.setStyle(window.__PhotosMapStyleFor(theme.matches));
         theme.addEventListener('change', onTheme);
         boxRef.current.addEventListener('click', (ev) => {
           if (ev.target && ev.target.closest && ev.target.closest('a')) ev.preventDefault();
@@ -858,22 +856,21 @@
         clamp(lat + NEARBY_DEGREES, 90), clamp(lng + dLng, 180)].join(',');
       S.viewerStore.close();
       S.sectionStore.set('map');
-      S.mapAreaStore.set({ filter, title: placeLine(shown) || 'Map' });
+      S.mapAreaStore.set({ filter, title: placeLine(shown) || t('places.mapFallbackTitle') });
     }
 
-    const zh = isZh();
     return h('div', {
       class: 'vp-panel', onWheel,
       style: { height: height + 'px', transform: 'translateY(' + (-sheet) + 'px)', visibility: active ? 'visible' : 'hidden' },
     },
       h('div', { class: 'vp-inner' },
         h('div', { class: 'vp-head' },
-          h('span', { class: 'vp-title' }, zh ? '\u5730\u70B9' : 'Places'),
+          h('span', { class: 'vp-title' }, t('places.title')),
           h('span', { class: 'vp-line' }, (shown && placeLine(shown)) || ''),
-          h('button', { class: 'vp-nearby', type: 'button', onClick: openNearby }, zh ? '\u9644\u8FD1\u7167\u7247' : 'Nearby Photos')),
+          h('button', { class: 'vp-nearby', type: 'button', onClick: openNearby }, t('places.nearby'))),
         h('div', { class: 'vp-mapwrap', style: { cursor: 'pointer' }, onClick: openSingle },
           h('div', { class: 'vp-map', ref: boxRef }),
-          !online && h('div', { class: 'vp-offline' }, zh ? '\u79BB\u7EBF\u65F6\u65E0\u6CD5\u663E\u793A\u5730\u56FE' : 'Map unavailable offline'))));
+          !online && h('div', { class: 'vp-offline' }, t('map.offline')))));
   }
 
   window.__PhotosViewerPlaces = ViewerPlaces;

@@ -40,25 +40,26 @@
       h('path', { d: ICON_PATHS[name], fill: 'none', stroke: 'currentColor', 'stroke-width': 1.3, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }));
   }
 
-  const NA = 'Not available: this library is read-only';
-  const LIBRARY = { key: 'library', label: 'Library', icon: 'library', section: 'library' };
+  const t = window.t;
+  const NA = t('readOnly.short');
+  const LIBRARY = { key: 'library', label: t('sidebar.library'), icon: 'library', section: 'library' };
   // B.5: first row of Albums; opens the All Albums overview (albums.js).
-  const ALL_ALBUMS_ITEM = { key: 'albums:all', label: 'All Albums', icon: 'albums', section: 'albums' };
+  const ALL_ALBUMS_ITEM = { key: 'albums:all', label: t('sidebar.allAlbums'), icon: 'albums', section: 'albums' };
   const PINNED = [
-    { key: 'pinned:video', label: 'Videos', icon: 'video', section: 'video' },
-    { key: 'pinned:map', label: 'Map', icon: 'map', section: 'map' },
-    { key: 'pinned:favorites', label: 'Favorites', icon: 'heart', section: 'favorite' }, // M12.3
-    { key: 'pinned:people', label: 'People', icon: 'person', section: 'people' }, // M10
-    { key: 'pinned:deleted', label: 'Recently Deleted', icon: 'trash', disabled: NA },
+    { key: 'pinned:video', label: t('sidebar.videos'), icon: 'video', section: 'video' },
+    { key: 'pinned:map', label: t('sidebar.map'), icon: 'map', section: 'map' },
+    { key: 'pinned:favorites', label: t('sidebar.favorites'), icon: 'heart', section: 'favorite' }, // M12.3
+    { key: 'pinned:people', label: t('sidebar.people'), icon: 'person', section: 'people' }, // M10
+    { key: 'pinned:deleted', label: t('sidebar.recentlyDeleted'), icon: 'trash', disabled: NA },
   ];
   const MEDIA_TYPES = [
-    { key: 'type:video', label: 'Videos', icon: 'video', section: 'video' },
-    { key: 'type:selfie', label: 'Selfies', icon: 'selfie', section: 'selfie' },
-    { key: 'type:live', label: 'Live Photos', icon: 'live', section: 'live' },
-    { key: 'type:panorama', label: 'Panoramas', icon: 'panorama', section: 'panorama' },
-    { key: 'type:burst', label: 'Bursts', icon: 'burst', section: 'burst' },
-    { key: 'type:gif', label: 'Animated', icon: 'gif', section: 'gif' },
-    { key: 'type:raw', label: 'RAW', icon: 'raw', section: 'raw' },
+    { key: 'type:video', label: t('sidebar.videos'), icon: 'video', section: 'video' },
+    { key: 'type:selfie', label: t('sidebar.selfies'), icon: 'selfie', section: 'selfie' },
+    { key: 'type:live', label: t('sidebar.live'), icon: 'live', section: 'live' },
+    { key: 'type:panorama', label: t('sidebar.panoramas'), icon: 'panorama', section: 'panorama' },
+    { key: 'type:burst', label: t('sidebar.bursts'), icon: 'burst', section: 'burst' },
+    { key: 'type:gif', label: t('sidebar.animated'), icon: 'gif', section: 'gif' },
+    { key: 'type:raw', label: t('sidebar.raw'), icon: 'raw', section: 'raw' },
   ];
   // 'More' (Duplicates, disabled) was removed in B.3g: one never-clickable
   // item in its own section added clutter. Duplicates is future work.
@@ -207,10 +208,10 @@
         if (window.__PhotosAlbumContextMenu) window.__PhotosAlbumContextMenu(e, src);
       },
       trailing: src.status !== 'ok'
-        ? h('span', { class: 'sb-trailing sb-missing', title: 'Folder not found. Right-click to relink.' },
+        ? h('span', { class: 'sb-trailing sb-missing', title: t('sidebar.folderMissingTip') },
             h(Icon, { name: 'warning', className: 'sb-trailing-icon' }))
         : (scanningId === src.id
-          ? h('span', { class: 'sb-trailing sb-spinner', title: 'Scanning\u2026', 'aria-label': 'Scanning' })
+          ? h('span', { class: 'sb-trailing sb-spinner', title: t('sidebar.scanningTip'), 'aria-label': t('sidebar.scanningAria') })
           : null),
     }));
     const albumRows = [ALL_ALBUMS_ITEM, ...albumItems];
@@ -228,20 +229,20 @@
     const visibleTypes = counts ? MEDIA_TYPES.filter((t) => counts[t.section] > 0) : [];
     const common = { collapsed, onToggle, renderRow };
 
-    return h('nav', { class: 'sb-nav', 'aria-label': 'Sidebar' },
+    return h('nav', { class: 'sb-nav', 'aria-label': t('sidebar.aria') },
       // B.4: hide toggle at the panel's top-right (absolutely positioned
       // against #sidebar, so it is outside the list's flow).
       h('button', {
         class: 'sb-toggle',
         type: 'button',
-        title: 'Hide Sidebar',
-        'aria-label': 'Hide Sidebar',
+        title: t('sidebar.hide'),
+        'aria-label': t('sidebar.hide'),
         onClick: () => S.sidebarVisibleStore.toggle(),
       }, h(Icon, { name: 'sidebar', className: 'sb-toggle-icon' })),
       h('div', { class: 'sb-items sb-top' }, renderRow(LIBRARY)),
-      h(Section, Object.assign({ id: 'pinned', title: 'Pinned', items: peopleOn ? PINNED : PINNED.filter((x) => x.section !== 'people') }, common)),
-      h(Section, Object.assign({ id: 'types', title: 'Media Types', items: visibleTypes }, common)),
-      h(Section, Object.assign({ id: 'albums', title: 'Albums', items: albumRows }, common)));
+      h(Section, Object.assign({ id: 'pinned', title: t('sidebar.section.pinned'), items: peopleOn ? PINNED : PINNED.filter((x) => x.section !== 'people') }, common)),
+      h(Section, Object.assign({ id: 'types', title: t('sidebar.section.mediaTypes'), items: visibleTypes }, common)),
+      h(Section, Object.assign({ id: 'albums', title: t('sidebar.section.albums'), items: albumRows }, common)));
   }
 
   /**
@@ -299,10 +300,10 @@
       showScan && h('div', { class: 'sb-footer-scan', role: 'status' },
         h('div', { class: 'sb-footer-line' },
           h('span', { class: 'sb-footer-label' }, scanning
-            ? 'Scanning' + (scanName ? ' \u201C' + scanName + '\u201D' : '') + '\u2026'
-            : 'Scan complete'),
+            ? (scanName ? t('sidebar.scanningNamed', { name: scanName }) : t('sidebar.scanning'))
+            : t('sidebar.scanComplete')),
           hasTotal && h('span', { class: 'sb-footer-count' },
-            progress.current.toLocaleString('en-US') + ' of ' + progress.total.toLocaleString('en-US'))),
+            t('sidebar.progress', { current: window.i18n.number(progress.current), total: window.i18n.number(progress.total) }))),
         h('div', { class: 'sb-progress' },
           h('div', {
             class: 'sb-progress-fill' + (pct === null ? ' is-indeterminate' : ''),
@@ -310,16 +311,16 @@
           }))),
       faces && showScan === false && h('div', { class: 'sb-footer-scan', role: 'status' },
         h('div', { class: 'sb-footer-line' },
-          h('span', { class: 'sb-footer-label' }, 'Analyzing faces\u2026'),
+          h('span', { class: 'sb-footer-label' }, t('sidebar.analyzingFaces')),
           h('span', { class: 'sb-footer-count' },
-            faces.current.toLocaleString('en-US') + ' of ' + faces.total.toLocaleString('en-US'))),
+            t('sidebar.progress', { current: window.i18n.number(faces.current), total: window.i18n.number(faces.total) }))),
         h('div', { class: 'sb-progress' },
           h('div', { class: 'sb-progress-fill', style: { width: Math.min(100, Math.round((faces.current / faces.total) * 100)) + '%' } }))),
       notice && h('div', { class: 'sb-footer-notice', role: 'status' },
         h(Icon, { name: 'warning', className: 'sb-footer-icon' }),
         h('div', { class: 'sb-footer-text' }, notice),
         h('button', {
-          class: 'sb-footer-dismiss', type: 'button', title: 'Dismiss', 'aria-label': 'Dismiss',
+          class: 'sb-footer-dismiss', type: 'button', title: t('sidebar.dismiss'), 'aria-label': t('sidebar.dismiss'),
           onClick: () => S.noticeStore.set(null),
         }, '\u00D7')));
   }

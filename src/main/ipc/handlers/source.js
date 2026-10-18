@@ -27,6 +27,7 @@
  */
 
 const db = require('../../index/db');
+const { t } = require('../../i18n'); // M14
 const paths = require('../../paths'); // M8b.6
 const {
   addSourceFolder,
@@ -35,13 +36,27 @@ const {
   relinkSourceFolder,
 } = require('../../index/source-folders');
 
+// M14: the reason texts come from source-folders.js in English; the user sees them in the app language.
+function localizeReason(res) {
+  if (!res || typeof res.reason !== 'string') return res;
+  const r = res.reason;
+  let text = null;
+  if (r === 'Folder not found or not accessible') text = t('source.reason.notFound');
+  else if (r === 'Not a folder') text = t('source.reason.notFolder');
+  else if (r === 'Source folder not found') text = t('source.reason.sourceGone');
+  else if (r.startsWith('Overlaps with an existing source folder: ')) text = t('source.reason.overlap', { path: r.slice('Overlaps with an existing source folder: '.length) });
+  else if (r.startsWith('This folder contains the Photos app')) text = t('source.reason.containsApp');
+  else if (r.startsWith('This folder is part of the Photos app')) text = t('source.reason.insideApp');
+  return text ? Object.assign({}, res, { reason: text }) : res;
+}
+
 // M8b.5: watchers follow the source list immediately.
 function refreshWatchers() { require('../../index/folder-watcher').refresh(); }
 
 async function sourceAdd(event, payload) {
   const res = await addSourceFolder(db.get(), payload.rootPath, { protectedRoots: paths.protectedRoots() });
   if (res && res.added) refreshWatchers();
-  return res;
+  return localizeReason(res);
 }
 
 async function sourceList() {
@@ -51,14 +66,14 @@ async function sourceList() {
 async function sourceRemove(event, payload) {
   const res = removeSourceFolder(db.get(), payload.sourceFolderId);
   if (res && res.removed) refreshWatchers();
-  return res;
+  return localizeReason(res);
 }
 
 async function sourceRelink(event, payload) {
   const res = await relinkSourceFolder(db.get(), payload.sourceFolderId, payload.newRootPath,
     { protectedRoots: paths.protectedRoots() });
   if (res && res.relinked) refreshWatchers();
-  return res;
+  return localizeReason(res);
 }
 
 module.exports = [
