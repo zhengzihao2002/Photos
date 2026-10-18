@@ -1162,13 +1162,57 @@
   }
 
   /** M6 (B.6d): 'Library' + visible date range, shown in All Photos only. */
+  /**
+   * M12.2: toolbar label for the selection ("3 Photos Selected"), or null.
+   * Apple shows it only for two or more items. Whole strings per case for
+   * M14. Counts come from the main process via the ::sel: filter segment,
+   * so Cmd+A on 100,000 items costs one COUNT query; one item needs none.
+   */
+  function selectionLabel(photos, videos) {
+    const n = photos + videos;
+    if (n < 2) return null;
+    const num = n.toLocaleString('en-US');
+    if (videos === 0) return num + ' Photos Selected';
+    if (photos === 0) return num + ' Videos Selected';
+    return num + ' Items Selected';
+  }
+  function useSelectionLabel() {
+    const [label, setLabel] = useState(null);
+    useEffect(() => {
+      let seq = 0;
+      let timer = null;
+      const update = () => {
+        clearTimeout(timer);
+        const mySeq = ++seq;
+        const view = filterStore.get();
+        // Only grids have a selection; Library is the one grid whose filter is null
+        // (the Map page, People overview and Albums overview have none).
+        if (view === null && sectionStore.get() !== 'library') { setLabel(null); return; }
+        const filter = selectionStore.withSelection(view);
+        if (!filter || selectionStore.localCount() === 1) { setLabel(null); return; }
+        timer = setTimeout(() => {
+          window.api.getPhotoVideoCounts({ filter })
+            .then((c) => { if (mySeq === seq) setLabel(selectionLabel(c.photos, c.videos)); })
+            .catch(() => { if (mySeq === seq) setLabel(null); });
+        }, 60);
+      };
+      update();
+      const offSelection = selectionStore.subscribe(update);
+      const offLibrary = libraryChangeStore.subscribe(update);
+      const offSection = sectionStore.subscribe(update);
+      return () => { seq++; clearTimeout(timer); offSelection(); offLibrary(); offSection(); };
+    }, []);
+    return label;
+  }
+
   function LibraryTitle() {
     const [range, setRange] = useState(dateRangeStore.get());
     useEffect(() => dateRangeStore.subscribe(setRange), []);
+    const selLabel = useSelectionLabel(); // M12.2
     return h('div', { style: { display: 'flex', flexDirection: 'column', justifyContent: 'center', lineHeight: 1.2, minWidth: 0 } },
       h('div', { style: { fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)' } }, 'Library'),
       h('div', { style: { fontSize: '12px', fontWeight: 500, color: 'var(--text-primary)', opacity: 0.8, whiteSpace: 'nowrap' } },
-        range ? formatDateRange(range.start, range.end) : '\u00A0'));
+        [range ? formatDateRange(range.start, range.end) : null, selLabel].filter(Boolean).join(' \u00b7 ') || '\u00A0'));
   }
 
   // M6: toolbar titles for collection sections (labels mirror sidebar.js).
@@ -1240,6 +1284,7 @@
       : (section === 'map' && area
         ? (false /* M8c.2 (U13): English UI */ ? '\u5730\u70B9' : 'Places')
         : (SECTION_TITLES[section] || ''));
+    const selLabel = useSelectionLabel(); // M12.2
     const [summary, setSummary] = useState(null);
     useEffect(() => {
       setSummary(null);
@@ -1289,7 +1334,13 @@
         }, '\u2039'),
         titleEl);
     }
-    if (!sourceMatch && section !== 'map' && !(section === 'people' && (person || group))) return titleEl;
+    if (!sourceMatch && section !== 'map' && !(section === 'people' && (person || group))) {
+      // M12.2: media-type views have no second line except the selection label.
+      if (!selLabel) return titleEl;
+      return h('div', { style: { display: 'flex', flexDirection: 'column', justifyContent: 'center', lineHeight: 1.2, minWidth: 0 } },
+        titleEl,
+        h('div', { style: { fontSize: '12px', fontWeight: 500, color: 'var(--text-primary)', opacity: 0.8, whiteSpace: 'nowrap' } }, selLabel));
+    }
 
     const count = (n, one, many) => n.toLocaleString('en-US') + ' ' + (n === 1 ? one : many);
     const parts = [];
@@ -1298,6 +1349,7 @@
       if (summary.videos > 0) parts.push(count(summary.videos, 'Video', 'Videos'));
       if (summary.start && summary.end) parts.push(formatDateRange(summary.start, summary.end));
     }
+    if (selLabel) parts.push(selLabel); // M12.2
     const nameEl = section === 'people' && person
       ? (editingName
         ? h('input', {
