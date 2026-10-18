@@ -34,6 +34,7 @@ const { processDirectoryBatch } = require('./scan-directory-batch');
 const { markMissing, markScanned } = require('./source-folders');
 const { createReverseGeocoder } = require('../places/reverse-geocode');
 const { runPlacePass } = require('../places/place-pass');
+const { reconcileMoves } = require('./reconcile-moves'); // M12.8
 
 // M8b.6: the app's own folders (from the main process) are never walked.
 const EXCLUDE = (workerData && Array.isArray(workerData.protectedRoots)) ? workerData.protectedRoots : [];
@@ -63,6 +64,15 @@ function runPlacePassSafely(db, datasetPath) {
   if (!datasetPath) return { skipped: 'no dataset path' };
   try {
     return runPlacePass(db, createReverseGeocoder(datasetPath));
+  } catch (err) {
+    return { skipped: err.message };
+  }
+}
+
+// M12.8: carry a user's edits over a rename or move; never a reason to fail a scan.
+function reconcileMovesSafely(db, sourceFolderId, now) {
+  try {
+    return reconcileMoves(db, sourceFolderId, now);
   } catch (err) {
     return { skipped: err.message };
   }
@@ -147,6 +157,7 @@ async function run() {
 
     // M7.3: fill place names for new, changed, and not-yet-computed rows.
     aggregate.places = runPlacePassSafely(db, geoDatasetPath);
+    aggregate.moves = reconcileMovesSafely(db, sourceFolderId, now);
 
     markScanned(db, sourceFolderId, now);
 
@@ -260,6 +271,7 @@ async function runScoped() {
     aggregate.vanished = outcomes.filter((o) => o.mode === 'vanished').length;
 
     aggregate.places = runPlacePassSafely(db, geoDatasetPath);
+    aggregate.moves = reconcileMovesSafely(db, sourceFolderId, now);
     markScanned(db, sourceFolderId, now);
     db.pragma('wal_checkpoint(PASSIVE)');
     db.close();
