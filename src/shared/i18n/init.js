@@ -13,6 +13,7 @@
   const i18n = window.I18n.create(catalogs, initial);
   window.i18n = i18n;
   window.t = i18n.t;
+  if (document.title === 'Photos') document.title = i18n.t('app.name');
   document.documentElement.lang = i18n.getLocale() === 'zh-Hans' ? 'zh-Hans' : 'en';
   if (window.api && window.api.onLocaleChanged) {
     window.api.onLocaleChanged(() => { window.location.reload(); });

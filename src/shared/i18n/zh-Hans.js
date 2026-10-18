@@ -1,6 +1,7 @@
 /* M14 catalog. Whole sentences only; plural = {one, other}. Checked by tools/check-i18n.js. */
 (function (root) {
   const catalog = {
+  "about.credits": "与 Apple 无关联，也未获得 Apple 认可。\n\n“照片”只读取你的照片文件夹，绝不会更改它们。唯一用到网络的地方是地图图块。\n\n致谢：地名和地标名称 © GeoNames（CC BY 4.0）。地图 © OpenStreetMap 贡献者、© OpenMapTiles、OpenFreeMap。人脸检测：YuNet（MIT）和 SFace（Apache-2.0），使用 ONNX Runtime（MIT）。MapLibre GL（BSD-3-Clause）、Supercluster（ISC）、Preact（MIT）、sharp 和 libvips、better-sqlite3（MIT）、FFmpeg、Electron（MIT）。完整列表见 THIRD_PARTY_NOTICES.md。",
   "app.name": "照片",
   "badge.live": "实况",
   "badge.pano": "全景",

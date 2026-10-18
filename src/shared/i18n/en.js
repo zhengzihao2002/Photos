@@ -1,6 +1,7 @@
 /* M14 catalog. Whole sentences only; plural = {one, other}. Checked by tools/check-i18n.js. */
 (function (root) {
   const catalog = {
+  "about.credits": "Not affiliated with or endorsed by Apple.\n\nPhotos only reads your photo folders and never changes them. The only network use is map tiles.\n\nCredits: Place and landmark names © GeoNames (CC BY 4.0). Maps © OpenStreetMap contributors, © OpenMapTiles, OpenFreeMap. Face detection: YuNet (MIT) and SFace (Apache-2.0) with ONNX Runtime (MIT). MapLibre GL (BSD-3-Clause), Supercluster (ISC), Preact (MIT), sharp and libvips, better-sqlite3 (MIT), FFmpeg, Electron (MIT). Full list: THIRD_PARTY_NOTICES.md.",
   "app.name": "Photos",
   "badge.live": "LIVE",
   "badge.pano": "PANO",

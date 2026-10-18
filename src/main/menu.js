@@ -207,7 +207,7 @@ function buildMenu(opts = {}) {
 
 /** About panel: name and credits in the active language (called at launch and on a language change). */
 function applyAboutPanel() {
-  app.setAboutPanelOptions({ applicationName: i18n.t('app.name'), applicationVersion: app.getVersion() });
+  app.setAboutPanelOptions({ applicationName: i18n.t('app.name'), applicationVersion: app.getVersion(), credits: i18n.t('about.credits'), copyright: 'Copyright \u00a9 2026 The Photos contributors. MIT License.' });
 }
 
 module.exports = { buildMenu, applyAboutPanel };
