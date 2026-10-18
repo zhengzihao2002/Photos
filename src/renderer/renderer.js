@@ -1173,7 +1173,7 @@
   function formatDateRange(start, end) {
     const parse = (d) => { const p = d.split('-').map(Number); return new Date(Date.UTC(p[0], p[1] - 1, p[2])); };
     const a = parse(start); const b = parse(end);
-    const fmt = new Intl.DateTimeFormat(window.i18n.intlLocale(), { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' });
+    const fmt = new Intl.DateTimeFormat(window.i18n.intlLocale(), { year: 'numeric', month: window.i18n.getLocale() === 'zh-Hans' ? 'long' : 'short', day: 'numeric', timeZone: 'UTC' });
     try { return start === end ? fmt.format(a) : fmt.formatRange(a, b); } catch (err) { return fmt.format(a); }
   }
 
