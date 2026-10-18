@@ -49,7 +49,8 @@ const BURST_ELIGIBLE_SOURCES = new Set(['exif_original', 'exif_create']);
 // migration 9). History: 1 = before video GPS; 2 = video GPS from container
 // location tags + GPS plausibility. Bump this and add a rule to
 // needsReextraction when an extractor change must reach existing rows.
-const CURRENT_EXTRACTION_VERSION = 2;
+const CURRENT_EXTRACTION_VERSION = 3; // M12.4: 3 = embedded title/caption/keywords, exposure bias, 35 mm focal length
+const EMBEDDED_TEXT_EXTRACTION_VERSION = 3;
 const VIDEO_GPS_EXTRACTION_VERSION = 2;
 
 // M1 patch (A.4): an unchanged file is still re-extracted when its stored
@@ -63,6 +64,8 @@ const HEIF_EXTENSIONS = new Set(['heic', 'heif']);
 const CAPTURE_LOCAL_PATTERN = /^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})/;
 
 function needsReextraction(row) {
+  // M12.4: rows extracted before embedded text / exposure fields existed. Resumable: the re-extract stamps version 3.
+  if ((row.extraction_version || 0) < EMBEDDED_TEXT_EXTRACTION_VERSION) return true;
   // M7.2: videos extracted before video GPS existed. Resumable: the
   // re-extract stamps the current version whether or not GPS is found.
   if (row.media_type === 'video' && (row.extraction_version || 0) < VIDEO_GPS_EXTRACTION_VERSION) return true;
@@ -281,17 +284,20 @@ async function processDirectoryBatch({ db, stmts, sourceFolderId, sourceRootPath
 
       if (entry.mode === 'new') {
         const id = stmts.insertItem({ ...fullFields, created_at: now });
+        stmts.setFileKeywords(id, entry.keywords_file); // M12.4
         summary.inserted += 1;
         return id;
       }
 
       stmts.updateItemFull(entry.id, fullFields);
+      stmts.setFileKeywords(entry.id, entry.keywords_file); // M12.4
       summary.updated += 1;
       return entry.id;
     }
   });
 
   runTransaction();
+  try { stmts.pruneKeywords(); } catch (err) { /* housekeeping only */ } // M12.4
 
   return { summary, errors };
 }

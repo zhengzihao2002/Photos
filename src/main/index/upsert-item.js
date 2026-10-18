@@ -116,6 +116,23 @@ function createUpsertStatements(db) {
     updateGroupingStmt.run({ ...groupingFields, id, updated_at: updatedAt });
   }
 
+  // M12.4: keywords read from the file (origin 0). Replaces only this item's
+  // origin-0 rows; user keywords (origin 1) are never touched.
+  const delFileKeywordsStmt = db.prepare('DELETE FROM item_keywords WHERE item_id = ? AND origin = 0');
+  const insKeywordStmt = db.prepare('INSERT OR IGNORE INTO keywords (name) VALUES (?)');
+  const getKeywordStmt = db.prepare('SELECT id FROM keywords WHERE name = ?');
+  const insItemKeywordStmt = db.prepare('INSERT OR IGNORE INTO item_keywords (item_id, keyword_id, origin) VALUES (?, ?, 0)');
+  const pruneKeywordsStmt = db.prepare('DELETE FROM keywords WHERE id NOT IN (SELECT DISTINCT keyword_id FROM item_keywords)');
+  function setFileKeywords(itemId, names) {
+    delFileKeywordsStmt.run(itemId);
+    for (const name of names || []) {
+      insKeywordStmt.run(name);
+      const row = getKeywordStmt.get(name);
+      if (row) insItemKeywordStmt.run(itemId, row.id);
+    }
+  }
+  function pruneKeywords() { return pruneKeywordsStmt.run().changes; }
+
   function sweepDeletions(sourceFolderId, scanStartedAt, now) {
     const result = sweepDeletionsStmt.run({ sourceFolderId, scanStartedAt, now });
     return result.changes;
@@ -126,6 +143,8 @@ function createUpsertStatements(db) {
     insertItem,
     updateItemFull,
     updateItemGrouping,
+    setFileKeywords,
+    pruneKeywords,
     sweepDeletions,
     sweepDeletionsScoped,
   };
