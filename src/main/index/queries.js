@@ -32,6 +32,8 @@ const FILTER_CLAUSES = {
   // Equality (not 'burst_id IS NOT NULL') so idx_items_burst_cover (migration
   // 8) is used; same rows under BASE_CLAUSE: burst covers only.
   burst: 'is_burst_cover = 1',
+  // M12.3: must stay textually identical to idx_items_favorite's term.
+  favorite: 'is_favorite = 1',
 };
 
 // M6 Folders: 'source:<id>' filters to one source folder. The id is
@@ -430,6 +432,7 @@ function getAreaSections(db, { filter = null } = {}) {
 }
 
 module.exports = {
+  buildFilterSql, // M12.3: used by edits.js
   getAreaSections,
   getMapPoints,
   getItemIndex,

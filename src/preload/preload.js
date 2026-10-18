@@ -72,6 +72,14 @@ contextBridge.exposeInMainWorld('api', {
   getReextractionCounts: () => ipcRenderer.invoke('library:get-reextraction-counts'),
   getMediaTypeCounts: () => ipcRenderer.invoke('library:get-media-type-counts'),
   getPhotoVideoCounts: (payload) => ipcRenderer.invoke('library:get-photo-video-counts', payload),
+  // M12.3: favorites (database only). Target = { filter } or { ids }.
+  setFavorite: (payload) => ipcRenderer.invoke('edits:set-favorite', payload),
+  // M12: fired after any user edit; { kind }.
+  onLibraryEdited: (cb) => {
+    const listener = (event, payload) => cb(payload);
+    ipcRenderer.on('library:edited', listener);
+    return () => ipcRenderer.removeListener('library:edited', listener);
+  },
   // M12.2: Edit > Select All (custom menu item); the renderer decides text vs. grid.
   onMenuSelectAll: (cb) => {
     const listener = () => cb();
