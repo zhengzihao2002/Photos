@@ -3023,6 +3023,19 @@
     e.preventDefault();
     toggleFavoriteForSelection();
   });
+  // M12.9: Edit > Undo / Redo. A focused text field keeps its own text undo.
+  function inTextField() {
+    const el = document.activeElement;
+    return !!el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable);
+  }
+  if (window.api.onMenuUndo) window.api.onMenuUndo(() => {
+    if (inTextField()) { document.execCommand('undo'); return; }
+    window.api.undoEdit().catch(() => {});
+  });
+  if (window.api.onMenuRedo) window.api.onMenuRedo(() => {
+    if (inTextField()) { document.execCommand('redo'); return; }
+    window.api.redoEdit().catch(() => {});
+  });
   if (window.api.onMenuFavorite) window.api.onMenuFavorite(() => {
     if (viewerStore.get() !== null && window.__PhotosViewerToggleFavorite) window.__PhotosViewerToggleFavorite();
     else toggleFavoriteForSelection();

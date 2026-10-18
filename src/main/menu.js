@@ -90,8 +90,29 @@ function buildMenu(opts = {}) {
     {
       label: 'Edit',
       submenu: [
-        { role: 'undo' },
-        { role: 'redo' },
+        {
+          // M12.9: Undo / Redo of favorite, title, caption and keyword edits. The main
+          // window's page decides (a focused text field keeps its own text undo);
+          // other windows and DevTools keep the native action.
+          label: 'Undo',
+          accelerator: 'CmdOrCtrl+Z',
+          click: (menuItem, browserWindow) => {
+            if (!browserWindow) return;
+            const wc = browserWindow.webContents;
+            if (wc.isDevToolsFocused() && wc.devToolsWebContents) { wc.devToolsWebContents.undo(); return; }
+            if (/\/index\.html(?:[?#]|$)/.test(wc.getURL())) wc.send('menu:undo'); else wc.undo();
+          },
+        },
+        {
+          label: 'Redo',
+          accelerator: 'Shift+CmdOrCtrl+Z',
+          click: (menuItem, browserWindow) => {
+            if (!browserWindow) return;
+            const wc = browserWindow.webContents;
+            if (wc.isDevToolsFocused() && wc.devToolsWebContents) { wc.devToolsWebContents.redo(); return; }
+            if (/\/index\.html(?:[?#]|$)/.test(wc.getURL())) wc.send('menu:redo'); else wc.redo();
+          },
+        },
         { type: 'separator' },
         { role: 'cut' },
         { role: 'copy' },

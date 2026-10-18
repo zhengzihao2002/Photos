@@ -83,6 +83,8 @@ contextBridge.exposeInMainWorld('api', {
   setFavorite: (payload) => ipcRenderer.invoke('edits:set-favorite', payload),
   setTitle: (payload) => ipcRenderer.invoke('edits:set-title', payload),
   undoEdit: () => ipcRenderer.invoke('edits:undo'), // M12.9
+  onMenuUndo: (cb) => { const l = () => cb(); ipcRenderer.on('menu:undo', l); return () => ipcRenderer.removeListener('menu:undo', l); },
+  onMenuRedo: (cb) => { const l = () => cb(); ipcRenderer.on('menu:redo', l); return () => ipcRenderer.removeListener('menu:redo', l); },
   redoEdit: () => ipcRenderer.invoke('edits:redo'), // M12.9
   setInfoEditing: (editing) => ipcRenderer.invoke('info:set-editing', { editing: Boolean(editing) }), // M12.4
   setCaption: (payload) => ipcRenderer.invoke('edits:set-caption', payload),
