@@ -119,6 +119,8 @@ function buildFilterSql(filter) {
         const kind = seg.slice('kind:'.length);
         if (!Object.prototype.hasOwnProperty.call(KIND_CLAUSES, kind)) throw new Error(`Unknown kind: ${kind}`);
         sql += ' AND ' + KIND_CLAUSES[kind];
+      } else if (seg === 'fav:1') {
+        sql += ' AND is_favorite = 1'; // M12.3: 'selection AND favorite' counts
       } else if (seg.startsWith('sel:')) {
         // M12.2: grid selection token, strictly validated in selection-sql.js.
         sql += ' AND ' + buildSelectionClause(seg.slice('sel:'.length));

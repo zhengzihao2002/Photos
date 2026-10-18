@@ -1587,6 +1587,69 @@
       }, icon('M4 8h8 M8 4v8')));
   }
 
+  // ── M12.3 favorites: one shared path for toolbar heart, period key, menu, viewer ──
+  // The selection as a grid filter (null when nothing is selected or the page has no grid).
+  function selectionTargetFilter() {
+    const view = filterStore.get();
+    if (view === null && sectionStore.get() !== 'library') return null;
+    return selectionStore.withSelection(view);
+  }
+  // 'disabled' (nothing selected) | 'on' (every selected item is a favorite) | 'off'.
+  async function favoriteState() {
+    const f = selectionTargetFilter();
+    if (!f) return 'disabled';
+    const [all, fav] = await Promise.all([
+      window.api.getPhotoVideoCounts({ filter: f }),
+      window.api.getPhotoVideoCounts({ filter: f + '::fav:1' }),
+    ]);
+    const n = all.photos + all.videos;
+    const k = fav.photos + fav.videos;
+    return n === 0 ? 'disabled' : (k === n ? 'on' : 'off');
+  }
+  // Favorites every selected item, or unfavorites all if all are favorites (Apple).
+  async function toggleFavoriteForSelection() {
+    const f = selectionTargetFilter();
+    if (!f) return;
+    try {
+      const state = await favoriteState();
+      await window.api.setFavorite({ target: { filter: f }, value: state !== 'on' });
+    } catch (err) { noticeStore.set('Could not change favorites: ' + err.message); }
+  }
+  window.__PhotosToggleFavoriteForSelection = toggleFavoriteForSelection;
+
+  function FavoriteButton() {
+    const [state, setState] = useState('disabled');
+    useEffect(() => {
+      let seq = 0;
+      let timer = null;
+      const update = () => {
+        clearTimeout(timer);
+        const mine = ++seq;
+        timer = setTimeout(() => {
+          favoriteState().then((s) => { if (mine === seq) setState(s); })
+            .catch(() => { if (mine === seq) setState('disabled'); });
+        }, 60);
+      };
+      update();
+      const offs = [selectionStore.subscribe(update), libraryChangeStore.subscribe(update), sectionStore.subscribe(update)];
+      return () => { seq++; clearTimeout(timer); offs.forEach((off) => off()); };
+    }, []);
+    const on = state === 'on';
+    const disabled = state === 'disabled';
+    return h('button', {
+      type: 'button', title: on ? 'Unfavorite' : 'Favorite', 'aria-label': 'Favorite', disabled,
+      onClick: async () => { setState(on ? 'off' : 'on'); await toggleFavoriteForSelection(); },
+      style: {
+        WebkitAppRegion: 'no-drag', width: '34px', height: '28px', border: 'none', borderRadius: '14px',
+        cursor: disabled ? 'default' : 'pointer', opacity: disabled ? 0.35 : 1,
+        background: 'var(--control-bg, rgba(128,128,128,0.18))', color: 'var(--text-primary)', padding: 0,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      },
+    }, h('svg', { viewBox: '0 0 16 16', width: 16, height: 16, 'aria-hidden': 'true' },
+      h('path', { d: 'M8 13.5s-5.5-3.2-5.5-7a2.8 2.8 0 0 1 5.5-.9 2.8 2.8 0 0 1 5.5.9c0 3.8-5.5 7-5.5 7z',
+        fill: on ? 'currentColor' : 'none', stroke: 'currentColor', 'stroke-width': 1.3, 'stroke-linejoin': 'round' })));
+  }
+
   function Toolbar() {
     const [value, setValue] = useState(TARGET_ROW_HEIGHT_DEFAULT);
     const [mode, setMode] = useState(modeStore.get());
@@ -1670,6 +1733,10 @@
       columnsStore.set(GRID_COLUMNS_MIN + GRID_COLUMNS_MAX - Number(e.target.value));
     }
 
+    // M12.3: the heart belongs to every view that shows a photo grid.
+    const hasGrid = (section === 'library' ? mode === 'all' : true) && section !== 'albums'
+      && !(section === 'map' && !mapArea) && !(section === 'people' && !personSel && !groupOpen)
+      && !(section === 'people' && personSel && personViewSel === 'review');
     return h(Fragment, null,
       h(SidebarToggleButton),
       section === 'library' && mode === 'all' && h(LibraryTitle),
@@ -1678,6 +1745,7 @@
       section !== 'albums' && section !== 'map' && !(section === 'people' && !personSel) && h(SearchField),
       section === 'map' && mapArea && h('div', { style: { flex: '1 1 auto' } }),
       ((section === 'library' && mode === 'all') || /^source:\d+$/.test(section) || (section === 'map' && mapArea) || (section === 'people' && personSel && personViewSel !== 'review') || (section === 'people' && groupOpen)) && h(ViewFilterButton),
+      hasGrid && h(FavoriteButton), // M12.3
       section === 'people' && !personSel && !addSel && !groupOpen && h('div', { style: { flex: '1 1 auto' } }),
       section === 'people' && !personSel && !addSel && !groupOpen && h('button', {
         type: 'button', title: 'Add People', onClick: () => addPeopleStore.set(true),
@@ -2944,6 +3012,16 @@
       if (typeof window.__PhotosGridSelectAll === 'function') window.__PhotosGridSelectAll();
     });
   }
+  // M12.3: the period key toggles the selection's favorite state (Apple). Ignored
+  // while typing and while the viewer is open (the viewer's own heart comes later).
+  window.addEventListener('keydown', (e) => {
+    if (e.key !== '.' || e.metaKey || e.ctrlKey || e.altKey || e.repeat) return;
+    const t = e.target;
+    if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+    if (viewerStore.get() !== null) return;
+    e.preventDefault();
+    toggleFavoriteForSelection();
+  });
   window.__PhotosStores = { selectionStore, viewerStore, navigationStore, modeStore, libraryChangeStore, sectionStore, filterStore, sidebarVisibleStore, scanStatusStore, noticeStore, progressStore, columnsStore, searchStore, kindStore, mapAreaStore, missingSourcesStore, personStore, peopleChangeStore, personViewStore, faceDisplayStore, addPeopleStore, groupStore, peopleEnabledStore };
   // M8c.2b: tell the Info window which item to show -- the item open in the
   // viewer, otherwise the grid selection, otherwise none. Sent only on change.
