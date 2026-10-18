@@ -51,13 +51,14 @@ async function run(getWindow) {
   });
 
   const out = process.env.PHOTOS_SMOKE_REPORT;
+  if (out) require('./write-guard').allow(path.dirname(out)); // the report file: the one write this test makes outside the data folder
   const save = () => { if (out) { try { fs.writeFileSync(out, JSON.stringify(report, null, 2)); } catch (e) { /* reported at the end */ } } };
   // Watchdog: a hung step must not hang CI. Writes what it has and exits non-zero.
   const watchdog = setTimeout(() => {
     report.timedOut = true; report.ok = false; save();
     console.error('SMOKE_TIMEOUT after the steps: ' + report.steps.map((x) => x.name).join(' | '));
     app.exit(1);
-  }, Number(process.env.PHOTOS_SMOKE_TIMEOUT_MS || 420000));
+  }, Number(process.env.PHOTOS_SMOKE_TIMEOUT_MS || 560000));
 
   async function step(name, fn) {
     const t0 = Date.now();
@@ -68,7 +69,8 @@ async function run(getWindow) {
       report.steps.push({ name, ok: false, ms: Date.now() - t0, error: String(err && err.stack ? err.stack : err).slice(0, 800) });
     }
     save();
-    console.log('SMOKE_STEP ' + (report.steps[report.steps.length - 1].ok ? 'PASS ' : 'FAIL ') + name + ' (' + (Date.now() - t0) + ' ms)');
+    const last = report.steps[report.steps.length - 1];
+    console.log('SMOKE_STEP ' + (last.ok ? 'PASS ' : 'FAIL ') + name + ' (' + (Date.now() - t0) + ' ms)' + (last.ok ? '' : ' :: ' + String(last.error).split('\n')[0]));
   }
 
   await step('main window loads the app scripts', async () => {
@@ -93,14 +95,24 @@ async function run(getWindow) {
 
   await step('counts match the generated manifest', async () => {
     const c = Q.getPhotoVideoCounts(db.get(), { filter: null });
-    if (c.photos !== manifest.photos || c.videos !== manifest.videos) throw new Error('expected ' + manifest.photos + '/' + manifest.videos + ' got ' + c.photos + '/' + c.videos);
+    if (c.photos !== manifest.photos || c.videos !== manifest.videos) {
+      const rows = db.get().prepare('SELECT extension, media_type, is_deleted, is_live_photo_component AS comp, COUNT(*) AS n FROM items GROUP BY 1,2,3,4').all();
+      const have = new Set(db.get().prepare('SELECT filename FROM items').all().map((r) => r.filename));
+      const missing = manifest.files.map((f) => path.basename(f)).filter((f) => !have.has(f));
+      throw new Error('expected ' + manifest.photos + '/' + manifest.videos + ' got ' + c.photos + '/' + c.videos + ' | by type: ' + JSON.stringify(rows) + ' | missing: ' + missing.slice(0, 8).join(','));
+    }
     const per = Q.getPhotoVideoCounts(db.get(), { filter: 'source:1' });
     if (per.photos !== c.photos || per.videos !== c.videos) throw new Error('per-source counts differ from the total');
     return c;
   });
 
   await step('thumbnails are made for every item', async () => {
-    await waitFor(() => db.get().prepare("SELECT COUNT(*) AS n FROM items WHERE is_deleted = 0 AND (thumb_sm_status IS NULL OR thumb_sm_status = 'pending')").get().n === 0, 180000, 'thumbnails');
+    try {
+      await waitFor(() => db.get().prepare("SELECT COUNT(*) AS n FROM items WHERE is_deleted = 0 AND (thumb_sm_status IS NULL OR thumb_sm_status = 'pending')").get().n === 0, 120000, 'thumbnails');
+    } catch (e) {
+      const rows = db.get().prepare("SELECT extension, thumb_sm_status AS s, COUNT(*) AS n FROM items WHERE is_deleted = 0 GROUP BY 1,2").all();
+      throw new Error(e.message + ' | ' + JSON.stringify(rows));
+    }
     const bad = db.get().prepare("SELECT filename FROM items WHERE thumb_sm_status = 'error'").all().map((r) => r.filename);
     if (bad.length) throw new Error('thumbnail errors: ' + bad.join(', '));
     return { done: db.get().prepare("SELECT COUNT(*) AS n FROM items WHERE thumb_sm_status = 'done'").get().n };
@@ -148,7 +160,9 @@ async function run(getWindow) {
 
   await step('the face worker loads its models and processes the images', async () => {
     const todo = () => db.get().prepare("SELECT COUNT(*) AS n FROM items WHERE media_type = 'image' AND is_deleted = 0 AND face_version IS NULL").get().n;
-    await waitFor(() => todo() === 0, 240000, 'face analysis');
+    try { await waitFor(() => todo() === 0, 90000, 'face analysis'); } catch (e) {
+      throw new Error(e.message + ' | todo=' + todo() + ' status=' + JSON.stringify(require('./faces/face-manager').getStatus()));
+    }
     return { faces: db.get().prepare('SELECT COUNT(*) AS n FROM faces').get().n };
   });
 

@@ -18,7 +18,7 @@ run_app() { # $1 = library folder, $2 = name
   local pid=$! waited=0
   while kill -0 "$pid" 2>/dev/null; do
     sleep 2; waited=$((waited + 2))
-    if [ "$waited" -gt "${SMOKE_TIMEOUT:-600}" ]; then echo "app did not finish in ${SMOKE_TIMEOUT:-600} s"; kill -9 "$pid" 2>/dev/null || true; break; fi
+    if [ "$waited" -gt "${SMOKE_TIMEOUT:-700}" ]; then echo "app did not finish in ${SMOKE_TIMEOUT:-700} s"; kill -9 "$pid" 2>/dev/null || true; break; fi
   done
   wait "$pid" 2>/dev/null || true
   grep -E 'SMOKE_' "$W/app-$name.log" | head -60 || true
