@@ -32,23 +32,24 @@ function getSelectionSummary(db, { filter }) {
   const count = a.count || 0;
   if (count === 0) {
     return { count: 0, photos: 0, videos: 0, firstTime: null, lastTime: null, totalBytes: 0,
-      favorite: 'none', title: null, caption: null, sharedKeywords: [], points: { ids: [], lats: [], lngs: [] } };
+      favorite: 'none', title: null, caption: null, keywords: [], points: { ids: [], lats: [], lngs: [] } };
   }
   const favorite = a.favs === 0 ? 'none' : (a.favs === count ? 'all' : 'mixed');
   const title = sharedValue(db, where, SHOWN_TITLE, count);
   const caption = sharedValue(db, where, SHOWN_CAPTION, count);
-  const sharedKeywords = db.prepare(
+  // Apple shows every keyword of any selected item (union), most common first.
+  const keywords = db.prepare(
     'SELECT k.name AS name FROM item_keywords ik JOIN keywords k ON k.id = ik.keyword_id '
     + 'JOIN items ON items.id = ik.item_id AND ik.origin = items.keywords_user_owned '
-    + 'WHERE ' + where.replace(/\b(is_deleted|is_live_photo_component|burst_id|is_burst_cover|media_type|source_folder_id|has_gps|gps_latitude|gps_longitude|is_favorite|capture_time_local|id|filename|title_user|title_file|caption_user|caption_file|is_raw|is_gif|is_panorama|is_live_photo|lens_model)\b/g, 'items.$1')
-    + ' GROUP BY k.id HAVING COUNT(*) = ' + count + ' ORDER BY k.name COLLATE NOCASE'
+    + 'WHERE items.id IN (SELECT id FROM items WHERE ' + where + ') '
+    + 'GROUP BY k.id ORDER BY COUNT(*) DESC, k.name COLLATE NOCASE LIMIT 100'
   ).all().map((r) => r.name);
   const pts = db.prepare(
     'SELECT id, gps_latitude, gps_longitude FROM items WHERE has_gps = 1 AND ' + where + ' LIMIT ' + MAX_POINTS
   ).raw().all();
   return {
     count, photos: a.photos || 0, videos: a.videos || 0, firstTime: a.firstTime, lastTime: a.lastTime,
-    totalBytes: a.totalBytes, favorite, title, caption, sharedKeywords,
+    totalBytes: a.totalBytes, favorite, title, caption, keywords,
     points: { ids: pts.map((r) => r[0]), lats: pts.map((r) => r[1]), lngs: pts.map((r) => r[2]) },
   };
 }

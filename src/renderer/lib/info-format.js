@@ -21,6 +21,11 @@
     return d.toLocaleString('en-US', { year: 'numeric', month: 'long', day: 'numeric',
       hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true });
   }
+  // M12.6: 'M/D/YYYY' from capture_time_local, for the summary's date range.
+  function shortDate(s) {
+    const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(s || '');
+    return m ? (+m[2]) + '/' + (+m[3]) + '/' + m[1] : null;
+  }
   function cameraName(make, model) {
     make = (make || '').trim(); model = (model || '').trim();
     if (!make && !model) return null;
@@ -85,7 +90,7 @@
   }
 
   window.InfoFormat = {
-    dateTime, cameraName, exposureCells, bytes, dims, formatBadge, coords, duration, placeLine,
+    dateTime, shortDate, cameraName, exposureCells, bytes, dims, formatBadge, coords, duration, placeLine,
     dateNote: (source) => DATE_SOURCE_NOTE[source] || null,
   };
 })();

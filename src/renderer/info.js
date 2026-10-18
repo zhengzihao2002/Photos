@@ -108,7 +108,42 @@
     return h('div', { className }, multiline ? h('textarea', Object.assign({ rows: 1 }, common)) : h('input', Object.assign({ type: 'text' }, common)));
   }
 
+  // M12.6: Info for two or more selected items (Apple's summary).
+  function SummaryView({ s }) {
+    const n = s.count.toLocaleString('en-US');
+    const heading = s.videos === 0 ? n + ' Photos' : (s.photos === 0 ? n + ' Videos' : n + ' Items');
+    const a = F.shortDate(s.firstTime), b = F.shortDate(s.lastTime);
+    const range = a && b ? (a === b ? a : a + ' \u2013 ' + b) : '';
+    return h('div', null,
+      h('div', { className: 'info-head' },
+        h('div', { className: 'info-head-text' },
+          h('div', { className: 'info-name' }, heading),
+          range && h('div', { className: 'info-date' }, range),
+          h('div', { className: 'info-date' }, F.bytes(s.totalBytes) || '-'))),
+      h('div', { className: 'info-field' + (s.title ? ' has-value' : '') },
+        s.title === 'mixed' ? 'Multiple Titles' : (s.title || 'Add a Title')),
+      h('div', { className: 'info-field' + (s.caption && s.caption !== 'mixed' ? ' has-value' : '') },
+        s.caption === 'mixed' ? 'Multiple Captions' : (s.caption || 'Add a Caption')),
+      h('div', { className: 'info-field info-kw' + (s.keywords.length ? ' has-value' : '') },
+        s.keywords.length ? s.keywords.map((k) => h('span', { key: k, className: 'info-token' }, k)) : 'Add Keywords'),
+      h('div', { className: 'info-place' + (s.points.ids.length ? '' : ' is-empty') }, s.points.ids.length ? (s.points.ids.length === s.count ? 'Locations' : 'Multiple Locations') : 'Assign Location'));
+  }
+
   function Info() {
+    const [selection, setSelection] = useState(null);
+    const [summary, setSummary] = useState(null);
+    useEffect(() => {
+      window.api.getInfoState().then((st) => setSelection(st && st.selection ? st.selection : null)).catch(() => {});
+      return window.api.onInfoSelection((p) => setSelection(p && p.filter ? p.filter : null));
+    }, []);
+    useEffect(() => {
+      if (!selection) { setSummary(null); return undefined; }
+      let live = true;
+      const load = () => window.api.getSelectionSummary(selection).then((r) => { if (live) setSummary(r); }).catch(() => { if (live) setSummary(null); });
+      load();
+      const off = window.api.onLibraryEdited ? window.api.onLibraryEdited(load) : null;
+      return () => { live = false; if (typeof off === 'function') off(); };
+    }, [selection]);
     const [itemId, setItemId] = useState(null);
     const [item, setItem] = useState(null);
     const [loaded, setLoaded] = useState(false);
@@ -187,6 +222,7 @@
       return () => ro.disconnect();
     }, []);
 
+    if (selection && summary && summary.count > 1) return h(SummaryView, { s: summary }); // M12.6
     if (!loaded) return h('div', { className: 'info-empty' }, '\u00a0');
     if (!item) return h('div', { className: 'info-empty' }, 'No Selection');
 
