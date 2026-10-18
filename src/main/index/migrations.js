@@ -347,6 +347,43 @@ const migrations = [
       db.exec('CREATE INDEX IF NOT EXISTS idx_items_favorite ON items (capture_time_local) WHERE is_favorite = 1 AND is_deleted = 0 AND is_live_photo_component = 0;');
     },
   },
+  {
+    // M12.4 / M12.7: title, caption, keywords, exposure bias, 35 mm focal length.
+    // *_file and exposure columns are written only by the extractor; *_user and
+    // keywords_user_owned only by the user's own edits (a rescan never touches
+    // them). title_user / caption_user: NULL = never edited, '' = cleared by
+    // the user. item_keywords.origin: 0 = from the file, 1 = from the user.
+    // Guarded so a re-run is harmless.
+    version: 15,
+    up: (db) => {
+      const existing = new Set(db.prepare('PRAGMA table_info(items)').all().map((c) => c.name));
+      const columns = [
+        ['title_file', 'TEXT'],
+        ['caption_file', 'TEXT'],
+        ['title_user', 'TEXT'],
+        ['caption_user', 'TEXT'],
+        ['keywords_user_owned', 'INTEGER NOT NULL DEFAULT 0'],
+        ['exposure_bias_ev', 'REAL'],
+        ['focal_length_35mm', 'REAL'],
+      ];
+      for (const [name, type] of columns) {
+        if (!existing.has(name)) db.exec('ALTER TABLE items ADD COLUMN ' + name + ' ' + type + ';');
+      }
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS keywords (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          name TEXT NOT NULL UNIQUE COLLATE NOCASE
+        );
+        CREATE TABLE IF NOT EXISTS item_keywords (
+          item_id INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE,
+          keyword_id INTEGER NOT NULL REFERENCES keywords(id) ON DELETE CASCADE,
+          origin INTEGER NOT NULL DEFAULT 0,
+          PRIMARY KEY (item_id, keyword_id, origin)
+        ) WITHOUT ROWID;
+        CREATE INDEX IF NOT EXISTS idx_item_keywords_keyword ON item_keywords (keyword_id, item_id);
+      `);
+    },
+  },
 ];
 
 module.exports = { migrations };
