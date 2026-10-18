@@ -134,7 +134,7 @@ async function main() {
     const lat = Number(c[4]); const lng = Number(c[5]);
     if (!Number.isFinite(lat) || !Number.isFinite(lng) || !c[1]) return;
     cand.set(c[0], { id: Number(c[0]), name: c[1], lat, lng, code: c[7], cc: c[8], radius: spec[0], needsLink: spec[1],
-      langs: new Set(), linked: false, enPref: null, zh: '', zhScore: 0 });
+      langs: '', nLangs: 0, linked: false, enPref: null, zh: '', zhScore: 0 });
   });
   console.log('rows scanned:', scanned, '| candidates:', cand.size);
 
@@ -150,7 +150,8 @@ async function main() {
     if (lang === 'link') { if (c[3] && c[3].indexOf('wikipedia.org') !== -1) r.linked = true; return; }
     if (!lang || lang.length > 7 || lang === 'post' || lang === 'iata' || lang === 'icao' || lang === 'faac' || lang === 'abbr'
       || lang === 'wkdt' || lang === 'unlc' || lang === 'tcid' || lang === 'phon' || lang === 'fr_1793' || lang === 'lang') return;
-    r.langs.add(lang.split('-')[0]);
+    const base = ' ' + lang.split('-')[0] + ' ';
+    if (r.langs.indexOf(base) === -1) { r.langs += base; r.nLangs += 1; } // string, not a Set: millions of records
     if (lang === 'en' && c[4] === '1' && c[6] !== '1' && c[7] !== '1') r.enPref = c[3];
     const zr = ZH_RANK[lang];
     if (zr && HAN.test(c[3] || '') && c[6] !== '1' && c[7] !== '1') {
@@ -162,9 +163,9 @@ async function main() {
   // Filter on notability, dedupe.
   const kept = [];
   for (const r of cand.values()) {
-    const notable = r.linked || (!r.needsLink && r.langs.size >= MIN_LANGUAGES);
+    const notable = r.linked || (!r.needsLink && r.nLangs >= MIN_LANGUAGES);
     if (!notable) continue;
-    r.rank = Math.min(255, (r.linked ? 10 : 0) + r.langs.size);
+    r.rank = Math.min(255, (r.linked ? 10 : 0) + r.nLangs);
     kept.push(r);
   }
   kept.sort((a, b) => b.rank - a.rank || a.id - b.id);

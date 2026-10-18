@@ -68,7 +68,7 @@ jobs:
       - uses: actions/setup-node@v4.4.0
         with:
           node-version: '24'
-      - run: node tools/build-landmarks-dataset.js
+      - run: node --max-old-space-size=5000 tools/build-landmarks-dataset.js
       - run: ls -l resources/geo
       - name: Commit the dataset
         run: |

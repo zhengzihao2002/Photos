@@ -78,6 +78,7 @@ function defaultConfig() {
     people: {
       enabled: true,      // M10.8: People face analysis (Apple default: on)
     },
+    language: null,       // M14: 'en' | 'zh-Hans'; null = follow the Mac's language until the user chooses
   };
 }
 
@@ -130,6 +131,7 @@ function normalize(raw) {
     people: {
       enabled: typeof raw.people?.enabled === 'boolean' ? raw.people.enabled : defaults.people.enabled,
     },
+    language: raw.language === 'en' || raw.language === 'zh-Hans' ? raw.language : null,
   };
 }
 
