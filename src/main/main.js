@@ -120,7 +120,8 @@ function createMainWindow() {
     },
   });
 
-  mainWindow.once('ready-to-show', () => mainWindow.show());
+  // CI smoke run (smoke.js, only when PHOTOS_SMOKE is set): the window stays hidden.
+  mainWindow.once('ready-to-show', () => { if (!process.env.PHOTOS_SMOKE) mainWindow.show(); });
   mainWindow.on('resize', scheduleSaveWindowState);
   mainWindow.on('move', scheduleSaveWindowState);
   mainWindow.on('close', saveWindowStateNow);
@@ -198,6 +199,10 @@ app.whenReady().then(() => {
   folderWatcher.refresh();
   require('./index/scan-queue').onScanFinished(() => folderWatcher.refresh());
   require('./index/source-monitor').start(); // M8b.7: automatic missing / found again
+  if (process.env.PHOTOS_SMOKE) { // CI only; see smoke.js
+    const smoke = require('./smoke');
+    smoke.run(() => mainWindow).catch(smoke.fail);
+  }
 
   app.on('activate', () => {
     if (!mainWindow) createMainWindow(); // M8c.2b: the Info window is a second window
@@ -217,7 +222,7 @@ app.on('before-quit', (event) => {
   Promise.all([thumbnailManager.stop(), faceManager.stop(), scanQueue.shutdown()]).then(() => {
     db.close();
     residueCleanup.schedule(); // M8a: remove per-app items macOS wrote outside the data folder
-    app.exit(0);
+    app.exit(process.env.PHOTOS_SMOKE ? require('./smoke').exitCode() : 0);
   });
 });
 

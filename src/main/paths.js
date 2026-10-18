@@ -73,6 +73,8 @@ function getAppBundleParentDir() {
 }
 
 function getDataRoot() {
+  // CI smoke run only (see smoke.js): a throw-away data folder, so a test never touches a real library.
+  if (process.env.PHOTOS_SMOKE && process.env.PHOTOS_SMOKE_DATA) return process.env.PHOTOS_SMOKE_DATA;
   if (app.isPackaged) {
     return path.join(getAppBundleParentDir(), 'PhotosData');
   }

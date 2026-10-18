@@ -93,17 +93,17 @@
     },
     {
       "file": "src/main/people/face-crops.js",
-      "id": "image-output",
-      "max": 1,
-      "writes": "Face crop JPEG (temp name) in <data>/face-crops",
-      "safe": "tmpOut is inside paths.faceCropsDir()."
-    },
-    {
-      "file": "src/main/people/face-crops.js",
       "id": "fs-mutate",
       "max": 4,
       "writes": "Renames the crop into place; deletes temp / orphaned crops",
       "safe": "All inside paths.faceCropsDir(); names are <numeric id>.jpg or dot-prefixed temp names."
+    },
+    {
+      "file": "src/main/people/face-crops.js",
+      "id": "image-output",
+      "max": 1,
+      "writes": "Face crop JPEG (temp name) in <data>/face-crops",
+      "safe": "tmpOut is inside paths.faceCropsDir()."
     },
     {
       "file": "src/main/people/people-privacy.js",
@@ -132,6 +132,13 @@
       "max": 1,
       "writes": "Nothing: opens an https link in the browser",
       "safe": "Only URLs in a fixed allowlist."
+    },
+    {
+      "file": "src/main/smoke.js",
+      "id": "fs-mutate",
+      "max": 6,
+      "writes": "CI smoke test only (needs PHOTOS_SMOKE): five deliberate write attempts into the test library and the home folder that the write guard must REFUSE (negative control), plus the JSON report file named by PHOTOS_SMOKE_REPORT",
+      "safe": "Inactive in every normal launch. The attempts are expected to throw EPHOTOSGUARD and the test fails if one succeeds; the report goes to the path the CI job names."
     },
     {
       "file": "src/main/storage/safe-delete.js",

@@ -50,9 +50,19 @@ jobs:
         run: PHOTOS_KEEP_CACHE=1 ./dev setup
       - name: Unit and regression tests with the project's own Node
         run: ./dev node --test "test/*.test.js"
-      - name: Smoke test (real app on a generated library)
+      - name: Static checks (same as the Linux job)
         run: |
-          if [ -f tools/ci-smoke.sh ]; then bash tools/ci-smoke.sh; else echo "no smoke script yet"; fi
+          ./dev node tools/check-i18n.js
+          ./dev node tools/audit-writes.js --check
+      - name: Smoke test (real app on a generated library, then on a read-only disk image)
+        run: bash tools/ci-smoke.sh
+      - name: Keep the smoke reports
+        if: always()
+        uses: actions/upload-artifact@v4.6.2
+        with:
+          name: smoke-reports
+          path: ${{ runner.temp }}/photos-smoke/*.json
+          if-no-files-found: ignore
 
   # Manual only. Downloads the GeoNames dumps (CC BY 4.0), runs
   # tools/build-landmarks-dataset.js on a macOS runner (needed for the
