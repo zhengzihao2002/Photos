@@ -93,6 +93,16 @@
   }
   window.__PhotosMapLegal = addLegal;
 
+  // M8d: id -> array position, built once per points array (was a linear indexOf per marker).
+  function pointIndexOf(points, id) {
+    if (!points.idIndex) {
+      points.idIndex = new Map();
+      for (let i = 0; i < points.ids.length; i += 1) points.idIndex.set(points.ids[i], i);
+    }
+    const i = points.idIndex.get(id);
+    return i === undefined ? -1 : i;
+  }
+
   function buildIndex(points) {
     const features = new Array(points.count);
     for (let i = 0; i < points.count; i += 1) {
@@ -257,7 +267,7 @@
       function setImage(el, path) {
         if (el.querySelector('img')) return;
         const img = document.createElement('img');
-        const q = session.points && session.points.rots ? session.points.rots[session.points.ids.indexOf(Number(el.dataset.cover))] : 0;
+        const q = session.points && session.points.rots ? session.points.rots[pointIndexOf(session.points, Number(el.dataset.cover))] : 0;
         if (q) img.style.transform = 'rotate(' + (q * 90) + 'deg)'; // M12.11
         img.src = 'file://' + path;
         img.alt = '';

@@ -1,7 +1,7 @@
 #!/bin/bash
 # Photos development entry point.
 # Everything it downloads, installs, or caches stays inside this folder.
-# Usage: ./dev setup | start | dist | npm <args> | node <args> | audit <mode> | clean
+# Usage: ./dev setup | start | dist | test | bench | verify-readonly | npm <args> | node <args> | audit <mode> | clean
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")" && pwd -P)"
 cd "$ROOT"
@@ -109,7 +109,12 @@ case "${1:-help}" in
   dist)  need_setup; private_env; shift; node_modules/.bin/electron-builder --mac "$@"; clean_cache ;;
   npm)   ensure_node; private_env; shift; exec npm "$@" ;;
   node)  ensure_node; private_env; shift; exec node "$@" ;;
+  test)  ensure_node; private_env; shift; exec node --test "test/*.test.js" "$@" ;;
+  bench) ensure_node; private_env; shift
+         # Read-only benchmark of the key queries on a COPY of the real library (never opens the live file).
+         mkdir -p "$CACHE/bench"; exec node tools/bench-scale.js --db "${1:-$ROOT/.dev-data/library.db}" --no-edits ;;
+  verify-readonly) ensure_node; shift; exec node tools/verify-readonly.js "$@" ;;
   audit) shift; exec "$ROOT/tools/residue-audit.sh" "$@" ;;
   clean) clean_cache ;;
-  *)     echo "Usage: ./dev setup | start | dist | npm <args> | node <args> | audit <mark|report|known> | clean" ;;
+  *)     echo "Usage: ./dev setup | start | dist | test | bench | verify-readonly <folders> | npm <args> | node <args> | audit <mark|report|known> | clean" ;;
 esac

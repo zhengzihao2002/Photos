@@ -49,6 +49,33 @@ function cleanKeywordList(list) {
   return out;
 }
 
+const SET_BASED_FROM = 500;
+
+/**
+ * Same result as the per-item loop below, for big targets (Cmd+A on 100,000 items):
+ * a handful of set statements instead of three queries per item. Runs inside the caller's transaction.
+ */
+function updateKeywordsSetBased(db, where, toAdd, toRemove) {
+  const target = '(SELECT id FROM items WHERE ' + where + ')';
+  const insKeyword = db.prepare('INSERT OR IGNORE INTO keywords (name) VALUES (?)');
+  const getKeyword = db.prepare('SELECT id FROM keywords WHERE name = ?');
+  const addIds = toAdd.map((name) => { insKeyword.run(name); return getKeyword.get(name).id; });
+  const removeIds = toRemove.map((name) => { const r = getKeyword.get(name); return r ? r.id : null; }).filter((x) => x !== null);
+  let changed = 0;
+  // First edit of an item copies its file keywords.
+  db.prepare('INSERT OR IGNORE INTO item_keywords (item_id, keyword_id, origin) SELECT item_id, keyword_id, 1 FROM item_keywords '
+    + 'WHERE origin = 0 AND item_id IN (SELECT id FROM items WHERE ' + where + ' AND keywords_user_owned = 0)').run();
+  changed += db.prepare('UPDATE items SET keywords_user_owned = 1 WHERE keywords_user_owned = 0 AND id IN ' + target).run().changes;
+  if (removeIds.length) {
+    changed += db.prepare('DELETE FROM item_keywords WHERE origin = 1 AND keyword_id IN (' + removeIds.join(',') + ') AND item_id IN ' + target).run().changes;
+  }
+  const insertOne = db.prepare('INSERT OR IGNORE INTO item_keywords (item_id, keyword_id, origin) SELECT id, @k, 1 FROM items WHERE id IN ' + target
+    + ' AND (SELECT COUNT(*) FROM item_keywords c WHERE c.item_id = items.id AND c.origin = 1) < ' + KEYWORDS_PER_ITEM);
+  for (const kid of addIds) changed += insertOne.run({ k: kid }).changes;
+  db.prepare('DELETE FROM keywords WHERE id NOT IN (SELECT DISTINCT keyword_id FROM item_keywords)').run();
+  return changed;
+}
+
 /** Adds and removes keywords on every target item. The first edit of an item copies its file keywords. */
 function updateKeywords(db, { target, add, remove }) {
   const toAdd = cleanKeywordList(add);
@@ -57,6 +84,7 @@ function updateKeywords(db, { target, add, remove }) {
   const where = targetWhere(target);
   const run = db.transaction(() => {
     const ids = db.prepare('SELECT id FROM items WHERE ' + where).all().map((r) => r.id);
+    if (ids.length > SET_BASED_FROM) return updateKeywordsSetBased(db, where, toAdd, toRemove);
     const adopt = db.prepare('INSERT OR IGNORE INTO item_keywords (item_id, keyword_id, origin) SELECT item_id, keyword_id, 1 FROM item_keywords WHERE item_id = ? AND origin = 0');
     const markOwned = db.prepare('UPDATE items SET keywords_user_owned = 1 WHERE id = ? AND keywords_user_owned = 0');
     const insKeyword = db.prepare('INSERT OR IGNORE INTO keywords (name) VALUES (?)');
