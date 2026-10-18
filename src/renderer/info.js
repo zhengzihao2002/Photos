@@ -108,6 +108,56 @@
     return h('div', { className }, multiline ? h('textarea', Object.assign({ rows: 1 }, common)) : h('input', Object.assign({ type: 'text' }, common)));
   }
 
+  // M12.6: one map, one red pin per located item, fitted to all of them.
+  function MultiMap({ points }) {
+    const elRef = useRef(null);
+    const mapRef = useRef(null);
+    const pinsRef = useRef([]);
+    const [online, setOnline] = useState(navigator.onLine);
+    useEffect(() => {
+      const on = () => setOnline(true), off = () => setOnline(false);
+      window.addEventListener('online', on); window.addEventListener('offline', off);
+      return () => { window.removeEventListener('online', on); window.removeEventListener('offline', off); };
+    }, []);
+    useEffect(() => {
+      const gl = window.maplibregl, styles = window.__PhotosMapStyles;
+      if (!gl || !styles || !elRef.current) return;
+      if (!workerUrlSet) { gl.setWorkerUrl(WORKER_URL); workerUrlSet = true; }
+      const theme = window.matchMedia('(prefers-color-scheme: dark)');
+      const map = new gl.Map({ container: elRef.current, style: theme.matches ? styles.dark : styles.light,
+        center: [points.lngs[0], points.lats[0]], zoom: 3, dragRotate: false, pitchWithRotate: false, attributionControl: false });
+      map.touchZoomRotate.disableRotation();
+      map.addControl(new gl.NavigationControl({ showCompass: false }), 'bottom-right');
+      addLegal(elRef.current);
+      elRef.current.addEventListener('click', (ev) => {
+        if (ev.target && ev.target.closest && ev.target.closest('a')) ev.preventDefault();
+      }, true);
+      const onTheme = () => map.setStyle(theme.matches ? styles.dark : styles.light);
+      theme.addEventListener('change', onTheme);
+      map.on('error', (e) => console.warn('[info map]', e && e.error ? e.error.message : e));
+      mapRef.current = map;
+      return () => { theme.removeEventListener('change', onTheme); map.remove(); mapRef.current = null; pinsRef.current = []; };
+    }, []);
+    useEffect(() => {
+      const gl = window.maplibregl, map = mapRef.current;
+      if (!gl || !map) return;
+      pinsRef.current.forEach((m) => m.remove());
+      pinsRef.current = [];
+      const n = points.ids.length;
+      if (!n) return;
+      const bounds = new gl.LngLatBounds([points.lngs[0], points.lats[0]], [points.lngs[0], points.lats[0]]);
+      for (let i = 0; i < n; i += 1) {
+        pinsRef.current.push(new gl.Marker({ color: '#ff3b30' }).setLngLat([points.lngs[i], points.lats[i]]).addTo(map));
+        bounds.extend([points.lngs[i], points.lats[i]]);
+      }
+      if (n === 1) map.jumpTo({ center: [points.lngs[0], points.lats[0]], zoom: 13 });
+      else map.fitBounds(bounds, { padding: 40, maxZoom: 15, duration: 0 });
+    }, [points.ids.join(',')]);
+    return h('div', { className: 'info-map' },
+      h('div', { ref: elRef, className: 'info-map-canvas' }),
+      !online && h('div', { className: 'info-map-offline' }, 'Map unavailable offline'));
+  }
+
   // M12.6: Info for two or more selected items (Apple's summary).
   function SummaryView({ s }) {
     const n = s.count.toLocaleString('en-US');
@@ -126,7 +176,8 @@
         s.caption === 'mixed' ? 'Multiple Captions' : (s.caption || 'Add a Caption')),
       h('div', { className: 'info-field info-kw' + (s.keywords.length ? ' has-value' : '') },
         s.keywords.length ? s.keywords.map((k) => h('span', { key: k, className: 'info-token' }, k)) : 'Add Keywords'),
-      h('div', { className: 'info-place' + (s.points.ids.length ? '' : ' is-empty') }, s.points.ids.length ? (s.points.ids.length === s.count ? 'Locations' : 'Multiple Locations') : 'Assign Location'));
+      h('div', { className: 'info-place' + (s.points.ids.length ? '' : ' is-empty') }, s.points.ids.length ? (s.points.ids.length === s.count ? 'Locations' : 'Multiple Locations') : 'Assign Location'),
+      !!s.points.ids.length && h(MultiMap, { points: s.points }));
   }
 
   function Info() {
