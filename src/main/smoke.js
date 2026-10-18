@@ -50,6 +50,15 @@ async function run(getWindow) {
     if (level === 'error' || level === 3) report.consoleErrors.push(String(d.message).slice(0, 300));
   });
 
+  const out = process.env.PHOTOS_SMOKE_REPORT;
+  const save = () => { if (out) { try { fs.writeFileSync(out, JSON.stringify(report, null, 2)); } catch (e) { /* reported at the end */ } } };
+  // Watchdog: a hung step must not hang CI. Writes what it has and exits non-zero.
+  const watchdog = setTimeout(() => {
+    report.timedOut = true; report.ok = false; save();
+    console.error('SMOKE_TIMEOUT after the steps: ' + report.steps.map((x) => x.name).join(' | '));
+    app.exit(1);
+  }, Number(process.env.PHOTOS_SMOKE_TIMEOUT_MS || 420000));
+
   async function step(name, fn) {
     const t0 = Date.now();
     try {
@@ -58,6 +67,8 @@ async function run(getWindow) {
     } catch (err) {
       report.steps.push({ name, ok: false, ms: Date.now() - t0, error: String(err && err.stack ? err.stack : err).slice(0, 800) });
     }
+    save();
+    console.log('SMOKE_STEP ' + (report.steps[report.steps.length - 1].ok ? 'PASS ' : 'FAIL ') + name + ' (' + (Date.now() - t0) + ' ms)');
   }
 
   await step('main window loads the app scripts', async () => {
@@ -219,8 +230,8 @@ async function run(getWindow) {
   report.ok = report.steps.every((s) => s.ok);
   report.readOnlyMedia = readOnlyMedia;
   exitCode = report.ok ? 0 : 1;
-  const out = process.env.PHOTOS_SMOKE_REPORT;
-  if (out) { try { fs.writeFileSync(out, JSON.stringify(report, null, 2)); } catch (e) { console.error('could not write the report:', e.message); } }
+  clearTimeout(watchdog);
+  save();
   console.log('SMOKE_RESULT ' + JSON.stringify({ ok: report.ok, steps: report.steps.map((s) => (s.ok ? 'PASS ' : 'FAIL ') + s.name + (s.ok ? '' : ' :: ' + s.error.split('\n')[0])) }, null, 1));
   app.quit();
 }
