@@ -334,6 +334,19 @@ const migrations = [
       if (cols.has('sort_order') === false) db.exec('ALTER TABLE people ADD COLUMN sort_order INTEGER;');
     },
   },
+  {
+    // M12.3: Favorites. is_favorite is written only by the user's own action
+    // (never by the extractor), so rescans leave it alone; a tombstoned item
+    // keeps it. The partial index repeats the visibility clause so the
+    // 'favorite' filter (BASE_CLAUSE AND is_favorite = 1) can use it.
+    // Guarded so a re-run is harmless.
+    version: 14,
+    up: (db) => {
+      const existing = new Set(db.prepare('PRAGMA table_info(items)').all().map((c) => c.name));
+      if (existing.has('is_favorite') === false) db.exec('ALTER TABLE items ADD COLUMN is_favorite INTEGER NOT NULL DEFAULT 0;');
+      db.exec('CREATE INDEX IF NOT EXISTS idx_items_favorite ON items (capture_time_local) WHERE is_favorite = 1 AND is_deleted = 0 AND is_live_photo_component = 0;');
+    },
+  },
 ];
 
 module.exports = { migrations };
