@@ -8,7 +8,8 @@
   "scripts": {
     "start": "echo \"Use ./dev start instead of npm start.\" && exit 1",
     "dist": "echo \"Use ./dev dist instead of npm run dist.\" && exit 1",
-    "preinstall": "[ \"$PHOTOS_DEV\" = \"1\" ] || { echo \"Use ./dev setup instead of npm install.\"; exit 1; }"
+    "preinstall": "[ \"$PHOTOS_DEV\" = \"1\" ] || { echo \"Use ./dev setup instead of npm install.\"; exit 1; }",
+    "test": "node --test \"test/*.test.js\""
   },
   "devDependencies": {
     "electron": "44.4.1",

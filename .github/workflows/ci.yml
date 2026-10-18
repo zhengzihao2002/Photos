@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  linux:
+    name: Linux (unit tests, benchmarks, checks)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4.2.2
+      - uses: actions/setup-node@v4.4.0
+        with:
+          node-version: '24'
+      - name: Install dependencies (install scripts stay off, as in ./dev)
+        run: PHOTOS_DEV=1 npm ci --ignore-scripts
+      - name: Unit and regression tests
+        run: npm_config_ignore_scripts=true node --test "test/*.test.js"
+      - name: Static checks
+        run: |
+          if [ -f tools/check-i18n.js ]; then node tools/check-i18n.js; fi
+          if [ -f tools/audit-writes.js ]; then node tools/audit-writes.js --check; fi
+      - name: Scale benchmark (regression alarm, generous thresholds)
+        run: |
+          if [ -f tools/bench-scale.js ]; then node tools/bench-scale.js --rows 100000 --check; fi
+
+  macos:
+    name: macOS arm64 (setup, tests, smoke)
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4.2.2
+      - name: Cache toolchain and packages
+        uses: actions/cache@v4.2.3
+        with:
+          path: |
+            .toolchain
+            node_modules
+          key: toolchain-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('package-lock.json', 'dev') }}
+      - name: Set up (same command a user runs)
+        run: PHOTOS_KEEP_CACHE=1 ./dev setup
+      - name: Unit and regression tests with the project's own Node
+        run: ./dev node --test "test/*.test.js"
+      - name: Smoke test (real app on a generated library)
+        run: |
+          if [ -f tools/ci-smoke.sh ]; then bash tools/ci-smoke.sh; else echo "no smoke script yet"; fi
