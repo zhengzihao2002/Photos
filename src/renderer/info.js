@@ -159,7 +159,13 @@
   }
 
   // M12.6: Info for two or more selected items (Apple's summary).
-  function SummaryView({ s }) {
+  function SummaryView({ s, filter }) {
+    async function saveAll(fn, value) {
+      try { await window.api[fn]({ target: { filter }, value }); } catch (err) { /* summary reloads on library:edited */ }
+    }
+    async function keywordsAll(change) {
+      try { await window.api.updateKeywords({ target: { filter }, add: change.add, remove: change.remove }); } catch (err) { /* ignored */ }
+    }
     const n = s.count.toLocaleString('en-US');
     const heading = s.videos === 0 ? n + ' Photos' : (s.photos === 0 ? n + ' Videos' : n + ' Items');
     const a = F.shortDate(s.firstTime), b = F.shortDate(s.lastTime);
@@ -170,12 +176,11 @@
           h('div', { className: 'info-name' }, heading),
           range && h('div', { className: 'info-date' }, range),
           h('div', { className: 'info-date' }, F.bytes(s.totalBytes) || '-'))),
-      h('div', { className: 'info-field' + (s.title ? ' has-value' : '') },
-        s.title === 'mixed' ? 'Multiple Titles' : (s.title || 'Add a Title')),
-      h('div', { className: 'info-field' + (s.caption && s.caption !== 'mixed' ? ' has-value' : '') },
-        s.caption === 'mixed' ? 'Multiple Captions' : (s.caption || 'Add a Caption')),
-      h('div', { className: 'info-field info-kw' + (s.keywords.length ? ' has-value' : '') },
-        s.keywords.length ? s.keywords.map((k) => h('span', { key: k, className: 'info-token' }, k)) : 'Add Keywords'),
+      h(EditableField, { className: 'info-field', value: s.title === 'mixed' ? '' : s.title, placeholder: s.title === 'mixed' ? 'Multiple Titles' : 'Add a Title',
+        onCommit: (v) => saveAll('setTitle', v) }),
+      h(EditableField, { className: 'info-field', value: s.caption === 'mixed' ? '' : s.caption, placeholder: s.caption === 'mixed' ? 'Multiple Captions' : 'Add a Caption', multiline: true,
+        onCommit: (v) => saveAll('setCaption', v) }),
+      h(window.InfoKeywords, { keywords: s.keywords, onChange: keywordsAll }),
       h('div', { className: 'info-place' + (s.points.ids.length ? '' : ' is-empty') }, s.points.ids.length ? (s.points.ids.length === s.count ? 'Locations' : 'Multiple Locations') : 'Assign Location'),
       !!s.points.ids.length && h(MultiMap, { points: s.points }));
   }
@@ -273,7 +278,7 @@
       return () => ro.disconnect();
     }, []);
 
-    if (selection && summary && summary.count > 1) return h(SummaryView, { s: summary }); // M12.6
+    if (selection && summary && summary.count > 1) return h(SummaryView, { s: summary, filter: selection }); // M12.6
     if (!loaded) return h('div', { className: 'info-empty' }, '\u00a0');
     if (!item) return h('div', { className: 'info-empty' }, 'No Selection');
 
