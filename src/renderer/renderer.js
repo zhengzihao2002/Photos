@@ -53,6 +53,17 @@
     return m + ':' + String(s).padStart(2, '0');
   }
 
+  // M12.2f: a plain click inside a multi-selection collapses it only when no
+  // double-click follows, so a double-click opens within the selection.
+  let pendingCollapseTimer = null;
+  const DOUBLE_CLICK_MS = 300;
+  // M12.2f: with two or more selected, the viewer navigates only the
+  // selection (Apple shows 1/3). Returns the scoped filter, or null.
+  function viewerScopeFor(item) {
+    if (!selectionStore.isMulti() || (item && !selectionStore.contains(item))) return null;
+    return selectionStore.withSelection(filterStore.get());
+  }
+
   function Tile({ item, widthPx, heightPx, thumbPath, isSelected }) {
     // M10.7: Show Faces zooms this tile to the person's face, smoothly both ways.
     const [faceZoom, setFaceZoom] = useState(faceZoomStore.get());
@@ -69,18 +80,22 @@
 
     function handleClick(e) {
       if (isPlaceholderItem) return;
+      clearTimeout(pendingCollapseTimer); // M12.2f
       // M12.2: Cmd-click toggles, Shift-click adds the range from the anchor,
       // a plain click selects only this item (Apple Photos).
       if (e && e.metaKey) selectionStore.toggle(item);
       else if (e && e.shiftKey) {
         if (window.getSelection) window.getSelection().removeAllRanges();
         selectionStore.extendTo(item);
+      } else if (selectionStore.isMulti() && selectionStore.contains(item)) {
+        pendingCollapseTimer = setTimeout(() => selectionStore.set(item.id, item), DOUBLE_CLICK_MS); // M12.2f
       } else selectionStore.set(item.id, item);
     }
 
     function handleDblClick() {
       if (isPlaceholderItem) return;
-      viewerStore.open(item.id);
+      clearTimeout(pendingCollapseTimer); // M12.2f: keep the selection; open within it
+      viewerStore.open(item.id, { scope: viewerScopeFor(item) });
     }
 
     return h('div', {
@@ -794,8 +809,9 @@
     const listeners = new Set();
     return {
       get: () => value,
-      open(itemId) {
-        value = { itemId, requestId: nextRequestId++ };
+      open(itemId, opts) {
+        // M12.2f: opts.scope = a selection-scoped filter; the viewer navigates only it.
+        value = { itemId, requestId: nextRequestId++, scope: opts && typeof opts.scope === 'string' ? opts.scope : null };
         listeners.forEach((fn) => fn(value));
       },
       // M8c.8 (C8): an explicit, documented close hook (used by the Places
@@ -2549,7 +2565,7 @@
 
         if (isEnter) {
           if (currentSelected != null) {
-            viewerStore.open(currentSelected);
+            viewerStore.open(currentSelected, { scope: viewerScopeFor(null) }); // M12.2f
           }
           return;
         }

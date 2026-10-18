@@ -123,10 +123,13 @@
 
   // Navigation filter. M6 adds window.__PhotosStores.filterStore ({ get() });
   // until then this is null (unfiltered), matching the grid.
+  let sessionScope = null; // M12.2f: selection-scoped navigation for the current viewing session
   function currentFilter() {
     // M7.7 trail: a photo opened from a layered Places page navigates within
     // that page's filter (set and cleared by places.js).
     if (typeof window.__PhotosViewerFilter === 'string') return window.__PhotosViewerFilter;
+    // M12.2f: opened with several items selected -> navigate only those (Apple: 1/3).
+    if (typeof sessionScope === 'string') return sessionScope;
     return (S.filterStore && typeof S.filterStore.get === 'function' && S.filterStore.get()) || null;
   }
 
@@ -274,14 +277,14 @@
   // Return to grid (M5.9): select the last viewed item; if the user moved
   // away from the item they opened, scroll the grid to it by exact index
   // (same exclusions/filter as the grid). Fails safe if it isn't in the grid.
-  async function returnToGrid(openedId, lastId) {
+  async function returnToGrid(openedId, lastId, keepSelection) {
     if (lastId == null) return;
-    if (lastId === openedId) { S.selectionStore.set(lastId); return; } // grid never moved
+    if (lastId === openedId) { if (!keepSelection) S.selectionStore.set(lastId); return; } // grid never moved
     let index = null;
     try { index = await window.api.getItemIndex({ id: lastId, filter: currentFilter() }); } catch (e) { index = null; }
-    if (typeof index !== 'number') { S.selectionStore.set(null); return; }
+    if (typeof index !== 'number') { if (!keepSelection) S.selectionStore.set(null); return; }
     S.navigationStore.goTo({ itemIndex: index });
-    S.selectionStore.set(lastId);
+    if (!keepSelection) S.selectionStore.set(lastId); // M12.2f: scoped sessions keep the selection
   }
 
   function ToolButton({ icon, label, onClick, disabled, active }) {
@@ -356,6 +359,7 @@
           // K11: remember the page this session came from; zoom back only to it.
           sess.openSection = S.sectionStore ? S.sectionStore.get() : null;
           sess.openFilter = S.filterStore && S.filterStore.get ? S.filterStore.get() : null;
+          sessionScope = typeof v.scope === 'string' ? v.scope : null; // M12.2f
           const rect = canZoom() ? findTileRect(v.itemId) : null; // U10: zoom from the tile
           zoomFromRef.current = rect ? { id: v.itemId, rect } : null;
           setZoomOpen(rect ? 'zooming' : false); // false | 'zooming' | 'done'
@@ -371,7 +375,9 @@
       // fade, never zoom into a tile of a page that is going away.
       const leftPage = () => (S.sectionStore ? S.sectionStore.get() : null) !== openCtx.section
         || (S.filterStore && S.filterStore.get ? S.filterStore.get() : null) !== openCtx.filter;
-      returnToGrid(sess.openedId, sess.lastId);
+      const wasScoped = sessionScope !== null; // M12.2f: a scoped session keeps the multi-selection
+      sessionScope = null;
+      returnToGrid(sess.openedId, sess.lastId, wasScoped);
       sessionRef.current = { openedId: null, lastId: null };
       const finish = () => { setState(null); setClosing(false); };
       const fade = () => { setClosing(true); closeTimer.current = setTimeout(finish, CLOSE_ANIM_MS); };
@@ -827,7 +833,7 @@
         const typing = e.target && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName);
         if (!open) {
           if (e.key === ' ' && !typing && S.selectionStore.get() != null) {
-            e.preventDefault(); S.viewerStore.open(S.selectionStore.get());
+            e.preventDefault(); S.viewerStore.open(S.selectionStore.get(), { scope: S.selectionStore.isMulti() ? S.selectionStore.withSelection(S.filterStore.get()) : null }); // M12.2f
           }
           return;
         }
