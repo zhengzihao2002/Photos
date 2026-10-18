@@ -44,7 +44,7 @@
     const bias = typeof item.exposure_bias_ev === 'number' ? round(item.exposure_bias_ev, 1) + ' ev' : null;
     return [
       item.iso ? 'ISO ' + item.iso : null,
-      item.focal_length_mm ? round(item.focal_length_mm, 1) + ' mm' : null,
+      item.focal_length_35mm ? round(item.focal_length_35mm, 0) + ' mm' : null, // M12.7: 35 mm equivalent, as Apple shows
       bias,
       item.f_number ? '\u0192' + round(item.f_number, 2) : null,
       shutter,
