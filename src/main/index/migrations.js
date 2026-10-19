@@ -408,6 +408,21 @@ const migrations = [
       }
     },
   },
+  {
+    // M15: Live Photo pairing by Content Identifier. content_identifier is written
+    // only by the extractor / pairing backfill; live_pairing_version NULL = not yet
+    // examined. file_mtime, file_size_bytes and extraction_version are never touched.
+    // Guarded so a re-run is harmless.
+    version: 18,
+    up: (db) => {
+      const existing = new Set(db.prepare('PRAGMA table_info(items)').all().map((c) => c.name));
+      for (const [name, type] of [['content_identifier', 'TEXT'], ['live_pairing_version', 'INTEGER']]) {
+        if (!existing.has(name)) db.exec('ALTER TABLE items ADD COLUMN ' + name + ' ' + type + ';');
+      }
+      db.exec('CREATE INDEX IF NOT EXISTS idx_items_content_identifier ON items (source_folder_id, content_identifier) WHERE content_identifier IS NOT NULL AND is_deleted = 0;');
+      db.exec('CREATE INDEX IF NOT EXISTS idx_items_live_unpaired ON items (source_folder_id, id) WHERE live_pairing_version IS NULL AND is_deleted = 0;');
+    },
+  },
 ];
 
 module.exports = { migrations };

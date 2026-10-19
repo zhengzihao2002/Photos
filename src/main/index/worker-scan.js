@@ -36,6 +36,8 @@ const { markMissing, markScanned } = require('./source-folders');
 const { createPlaceResolver, peekDatasetVersion } = require('../places/place-resolver'); // M13
 const { runPlacePassLazy } = require('../places/place-pass');
 const { reconcileMoves } = require('./reconcile-moves'); // M12.8
+const { runLivePairingPass } = require('./live-pairing-pass'); // M15
+const { runIdentifierBackfill } = require('./live-identifier-backfill'); // M15.6
 
 // M8b.6: the app's own folders (from the main process) are never walked.
 const EXCLUDE = (workerData && Array.isArray(workerData.protectedRoots)) ? workerData.protectedRoots : [];
@@ -74,6 +76,23 @@ function runPlacePassSafely(db, datasetPath) {
 function reconcileMovesSafely(db, sourceFolderId, now) {
   try {
     return reconcileMoves(db, sourceFolderId, now);
+  } catch (err) {
+    return { skipped: err.message };
+  }
+}
+
+// M15: Live Photo pairing by Content Identifier; never a reason to fail a scan.
+function livePairingSafely(db, sourceFolderId) {
+  try {
+    return runLivePairingPass(db, sourceFolderId);
+  } catch (err) {
+    return { skipped: err.message };
+  }
+}
+
+async function backfillSafely(db, sourceFolderId, rootPath) {
+  try {
+    return await runIdentifierBackfill(db, sourceFolderId, rootPath);
   } catch (err) {
     return { skipped: err.message };
   }
@@ -159,6 +178,8 @@ async function run() {
     // M7.3: fill place names for new, changed, and not-yet-computed rows.
     aggregate.places = runPlacePassSafely(db, geoDatasetPath);
     aggregate.moves = reconcileMovesSafely(db, sourceFolderId, now);
+    aggregate.backfill = await backfillSafely(db, sourceFolderId, workerData.sourceRootPath); // M15.6
+    aggregate.livePairs = livePairingSafely(db, sourceFolderId); // M15
     aggregate.mtimeChanges = drainMtimeChanges(); // M11
 
     markScanned(db, sourceFolderId, now);
@@ -274,6 +295,8 @@ async function runScoped() {
 
     aggregate.places = runPlacePassSafely(db, geoDatasetPath);
     aggregate.moves = reconcileMovesSafely(db, sourceFolderId, now);
+    aggregate.backfill = await backfillSafely(db, sourceFolderId, workerData.sourceRootPath); // M15.6
+    aggregate.livePairs = livePairingSafely(db, sourceFolderId); // M15
     aggregate.mtimeChanges = drainMtimeChanges(); // M11
     markScanned(db, sourceFolderId, now);
     db.pragma('wal_checkpoint(PASSIVE)');

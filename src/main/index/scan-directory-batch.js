@@ -40,7 +40,7 @@
 const fs = require('fs');
 const path = require('path');
 const { extractItemMetadata, normalizeGpsPair } = require('./extract');
-const { findLivePhotoPairs, findBursts } = require('./group-siblings');
+const { findBursts } = require('./group-siblings'); // M15: Live Photo pairing moved to live-pairing-pass.js
 const { isPlausibleCaptureParts } = require('./metadata-helpers');
 
 const BURST_ELIGIBLE_SOURCES = new Set(['exif_original', 'exif_create']);
@@ -108,6 +108,7 @@ function unchangedResult(existing, relativePath) {
     media_type: existing.media_type,
     capture_time_local: existing.capture_time_local,
     capture_time_source: existing.capture_time_source,
+    content_identifier: existing.content_identifier ?? null, // M15
   };
 }
 
@@ -149,6 +150,7 @@ async function classifyFile(file, sourceFolderId, relativePath, stmts) {
       media_type: existing.media_type,
       capture_time_local: existing.capture_time_local,
       capture_time_source: existing.capture_time_source,
+      content_identifier: existing.content_identifier ?? null, // M15
     };
   }
 
@@ -206,6 +208,8 @@ function buildFullFields(entry, sourceFolderId, groupingFields, now) {
     title_file: entry.title_file, caption_file: entry.caption_file, // M12.4 (extractor-owned)
     exposure_bias_ev: entry.exposure_bias_ev, focal_length_35mm: entry.focal_length_35mm, // M12.7
     extraction_version: CURRENT_EXTRACTION_VERSION,
+    content_identifier: entry.content_identifier ?? null, // M15
+    live_pairing_version: 1, // M15: a full extraction has read the identifier
     // M7.3: NULL marks the row for the place pass (src/main/places/place-pass.js),
     // which recomputes or clears the place columns after the directory walk.
     place_version: null,
@@ -235,11 +239,11 @@ async function processDirectoryBatch({ db, stmts, sourceFolderId, sourceRootPath
     capture_time_local: e.capture_time_local,
   }));
 
-  const pairs = findLivePhotoPairs(groupingRows);
-  const livePhotoImageIndices = new Set(pairs.keys());
-  const videoComponentIndices = new Set(pairs.values());
-
-  const burstExcludedIndices = new Set(livePhotoImageIndices);
+  // M15: a still carrying a Content Identifier is a Live Photo candidate; never sweep it into a burst.
+  const burstExcludedIndices = new Set();
+  validEntries.forEach((entry, idx) => {
+    if (entry.media_type === 'image' && entry.content_identifier) burstExcludedIndices.add(idx);
+  });
   validEntries.forEach((entry, idx) => {
     if (!BURST_ELIGIBLE_SOURCES.has(entry.capture_time_source)) {
       burstExcludedIndices.add(idx);
@@ -258,7 +262,7 @@ async function processDirectoryBatch({ db, stmts, sourceFolderId, sourceRootPath
       const groupingFields = {
         is_live_photo: 0,
         live_photo_video_item_id: null,
-        is_live_photo_component: videoComponentIndices.has(idx) ? 1 : 0,
+        is_live_photo_component: 0, // M15: written only by live-pairing-pass.js
         burst_id: null,
         is_burst_cover: 0,
       };
@@ -268,12 +272,10 @@ async function processDirectoryBatch({ db, stmts, sourceFolderId, sourceRootPath
 
     validEntries.forEach((entry, idx) => {
       if (entry.media_type !== 'image') return;
-      const isLivePhoto = livePhotoImageIndices.has(idx);
-      const pairedVideoIdx = pairs.get(idx);
       const burstInfo = bursts.get(idx);
       const groupingFields = {
-        is_live_photo: isLivePhoto ? 1 : 0,
-        live_photo_video_item_id: isLivePhoto ? dbIdByIndex.get(pairedVideoIdx) : null,
+        is_live_photo: 0, // M15: written only by live-pairing-pass.js
+        live_photo_video_item_id: null,
         is_live_photo_component: 0,
         burst_id: burstInfo ? burstInfo.burstId : null,
         is_burst_cover: burstInfo && burstInfo.isCover ? 1 : 0,

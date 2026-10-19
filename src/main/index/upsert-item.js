@@ -26,6 +26,7 @@ const ITEM_COLUMNS = [
   'burst_id', 'is_burst_cover',
   'extraction_error', 'extraction_version', 'place_version', 'is_deleted',
   'title_file', 'caption_file', 'exposure_bias_ev', 'focal_length_35mm', // M12.4 / M12.7: extractor-owned only
+  'content_identifier', 'live_pairing_version', // M15: extractor-owned only
   'created_at', 'updated_at',
 ];
 
@@ -33,7 +34,7 @@ function createUpsertStatements(db) {
   const findExistingStmt = db.prepare(`
     SELECT id, file_size_bytes, file_mtime, filename, media_type, capture_time_local, capture_time_source,
            extension, width,
-           gps_latitude, gps_longitude, has_gps, extraction_version
+           gps_latitude, gps_longitude, has_gps, extraction_version, content_identifier
     FROM items
     WHERE source_folder_id = @sourceFolderId AND relative_path = @relativePath
   `);
@@ -43,7 +44,9 @@ function createUpsertStatements(db) {
     VALUES (${ITEM_COLUMNS.map((c) => '@' + c).join(', ')})
   `);
 
-  const updateColumnsMinusCreatedAt = ITEM_COLUMNS.filter((c) => c !== 'created_at');
+  // M15: live-pairing-pass.js is the only writer of the three Live Photo columns.
+  const LIVE_COLUMNS = ['is_live_photo', 'live_photo_video_item_id', 'is_live_photo_component'];
+  const updateColumnsMinusCreatedAt = ITEM_COLUMNS.filter((c) => c !== 'created_at' && !LIVE_COLUMNS.includes(c));
   const updateFullStmt = db.prepare(`
     UPDATE items
     SET ${updateColumnsMinusCreatedAt.map((c) => `${c} = @${c}`).join(', ')}
@@ -52,10 +55,7 @@ function createUpsertStatements(db) {
 
   const updateGroupingStmt = db.prepare(`
     UPDATE items
-    SET is_live_photo = @is_live_photo,
-        live_photo_video_item_id = @live_photo_video_item_id,
-        is_live_photo_component = @is_live_photo_component,
-        burst_id = @burst_id,
+    SET burst_id = @burst_id,
         is_burst_cover = @is_burst_cover,
         is_deleted = 0,
         updated_at = @updated_at
