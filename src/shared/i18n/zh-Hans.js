@@ -144,6 +144,8 @@
   "info.originalUnavailable": "原始文件不可用",
   "info.removeKeyword": "移除“{name}”",
   "info.showInFinder": "在访达中显示",
+  "info.showPhotoInFinder": "在访达中显示照片",
+  "info.showVideoInFinder": "在访达中显示视频",
   "info.unknownPlace": "未知地点",
   "info.unnamedPerson": "未命名的人物",
   "lang.en": "English",

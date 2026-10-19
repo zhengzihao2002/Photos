@@ -157,6 +157,8 @@
   "info.originalUnavailable": "Original unavailable",
   "info.removeKeyword": "Remove {name}",
   "info.showInFinder": "Show in Finder",
+  "info.showPhotoInFinder": "Show Photo in Finder",
+  "info.showVideoInFinder": "Show Video in Finder",
   "info.unknownPlace": "Unknown Place",
   "info.unnamedPerson": "Unnamed Person",
   "lang.en": "English",

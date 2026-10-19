@@ -316,8 +316,8 @@
       } catch (err) { /* ignored: the heart simply stays as it was */ }
     }
 
-    async function reveal() {
-      const r = await window.api.showInFinder({ id: item.id });
+    async function reveal(targetId) {
+      const r = await window.api.showInFinder({ id: targetId || item.id });
       if (!r || !r.ok) setFinderMsg(r && r.code === 'source_missing' ? t('info.originalUnavailable') : t('info.notFound'));
     }
 
@@ -357,7 +357,12 @@
         : h('div', { className: 'info-place is-empty' }, t('info.assignLocation')),
       !!item.has_gps && h(InfoMap, { lat: item.gps_latitude, lng: item.gps_longitude }), // has_gps is 0/1: never render a bare 0
       h('div', { className: 'info-footer' },
-        h('button', { className: 'info-finder', onMouseDown: noFocus, onClick: reveal }, finderMsg || t('info.showInFinder'))));
+        (item.is_live_photo === 1 && item.live_photo_video_item_id)
+          ? [
+              h('button', { key: 'p', className: 'info-finder', onMouseDown: noFocus, onClick: () => reveal(item.id) }, finderMsg || t('info.showPhotoInFinder')),
+              h('button', { key: 'v', className: 'info-finder', onMouseDown: noFocus, onClick: () => reveal(item.live_photo_video_item_id) }, t('info.showVideoInFinder')),
+            ]
+          : h('button', { className: 'info-finder', onMouseDown: noFocus, onClick: () => reveal() }, finderMsg || t('info.showInFinder'))));
   }
 
   render(h(Info), document.getElementById('info-root'));
