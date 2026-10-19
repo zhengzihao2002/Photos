@@ -18,6 +18,10 @@ bash install.sh
 
 The script downloads the latest release from GitHub, checks its SHA-256, installs **Photos.app with its icon** **inside this project folder** (next to `install.sh`; no password, no `sudo`) and offers to open it. Options: `--dir ~/Applications` (install somewhere else), `--version 1.0.0`, `--local Photos-arm64.zip` (offline), `--no-open`, `--uninstall`, `--help`.
 
+### Update
+
+Every change to the app on `main` is built and released automatically. To update: `git pull` in the project folder, then `bash install.sh` again (it replaces the app and keeps `PhotosData`; quit Photos first).
+
 ### If macOS blocks the first launch
 
 The app is signed ad-hoc and not notarized by Apple (that needs a paid account). macOS may say it cannot verify the app. Either:

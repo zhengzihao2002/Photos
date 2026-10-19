@@ -128,7 +128,8 @@ touch "$APP"                                                      # lets Finder 
 [ -f "$APP/Contents/Resources/icon.icns" ] || say "(note: icon file not found inside the app)"
 
 say ""
-say "Installed: $APP"
+NEWV="$(/usr/bin/plutil -extract CFBundleShortVersionString raw "$APP/Contents/Info.plist" 2>/dev/null || echo "?")"
+say "Installed: $APP (version $NEWV)"
 say "Its data will live in: $DATA   (delete both, or the folder they are in, to remove everything)"
 
 # ---- open -------------------------------------------------------------------------------------------------
