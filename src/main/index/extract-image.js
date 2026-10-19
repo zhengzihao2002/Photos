@@ -12,6 +12,7 @@
 const exifr = require('exifr');
 const { cleanTitle, cleanCaption, cleanKeywords, parseExposureBias, parseFocal35 } = require('./embedded-text'); // M12.4
 const { readContainerDimensions } = require('./image-dimensions');
+const { readStillIdentifier } = require('./live-identifier'); // M15
 const {
   parseFilenameTimestamp,
   isPanoramaByAspectRatio,
@@ -87,6 +88,8 @@ function resolveCaptureTimeFromExifOrFilename(exif, filename) {
 
 async function extractImageMetadata(fullPath, filename, extension) {
   const exif = await readExif(fullPath);
+  // M15: Live Photo Content Identifier (bounded 512 KB read, HEIC/HEIF/JPEG only)
+  const contentIdentifier = /^(heic|heif|jpe?g)$/i.test(extension || '') ? await readStillIdentifier(fullPath) : null;
 
   const rawDimensions = await resolveRawDimensions(fullPath, extension, exif);
   // HEIF: the container's 'irot' is authoritative when present (HEIF spec);
@@ -135,6 +138,7 @@ async function extractImageMetadata(fullPath, filename, extension) {
     gpsLatitude: latitude,
     gpsLongitude: longitude,
     isPanorama,
+    contentIdentifier,
     extractionError: width === null || height === null ? 'dimensions_unavailable' : null,
   };
 }

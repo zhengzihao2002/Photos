@@ -18,6 +18,7 @@ const { safeExecFile: execFile } = require('../safe-exec'); // M11
 const ffprobePath = require('ffprobe-static').path;
 const { cleanTitle, cleanCaption, cleanKeywords } = require('./embedded-text'); // M12.4
 const { parseFilenameTimestamp, isPlausibleCaptureParts } = require('./metadata-helpers');
+const { videoIdentifierFromProbe } = require('./live-identifier'); // M15
 
 const CREATION_TIME_PATTERN = /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2}):(\d{2})/;
 
@@ -191,6 +192,7 @@ async function extractVideoMetadata(fullPath, filename) {
       gpsLatitude: null,
       gpsLongitude: null,
       isPanorama: false,
+      contentIdentifier: null,
       extractionError: 'ffprobe_failed',
     };
   }
@@ -235,8 +237,15 @@ async function extractVideoMetadata(fullPath, filename) {
     titleFile: cleanTitle(tagText(probeResult, ['title', 'com.apple.quicktime.title']), filename),
     captionFile: cleanCaption(tagText(probeResult, ['description', 'com.apple.quicktime.description'])),
     keywordsFile: cleanKeywords(tagText(probeResult, ['keywords'])) /* not Apple's system tag (FaceTime): nobody wrote it */,
+    contentIdentifier: videoIdentifierFromProbe(probeResult), // M15
     extractionError: !videoStream ? 'no_video_stream' : (width === null || height === null ? 'dimensions_unavailable' : null),
   };
 }
 
-module.exports = { extractVideoMetadata, extractRotationDegrees, normalizeRotation, parseIso6709 };
+// M15.6: identifier only (backfill). undefined = ffprobe failed, so the caller must not stamp the row.
+async function readVideoIdentifier(fullPath) {
+  const probeResult = await runFfprobe(fullPath);
+  return probeResult ? videoIdentifierFromProbe(probeResult) : undefined;
+}
+
+module.exports = { readVideoIdentifier, extractVideoMetadata, extractRotationDegrees, normalizeRotation, parseIso6709 };

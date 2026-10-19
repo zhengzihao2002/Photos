@@ -116,6 +116,7 @@ async function extractItemMetadata({ fullPath, filename, extension, mediaType })
     keywords_file: perTypeResult.keywordsFile || [],
     exposure_bias_ev: perTypeResult.exposureBiasEv ?? null,
     focal_length_35mm: perTypeResult.focalLength35mm ?? null,
+    content_identifier: perTypeResult.contentIdentifier ?? null, // M15 (not stored until migration 18)
   };
 }
 
