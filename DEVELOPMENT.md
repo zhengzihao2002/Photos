@@ -140,3 +140,7 @@ The active language is in `config.json` (`language`). `PHOTOS_PSEUDO_LOCALE=1 ./
 
 Quit the app, then delete the project folder. Nothing else is needed after a
 normal quit.
+
+## Live Photo pairing (M15)
+
+Files: `src/main/index/live-identifier.js` (readers), `live-pairing-pass.js` (the pass), `live-identifier-backfill.js` (one-time read for older rows). Tests: `test/live-identifier*.test.js`, `test/live-pairing-pass.test.js`. Rows with `live_pairing_version` NULL are examined once by the backfill on the next scan; a rescan does not repeat it.
