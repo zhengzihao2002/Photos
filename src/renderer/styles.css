@@ -392,8 +392,12 @@ body.sidebar-hidden .viewer-toolbar {
 
 .empty-state {
   display: flex;
+  flex-direction: column; /* title above, hint underneath */
   align-items: center;
   justify-content: center;
+  text-align: center;
+  padding: 0 24px;
+  box-sizing: border-box;
   height: 100%;
   color: var(--text-secondary);
   font-size: 15px;
@@ -1269,6 +1273,17 @@ body.drop-active::after {
   transform: translate(-50%, -50%);
 }
 
+/* Narrower windows: the right-hand controls (filter, search, favorite, rotate, zoom) would run into a
+   centred control, so it joins the row instead and the free space is shared on both sides of it. */
+@media (max-width: 1500px) {
+  #toolbar > .seg {
+    position: static;
+    transform: none;
+    margin-left: auto;
+    flex-shrink: 0;
+  }
+}
+
 /* ---- M6 (B.6e): zoom -/+ pill (right edge of the toolbar) ------------- */
 .zoom-pill {
   margin-left: auto;
@@ -1338,7 +1353,9 @@ body.drop-active::after {
   display: flex;
   align-items: center;
   gap: 6px;
+  flex: 0 1 220px;
   width: 220px;
+  min-width: 110px;
   height: 30px;
   padding: 0 10px;
   border-radius: 999px;
@@ -1352,6 +1369,7 @@ body.drop-active::after {
 }
 
 .search-pill:focus-within {
+  flex-basis: 260px;
   width: 260px;
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 35%, transparent);
 }
