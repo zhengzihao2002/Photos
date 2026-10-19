@@ -1,7 +1,7 @@
 {
   "name": "photos",
   "productName": "Photos",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A local, offline Photos-style library for macOS. Read-only: it never changes your photo folders. Not affiliated with Apple.",
   "private": true,
   "main": "src/main/main.js",

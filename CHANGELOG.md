@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.1] - 2026-10-19
+
+- `install.sh` installs into the project folder by default (app and `PhotosData` inside it).
+- Fixed the toolbar: the Years / Months / All Photos control no longer runs into the search field, favorite, rotate and zoom buttons in narrower windows.
+- Fixed empty views (No Photos, No Favorites ...): the title now sits above its hint.
+
 ## [1.0.0] - 2026-10-18
 
 First public release.
