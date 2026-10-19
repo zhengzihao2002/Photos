@@ -7,7 +7,8 @@ body.info-window {
   background: transparent;   /* the window's native material shows through */
   font-size: 12px;
   color: var(--text-primary);
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;          /* fallback: if everything is taller than the window, scroll instead of cutting the bottom off */
 }
 #info-root { user-select: text; }
 #info-root button { user-select: none; }
@@ -78,8 +79,12 @@ body.info-window {
   gap: 8px;
   padding: 7px 12px;
   border-top: 1px solid var(--divider);
+  max-height: 196px;   /* about two rows of faces; a photo with many faces scrolls here, so the location, map and Show in Finder below always fit */
+  overflow-y: auto;
+  align-content: flex-start;
 }
 .info-face {
+  flex: 0 0 auto;
   width: 88px;
   height: 88px;
   border-radius: 50%;
