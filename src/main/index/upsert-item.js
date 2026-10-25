@@ -17,7 +17,7 @@ const ITEM_COLUMNS = [
   'source_folder_id', 'relative_path', 'filename', 'media_type', 'extension',
   'file_size_bytes', 'file_mtime',
   'width', 'height', 'orientation_applied', 'duration_seconds',
-  'capture_time_local', 'capture_time_source', 'capture_date', 'capture_year', 'capture_month',
+  'capture_time_local', 'capture_sort', 'capture_time_source', 'capture_date', 'capture_year', 'capture_month',
   'camera_make', 'camera_model', 'lens_model',
   'iso', 'f_number', 'exposure_time_seconds', 'focal_length_mm',
   'gps_latitude', 'gps_longitude', 'has_gps',
@@ -32,7 +32,7 @@ const ITEM_COLUMNS = [
 
 function createUpsertStatements(db) {
   const findExistingStmt = db.prepare(`
-    SELECT id, file_size_bytes, file_mtime, filename, media_type, capture_time_local, capture_time_source,
+    SELECT id, file_size_bytes, file_mtime, filename, media_type, capture_time_local, capture_sort, capture_time_source,
            extension, width,
            gps_latitude, gps_longitude, has_gps, extraction_version, content_identifier
     FROM items

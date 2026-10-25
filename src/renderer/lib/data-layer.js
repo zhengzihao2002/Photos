@@ -8,7 +8,7 @@
  *
  * INDEX -> CURSOR STRATEGY (confirmed empirically against the real API,
  * see M3 build log): get-items-page's cursor is a pure keyset boundary
- * comparison on (capture_time_local, id) — it does NOT require the cursor
+ * comparison on (capture_sort, id) — it does NOT require the cursor
  * values to belong to an existing row. This lets us build a "synthetic"
  * cursor at any date boundary (e.g. '2022-12-07 00:00:00', id: 0) and the
  * query correctly returns items older than that boundary, even though no
@@ -48,8 +48,8 @@
     function buildDateSections(rawCounts) {
       let cumulative = 0;
       const sections = [];
-      for (const { date, count } of rawCounts) {
-        sections.push({ date, count, startIndex: cumulative });
+      for (const { date, count, cursor } of rawCounts) {
+        sections.push({ date, count, cursor, startIndex: cumulative });
         cumulative += count;
       }
       return sections;
@@ -134,7 +134,7 @@
       let cursor = null;
       if (located.sectionIndex > 0) {
         const newerNeighbor = dateSections[located.sectionIndex - 1];
-        cursor = { captureTimeLocal: `${newerNeighbor.date} 00:00:00`, id: 0 };
+        cursor = newerNeighbor.cursor;
       }
 
       let skip = located.offsetInSection;
@@ -228,7 +228,7 @@
       }
       if (si === -1) return null;
       let cursor = null;
-      if (si > 0) cursor = { captureTimeLocal: sections[si - 1].date + ' 00:00:00', id: 0 };
+      if (si > 0) cursor = sections[si - 1].cursor;
       let skip = start - sections[si].startIndex;
       let through = start - 1;
       let guard = 0;

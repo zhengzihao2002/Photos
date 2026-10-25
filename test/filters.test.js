@@ -6,9 +6,9 @@ const Q = require('../src/main/index/queries');
 function seed(db) {
   db.prepare(`INSERT INTO source_folders (root_path, display_name, added_at) VALUES ('/a','a',0),('/b','b',0)`).run();
   const ins = db.prepare(`INSERT INTO items (source_folder_id, relative_path, filename, media_type, extension, file_size_bytes, file_mtime,
-    capture_time_local, capture_date, capture_year, capture_month, has_gps, gps_latitude, gps_longitude, is_favorite, is_raw, is_gif,
+    capture_time_local, capture_sort, capture_date, capture_year, capture_month, has_gps, gps_latitude, gps_longitude, is_favorite, is_raw, is_gif,
     is_panorama, is_live_photo, is_burst_cover, burst_id, title_user, created_at, updated_at)
-    VALUES (@s,@p,@f,@m,'jpg',100,1,@t,@d,2020,@mo,@gps,@lat,@lng,@fav,@raw,0,0,0,0,NULL,@title,0,0)`);
+    VALUES (@s,@p,@f,@m,'jpg',100,1,@t,@t,@d,2020,@mo,@gps,@lat,@lng,@fav,@raw,0,0,0,0,NULL,@title,0,0)`);
   for (let i = 0; i < 40; i++) {
     const day = String(1 + (i % 28)).padStart(2, '0');
     ins.run({ s: 1 + (i % 2), p: 'p' + i + '.jpg', f: 'IMG_' + i + '.jpg', m: i % 5 === 0 ? 'video' : 'image',

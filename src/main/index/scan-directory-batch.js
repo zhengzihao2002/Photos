@@ -49,8 +49,9 @@ const BURST_ELIGIBLE_SOURCES = new Set(['exif_original', 'exif_create']);
 // migration 9). History: 1 = before video GPS; 2 = video GPS from container
 // location tags + GPS plausibility. Bump this and add a rule to
 // needsReextraction when an extractor change must reach existing rows.
-const CURRENT_EXTRACTION_VERSION = 3; // M12.4: 3 = embedded title/caption/keywords, exposure bias, 35 mm focal length
+const CURRENT_EXTRACTION_VERSION = 4; // M12.4: 3 = embedded title/caption/keywords, exposure bias, 35 mm focal length
 const EMBEDDED_TEXT_EXTRACTION_VERSION = 3;
+const CAPTURE_TIME_EXTRACTION_VERSION = 4; // 4 = display time is EXIF-or-mtime only; capture_sort (UTC) added
 const VIDEO_GPS_EXTRACTION_VERSION = 2;
 
 // M1 patch (A.4): an unchanged file is still re-extracted when its stored
@@ -64,6 +65,8 @@ const HEIF_EXTENSIONS = new Set(['heic', 'heif']);
 const CAPTURE_LOCAL_PATTERN = /^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})/;
 
 function needsReextraction(row) {
+  // Capture-time model change: rows extracted earlier lack capture_sort and may have a file-name date. Resumable: the re-extract stamps version 4.
+  if ((row.extraction_version || 0) < CAPTURE_TIME_EXTRACTION_VERSION) return true;
   // M12.4: rows extracted before embedded text / exposure fields existed. Resumable: the re-extract stamps version 3.
   if ((row.extraction_version || 0) < EMBEDDED_TEXT_EXTRACTION_VERSION) return true;
   // M7.2: videos extracted before video GPS existed. Resumable: the
@@ -182,6 +185,7 @@ function buildFullFields(entry, sourceFolderId, groupingFields, now) {
     orientation_applied: entry.orientation_applied,
     duration_seconds: entry.duration_seconds,
     capture_time_local: entry.capture_time_local,
+    capture_sort: entry.capture_sort,
     capture_time_source: entry.capture_time_source,
     capture_date: entry.capture_date,
     capture_year: entry.capture_year,

@@ -354,7 +354,7 @@
     const nbrsRef = useRef({ prev: null, next: null, ready: false });
     const nbrIdsRef = useRef([]);          // [next, prev] ids for the current item
     const pendingNavRef = useRef(null);    // 'next' | 'prev' pressed before neighbors resolved
-    const cursorsRef = useRef(new Map());  // id -> { captureTimeLocal, id }
+    const cursorsRef = useRef(new Map());  // id -> { captureSort, id }
     const goRef = useRef(null);
     const stageRef = useRef(null);
     const [stageSize, setStageSize] = useState({ w: 0, h: 0 });
@@ -825,13 +825,13 @@
         if (!cursor) {
           const row = await window.api.getItemById({ id: itemId });
           if (!live || !row) return;
-          cursor = { captureTimeLocal: row.capture_time_local, id: row.id };
+          cursor = { captureSort: row.capture_sort, id: row.id };
         }
         const [next, prev] = await Promise.all([neighborOf(cursor, 'older'), neighborOf(cursor, 'newer')]);
         if (!live) return;
         const cache = cursorsRef.current;
         if (cache.size > 1000) cache.clear();
-        for (const n of [next, prev]) if (n) cache.set(n.id, { captureTimeLocal: n.capture_time_local, id: n.id });
+        for (const n of [next, prev]) if (n) cache.set(n.id, { captureSort: n.capture_sort, id: n.id });
         const v = { prev: prev ? prev.id : null, next: next ? next.id : null, ready: true };
         nbrsRef.current = v; setNbrs(v);
         nbrIdsRef.current = [v.next, v.prev].filter(Boolean);

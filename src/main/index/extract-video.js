@@ -17,7 +17,8 @@
 const { safeExecFile: execFile } = require('../safe-exec'); // M11
 const ffprobePath = require('ffprobe-static').path;
 const { cleanTitle, cleanCaption, cleanKeywords } = require('./embedded-text'); // M12.4
-const { parseFilenameTimestamp, isPlausibleCaptureParts } = require('./metadata-helpers');
+const { isPlausibleCaptureParts } = require('./metadata-helpers');
+const { parseOffsetMinutes } = require('./capture-time');
 const { videoIdentifierFromProbe } = require('./live-identifier'); // M15
 
 const CREATION_TIME_PATTERN = /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2}):(\d{2})/;
@@ -84,27 +85,37 @@ function parseCreationTimeFaceValue(str) {
   };
 }
 
-function resolveCaptureTimeFromContainerOrFilename(probeResult, videoStream, filename) {
+// Display time: Apple's com.apple.quicktime.creationdate (local wall clock with
+// its UTC offset) when present, else the container creation_time (a UTC stamp,
+// shown as written). No file name guessing: nothing here means the caller falls
+// back to the file's modification time.
+const QUICKTIME_DATE_PATTERN = /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2}):(\d{2})(?:\.\d+)?\s*(Z|[+-]\d{2}:?\d{2})?/;
+
+function resolveCaptureTimeFromContainer(probeResult, videoStream) {
+  const formatTags = (probeResult && probeResult.format && probeResult.format.tags) || {};
+  const quicktimeKey = Object.keys(formatTags).find((k) => k.toLowerCase() === 'com.apple.quicktime.creationdate');
+  if (quicktimeKey) {
+    const m = QUICKTIME_DATE_PATTERN.exec(String(formatTags[quicktimeKey]).trim());
+    if (m) {
+      const parts = { year: Number(m[1]), month: Number(m[2]), day: Number(m[3]), hour: Number(m[4]), minute: Number(m[5]), second: Number(m[6]) };
+      if (isPlausibleCaptureParts(parts)) {
+        return { parts, source: 'exif_create', offsetMinutes: parseOffsetMinutes(m[7] || '') };
+      }
+    }
+  }
+
   const streamCreationTime = videoStream && videoStream.tags ? videoStream.tags.creation_time : null;
-  const formatCreationTime = probeResult && probeResult.format && probeResult.format.tags
-    ? probeResult.format.tags.creation_time
-    : null;
+  const formatCreationTime = formatTags.creation_time || null;
 
   // Each container rung must pass the plausibility rule independently (M1
   // patch A.2): a sentinel stream time (e.g. the 1904 QuickTime epoch) must
-  // not hide a valid format time.
+  // not hide a valid format time. creation_time is UTC, so its offset is 0.
   const containerParts = [streamCreationTime, formatCreationTime]
     .map(parseCreationTimeFaceValue)
     .find((parts) => isPlausibleCaptureParts(parts)) || null;
   if (containerParts) {
-    return { parts: containerParts, source: 'exif_create' };
+    return { parts: containerParts, source: 'exif_create', offsetMinutes: 0 };
   }
-
-  const filenameParts = parseFilenameTimestamp(filename);
-  if (filenameParts) {
-    return { parts: filenameParts, source: 'filename_pattern' };
-  }
-
   return null;
 }
 
@@ -214,7 +225,7 @@ async function extractVideoMetadata(fullPath, filename) {
   const durationRaw = (videoStream && videoStream.duration) || (probeResult.format && probeResult.format.duration);
   const durationSeconds = durationRaw ? Number(durationRaw) : null;
 
-  const captureTime = resolveCaptureTimeFromContainerOrFilename(probeResult, videoStream, filename);
+  const captureTime = resolveCaptureTimeFromContainer(probeResult, videoStream);
   const gps = extractGpsFromFormatTags(probeResult);
 
   return {
@@ -224,6 +235,7 @@ async function extractVideoMetadata(fullPath, filename) {
     durationSeconds: Number.isNaN(durationSeconds) ? null : durationSeconds,
     captureTimeParts: captureTime ? captureTime.parts : null,
     captureTimeSource: captureTime ? captureTime.source : null,
+    captureOffsetMinutes: captureTime ? captureTime.offsetMinutes : null,
     cameraMake: null,
     cameraModel: null,
     lensModel: null,

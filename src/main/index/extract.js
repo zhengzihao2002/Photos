@@ -24,6 +24,7 @@ const fs = require('fs');
 const { extractImageMetadata } = require('./extract-image');
 const { extractVideoMetadata } = require('./extract-video');
 const { formatCaptureTimeLocal, formatCaptureDate } = require('./metadata-helpers');
+const { captureSortFromParts, captureSortFromEpochMs } = require('./capture-time');
 const { RAW_EXTENSIONS } = require('./discover');
 
 function dateToParts(date) {
@@ -72,9 +73,15 @@ async function extractItemMetadata({ fullPath, filename, extension, mediaType })
   let captureTimeParts = perTypeResult.captureTimeParts;
   let captureTimeSource = perTypeResult.captureTimeSource;
 
-  if (!captureTimeParts) {
+  // Display time = the file's own date; if it has none, its modification time.
+  // capture_sort puts the same moment on the common UTC scale (never shown).
+  let captureSort;
+  if (captureTimeParts) {
+    captureSort = captureSortFromParts(captureTimeParts, perTypeResult.captureOffsetMinutes);
+  } else {
     captureTimeParts = dateToParts(new Date(stat.mtimeMs));
     captureTimeSource = 'file_mtime';
+    captureSort = captureSortFromEpochMs(Math.floor(stat.mtimeMs / 1000) * 1000);
   }
 
   const captureTimeLocal = formatCaptureTimeLocal(captureTimeParts);
@@ -92,6 +99,7 @@ async function extractItemMetadata({ fullPath, filename, extension, mediaType })
     orientation_applied: perTypeResult.orientationApplied,
     duration_seconds: mediaType === 'video' ? perTypeResult.durationSeconds : null,
     capture_time_local: captureTimeLocal,
+    capture_sort: captureSort,
     capture_time_source: captureTimeSource,
     capture_date: captureDate,
     capture_year: captureTimeParts.year,

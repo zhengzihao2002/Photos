@@ -6,7 +6,7 @@ const { updateKeywords } = require('../src/main/index/edits-text');
 function lib(n) {
   const db = freshDb();
   db.prepare("INSERT INTO source_folders (root_path, display_name, added_at) VALUES ('/x','x',0)").run();
-  const ins = db.prepare("INSERT INTO items (source_folder_id, relative_path, filename, media_type, extension, file_size_bytes, file_mtime, capture_time_local, created_at, updated_at) VALUES (1,@p,@p,'image','jpg',1,1,@t,0,0)");
+  const ins = db.prepare("INSERT INTO items (source_folder_id, relative_path, filename, media_type, extension, file_size_bytes, file_mtime, capture_time_local, capture_sort, created_at, updated_at) VALUES (1,@p,@p,'image','jpg',1,1,@t,@t,0,0)");
   db.transaction(() => { for (let i = 0; i < n; i++) ins.run({ p: 'f' + i, t: '2020-01-01 00:00:' + String(i % 60).padStart(2, '0') }); })();
   const k = db.prepare("INSERT INTO keywords (name) VALUES ('fromfile')").run().lastInsertRowid;
   db.prepare('INSERT INTO item_keywords (item_id, keyword_id, origin) SELECT id, ?, 0 FROM items').run(k);

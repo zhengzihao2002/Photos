@@ -14,8 +14,8 @@ function add(db, o) {
   const video = o.type === 'video';
   const ext = o.ext || (video ? 'mov' : 'heic');
   const r = db.prepare(`INSERT INTO items (source_folder_id, relative_path, filename, media_type, extension, file_size_bytes, file_mtime,
-    capture_time_local, duration_seconds, content_identifier, burst_id, is_burst_cover, is_deleted, created_at, updated_at)
-    VALUES (@src,@rel,@fn,@mt,@ext,10,7,@t,@dur,@id,@burst,@cover,@del,0,0)`).run({
+    capture_time_local, capture_sort, duration_seconds, content_identifier, burst_id, is_burst_cover, is_deleted, created_at, updated_at)
+    VALUES (@src,@rel,@fn,@mt,@ext,10,7,@t,@t,@dur,@id,@burst,@cover,@del,0,0)`).run({
     src: o.src || 1, rel: o.rel, fn: o.rel.split('/').pop(), mt: video ? 'video' : 'image', ext,
     t: o.t === undefined ? '2025-03-07 10:00:00' : o.t, dur: video ? (o.dur === undefined ? 3 : o.dur) : null,
     id: o.id || null, burst: o.burst || null, cover: o.cover ? 1 : 0, del: o.del ? 1 : 0 });

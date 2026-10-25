@@ -423,6 +423,27 @@ const migrations = [
       db.exec('CREATE INDEX IF NOT EXISTS idx_items_live_unpaired ON items (source_folder_id, id) WHERE live_pairing_version IS NULL AND is_deleted = 0;');
     },
   },
+  {
+    // Capture-time model: capture_time_local stays the DISPLAY wall clock;
+    // capture_sort is the same moment on a common UTC scale, used for ordering
+    // and ranges only. Existing rows start with the wall clock as their sort key
+    // (extraction_version 4 re-extracts each row once, which writes the real
+    // key). Every index on capture_time_local is rebuilt on capture_sort with
+    // its WHERE text unchanged. file_mtime and file_size_bytes are never touched.
+    version: 19,
+    up: (db) => {
+      const existing = new Set(db.prepare('PRAGMA table_info(items)').all().map((c) => c.name));
+      if (!existing.has('capture_sort')) {
+        db.exec('ALTER TABLE items ADD COLUMN capture_sort TEXT;');
+        db.exec('UPDATE items SET capture_sort = capture_time_local;');
+      }
+      const indexes = db.prepare("SELECT name, sql FROM sqlite_master WHERE type = 'index' AND tbl_name = 'items' AND sql LIKE '%capture_time_local%'").all();
+      for (const ix of indexes) {
+        db.exec('DROP INDEX ' + ix.name + ';');
+        db.exec(ix.sql.replace(/capture_time_local/g, 'capture_sort'));
+      }
+    },
+  },
 ];
 
 module.exports = { migrations };

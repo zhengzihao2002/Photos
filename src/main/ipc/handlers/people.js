@@ -118,7 +118,7 @@ async function getFaces(event, payload = {}) {
   return db.get().prepare(`SELECT f.id AS faceId, f.item_id AS itemId, f.cluster_id AS clusterId,
       f.box_x, f.box_y, f.box_w, f.box_h
     FROM faces f JOIN items i ON i.id = f.item_id
-    WHERE f.person_id = ? AND ${VISIBLE} ORDER BY i.capture_time_local DESC, i.id DESC, f.box_x`).all(id)
+    WHERE f.person_id = ? AND ${VISIBLE} ORDER BY i.capture_sort DESC, i.id DESC, f.box_x`).all(id)
     .map((r) => ({ faceId: r.faceId, itemId: r.itemId, clusterId: r.clusterId, box: [r.box_x, r.box_y, r.box_w, r.box_h] }));
 }
 
@@ -143,7 +143,7 @@ async function listGroups() {
   const conn = db.get();
   const rows = conn.prepare(`SELECT f.item_id AS item, f.person_id AS pid FROM faces f
     JOIN items i ON i.id = f.item_id JOIN people p ON p.id = f.person_id
-    WHERE p.name IS NOT NULL AND ${VISIBLE} ORDER BY i.capture_time_local DESC, i.id DESC`).all();
+    WHERE p.name IS NOT NULL AND ${VISIBLE} ORDER BY i.capture_sort DESC, i.id DESC`).all();
   const byItem = new Map(); // insertion order = newest photo first
   for (const r of rows) { if (byItem.has(r.item) === false) byItem.set(r.item, new Set()); byItem.get(r.item).add(r.pid); }
   const combos = new Map(); // 'a,b,c' -> { ids, n, cover }

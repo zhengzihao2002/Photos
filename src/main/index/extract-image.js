@@ -13,8 +13,8 @@ const exifr = require('exifr');
 const { cleanTitle, cleanCaption, cleanKeywords, parseExposureBias, parseFocal35 } = require('./embedded-text'); // M12.4
 const { readContainerDimensions } = require('./image-dimensions');
 const { readStillIdentifier } = require('./live-identifier'); // M15
+const { parseOffsetMinutes, offsetFromGps } = require('./capture-time');
 const {
-  parseFilenameTimestamp,
   isPanoramaByAspectRatio,
   applyOrientation,
   isPlausibleCaptureParts,
@@ -72,16 +72,20 @@ function exifDateToPlausibleParts(value) {
   return isPlausibleCaptureParts(parts) ? parts : null;
 }
 
-function resolveCaptureTimeFromExifOrFilename(exif, filename) {
+// Display time = EXIF DateTimeOriginal, else CreateDate. exifr revives the naive
+// "YYYY:MM:DD HH:MM:SS" text as a local Date, so the local getters give back the
+// exact digits the file carries. No file name guessing: no EXIF date means the
+// caller falls back to the file's modification time.
+function resolveCaptureTimeFromExif(exif) {
   // Each rung must pass the plausibility rule (M1 patch A.2); a sentinel such
   // as "0000:00:00 00:00:00" (revived by exifr as 1899-11-30) falls through.
   const originalParts = exifDateToPlausibleParts(exif.DateTimeOriginal);
-  if (originalParts) return { parts: originalParts, source: 'exif_original' };
+  if (originalParts) {
+    return { parts: originalParts, source: 'exif_original', offsetText: exif.OffsetTimeOriginal || exif.OffsetTime };
+  }
   const createParts = exifDateToPlausibleParts(exif.CreateDate);
-  if (createParts) return { parts: createParts, source: 'exif_create' };
-  const filenameParts = parseFilenameTimestamp(filename);
-  if (filenameParts) {
-    return { parts: filenameParts, source: 'filename_pattern' };
+  if (createParts) {
+    return { parts: createParts, source: 'exif_create', offsetText: exif.OffsetTimeDigitized || exif.OffsetTime };
   }
   return null;
 }
@@ -110,7 +114,14 @@ async function extractImageMetadata(fullPath, filename, extension) {
     orientationApplied = 1;
   }
 
-  const captureTime = resolveCaptureTimeFromExifOrFilename(exif, filename);
+  const captureTime = resolveCaptureTimeFromExif(exif);
+  let captureOffsetMinutes = null;
+  if (captureTime) {
+    captureOffsetMinutes = parseOffsetMinutes(captureTime.offsetText);
+    if (captureOffsetMinutes === null) {
+      captureOffsetMinutes = offsetFromGps(captureTime.parts, exif.GPSDateStamp, exif.GPSTimeStamp);
+    }
+  }
   const isPanorama = isPanoramaByAspectRatio(width, height);
 
   const latitude = typeof exif.latitude === 'number' ? exif.latitude : null;
@@ -122,6 +133,7 @@ async function extractImageMetadata(fullPath, filename, extension) {
     orientationApplied,
     captureTimeParts: captureTime ? captureTime.parts : null,
     captureTimeSource: captureTime ? captureTime.source : null,
+    captureOffsetMinutes,
     cameraMake: nullIfUndefined(exif.Make),
     cameraModel: nullIfUndefined(exif.Model),
     lensModel: nullIfUndefined(exif.LensModel),

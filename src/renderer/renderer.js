@@ -683,8 +683,8 @@
     const listeners = new Set();
 
     function keyOf(item) {
-      return item && !item.__placeholder && typeof item.capture_time_local === 'string'
-        ? [item.capture_time_local, item.id] : null;
+      return item && !item.__placeholder && typeof item.capture_sort === 'string'
+        ? [item.capture_sort, item.id] : null;
     }
     function cmp(a, b) {
       if (a[0] !== b[0]) return a[0] < b[0] ? -1 : 1;

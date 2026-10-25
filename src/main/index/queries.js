@@ -8,7 +8,7 @@
  * burst members) can never drift out of sync with what the schema's
  * partial indexes actually enforce.
  *
- * Paging is cursor-based (keyset pagination on capture_time_local + id),
+ * Paging is cursor-based (keyset pagination on capture_sort + id),
  * not OFFSET-based — an OFFSET deep into a 100k-row library forces SQLite
  * to walk and discard everything before it; a cursor comparison hits the
  * index directly regardless of how deep into the library you are.
@@ -153,7 +153,7 @@ function buildFilterSql(filter) {
 
 /**
  * Returns a page of items, always newest-first in the response regardless
- * of fetch direction. cursor is { captureTimeLocal, id } from a previous
+ * of fetch direction. cursor is { captureSort, id } from a previous
  * page's nextCursor/prevCursor, or null for the first page.
  */
 function getItemsPage(db, { limit = 100, cursor = null, direction = 'older', filter = null } = {}) {
@@ -165,23 +165,23 @@ function getItemsPage(db, { limit = 100, cursor = null, direction = 'older', fil
   const params = {};
 
   if (direction === 'newer') {
-    orderBy = 'capture_time_local ASC, id ASC';
+    orderBy = 'capture_sort ASC, id ASC';
     if (cursor) {
-      cursorClause = 'AND (capture_time_local, id) > (@cursorTime, @cursorId)';
-      params.cursorTime = cursor.captureTimeLocal;
+      cursorClause = 'AND (capture_sort, id) > (@cursorTime, @cursorId)';
+      params.cursorTime = cursor.captureSort;
       params.cursorId = cursor.id;
     }
   } else {
-    orderBy = 'capture_time_local DESC, id DESC';
+    orderBy = 'capture_sort DESC, id DESC';
     if (cursor) {
-      cursorClause = 'AND (capture_time_local, id) < (@cursorTime, @cursorId)';
-      params.cursorTime = cursor.captureTimeLocal;
+      cursorClause = 'AND (capture_sort, id) < (@cursorTime, @cursorId)';
+      params.cursorTime = cursor.captureSort;
       params.cursorId = cursor.id;
     }
   }
 
   const sql = `
-    SELECT id, source_folder_id, media_type, width, height, capture_time_local, duration_seconds, has_gps, -- M8b.7: source id for the unavailable badge; M8c.5 (U14): has_gps for the map-pin
+    SELECT id, source_folder_id, media_type, width, height, capture_time_local, capture_sort, duration_seconds, has_gps, -- M8b.7: source id for the unavailable badge; M8c.5 (U14): has_gps for the map-pin
            is_live_photo, burst_id, is_burst_cover, is_favorite, rotation -- M12.3: heart badge; M12.11: rotation
     FROM items
     WHERE ${whereFilter} ${cursorClause}
@@ -198,10 +198,10 @@ function getItemsPage(db, { limit = 100, cursor = null, direction = 'older', fil
   }
 
   const nextCursor = page.length > 0
-    ? { captureTimeLocal: page[page.length - 1].capture_time_local, id: page[page.length - 1].id }
+    ? { captureSort: page[page.length - 1].capture_sort, id: page[page.length - 1].id }
     : null;
   const prevCursor = page.length > 0
-    ? { captureTimeLocal: page[0].capture_time_local, id: page[0].id }
+    ? { captureSort: page[0].capture_sort, id: page[0].id }
     : null;
 
   return { items: page, hasMore, nextCursor, prevCursor };
@@ -218,15 +218,30 @@ function getCountsByYearMonth(db, { filter = null } = {}) {
   `).all();
 }
 
+/**
+ * Date sections of the grid, in the grid's own order. The grid sorts by the UTC
+ * sort key but each item shows its own wall-clock date, so a date can appear
+ * in more than one run (photos from different time zones interleave near
+ * midnight). A section is therefore a run of neighbouring items that share a
+ * displayed date. Each carries `cursor`, the key of its last item, which is
+ * where the next section starts when paging newest-first.
+ */
 function getCountsByDate(db, { filter = null } = {}) {
   const whereFilter = buildFilterSql(filter);
   return db.prepare(`
-    SELECT capture_date AS date, COUNT(*) AS count
-    FROM items
-    WHERE ${whereFilter}
-    GROUP BY capture_date
-    ORDER BY capture_date DESC
-  `).all();
+    WITH r AS (
+      SELECT id, capture_date AS d, capture_sort AS s,
+             row_number() OVER (ORDER BY capture_sort DESC, id DESC) AS rn
+      FROM items WHERE ${whereFilter}
+    ), g AS (
+      SELECT rn, d, rn - row_number() OVER (PARTITION BY d ORDER BY rn) AS grp FROM r
+    ), runs AS (
+      SELECT d, COUNT(*) AS c, MAX(rn) AS last FROM g GROUP BY d, grp
+    )
+    SELECT runs.d AS date, runs.c AS count, r.s AS captureSort, r.id AS id
+    FROM runs JOIN r ON r.rn = runs.last
+    ORDER BY runs.last
+  `).all().map((row) => ({ date: row.date, count: row.count, cursor: { captureSort: row.captureSort, id: row.id } }));
 }
 
 function getTotalCount(db, { filter = null } = {}) {
@@ -293,12 +308,12 @@ function getItemById(db, id) {
 function getItemIndex(db, { id, filter = null } = {}) {
   const whereFilter = buildFilterSql(filter);
   const row = db.prepare(
-    `SELECT id, capture_time_local FROM items WHERE id = @id AND ${whereFilter}`
+    `SELECT id, capture_sort FROM items WHERE id = @id AND ${whereFilter}`
   ).get({ id });
   if (!row) return null;
   const { n } = db.prepare(
-    `SELECT COUNT(*) AS n FROM items WHERE ${whereFilter} AND (capture_time_local, id) > (@t, @id)`
-  ).get({ t: row.capture_time_local, id: row.id });
+    `SELECT COUNT(*) AS n FROM items WHERE ${whereFilter} AND (capture_sort, id) > (@t, @id)`
+  ).get({ t: row.capture_sort, id: row.id });
   return n;
 }
 
@@ -314,7 +329,8 @@ function getReextractionCounts(db) {
     SELECT source_folder_id AS sourceFolderId, COUNT(*) AS count
     FROM items
     WHERE is_deleted = 0 AND (
-      (extension IN ('heic', 'heif') AND width IS NULL)
+      extraction_version < 4
+      OR (extension IN ('heic', 'heif') AND width IS NULL)
       OR (capture_time_source IS NOT 'file_mtime' AND capture_time_local IS NOT NULL AND (
             capture_time_local <= '1970-01-01 00:00:00'
             OR capture_time_local > datetime('now', '+1 day')))
@@ -366,8 +382,7 @@ function getPhotoVideoCounts(db, { filter = null } = {}) {
  * 'gps' filter so the WHERE text matches idx_items_gps. Sorted newest first
  * (the grid's order), so a lower array position always means a newer item:
  * a cluster's representative is simply its smallest position.
- * times: capture_time_local read at face value as seconds (UTC arithmetic
- * on the stored digits; for ordering/ranges only, not a real instant).
+ * times: capture_sort as seconds (the UTC sort key; for ordering/ranges only).
  * Response: { count, ids: Int32Array, lats: Float64Array,
  *             lngs: Float64Array, times: Float64Array }
  */
@@ -382,10 +397,10 @@ function captureLocalToSeconds(text) {
 
 function getMapPoints(db) {
   const rows = db.prepare(`
-    SELECT id, gps_latitude, gps_longitude, capture_time_local, rotation
+    SELECT id, gps_latitude, gps_longitude, capture_sort, rotation
     FROM items
     WHERE ${buildFilterSql('gps')}
-    ORDER BY capture_time_local DESC, id DESC
+    ORDER BY capture_sort DESC, id DESC
   `).raw().all();
 
   const count = rows.length;
@@ -423,8 +438,8 @@ function daysBetween(a, b) {
 
 function getAreaSections(db, { filter = null } = {}) {
   const rows = db.prepare(
-    'SELECT id, capture_date, place_locality_en, place_locality_zh, media_type, duration_seconds, source_folder_id, is_live_photo, capture_time_local, is_favorite, rotation, place_landmark_en, place_landmark_zh FROM items WHERE '
-    + buildFilterSql(filter) + ' ORDER BY capture_time_local ASC, id ASC'
+    'SELECT id, capture_date, place_locality_en, place_locality_zh, media_type, duration_seconds, source_folder_id, is_live_photo, capture_sort, is_favorite, rotation, place_landmark_en, place_landmark_zh FROM items WHERE '
+    + buildFilterSql(filter) + ' ORDER BY capture_sort ASC, id ASC'
   ).raw().all();
 
   const ids = new Int32Array(rows.length);

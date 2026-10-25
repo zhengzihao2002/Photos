@@ -24,7 +24,7 @@
     async function coverBefore(boundaryDate) {
       const page = await api.getItemsPage({
         limit: 1,
-        cursor: { captureTimeLocal: boundaryDate + ' 00:00:00', id: 0 },
+        cursor: { captureSort: boundaryDate + ' 00:00:00', id: 0 },
         direction: 'older',
         filter: null,
       });

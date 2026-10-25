@@ -74,12 +74,12 @@ function scans(sql) { // does the plan walk the whole items table?
 async function main() {
   await open();
   const total = Q.getTotalCount(db);
-  const mid = db.prepare('SELECT id, capture_time_local t FROM items WHERE is_deleted = 0 ORDER BY capture_time_local DESC LIMIT 1 OFFSET ?').get(Math.floor((typeof total === 'number' ? total : total.count) / 2));
+  const mid = db.prepare('SELECT id, capture_sort t FROM items WHERE is_deleted = 0 ORDER BY capture_sort DESC LIMIT 1 OFFSET ?').get(Math.floor((typeof total === 'number' ? total : total.count) / 2));
 
   for (const f of FILTERS) {
     const label = String(f);
     measure('page', 'first page ' + label, () => Q.getItemsPage(db, { limit: 100, filter: f }));
-    measure('page', 'deep page ' + label, () => Q.getItemsPage(db, { limit: 100, filter: f, cursor: { captureTimeLocal: mid.t, id: mid.id } }));
+    measure('page', 'deep page ' + label, () => Q.getItemsPage(db, { limit: 100, filter: f, cursor: { captureSort: mid.t, id: mid.id } }));
     measure('page', 'last page ' + label, () => Q.getItemsPage(db, { limit: 100, filter: f, direction: 'newer' }));
     measure('count', 'photo/video counts ' + label, () => Q.getPhotoVideoCounts(db, { filter: f }));
   }
@@ -109,7 +109,7 @@ async function main() {
   // Hot paths must not scan the whole table.
   const scanned = [];
   for (const f of [null, 'video', 'favorite', 'source:2', 'gps']) {
-    const sql = 'SELECT id FROM items WHERE ' + Q.buildFilterSql(f) + ' ORDER BY capture_time_local DESC, id DESC LIMIT 100';
+    const sql = 'SELECT id FROM items WHERE ' + Q.buildFilterSql(f) + ' ORDER BY capture_sort DESC, id DESC LIMIT 100';
     if (scans(sql).length) scanned.push(String(f));
   }
   if (scanned.length) results.push({ group: 'plan', name: 'full table scan on hot path: ' + scanned.join(', '), p50: 0, p95: 0, limit: 0, fail: true });

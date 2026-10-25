@@ -4,7 +4,7 @@
  * to IPC.
  *
  * library:get-items-page
- *   Request:  { limit?: number, cursor?: { captureTimeLocal, id } | null,
+ *   Request:  { limit?: number, cursor?: { captureSort, id } | null,
  *               direction?: 'older' | 'newer', filter?: string | null }
  *   Response: { items: Array<row>, hasMore: boolean,
  *               nextCursor: cursor | null, prevCursor: cursor | null }

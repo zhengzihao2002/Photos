@@ -569,7 +569,7 @@
     function itemAt(i) {
       const secs = data && data.times ? data.times[i] : NaN;
       const text = Number.isFinite(secs) ? new Date(secs * 1000).toISOString().replace('T', ' ').slice(0, 19) : null;
-      return { id: data.ids[i], capture_time_local: text };
+      return { id: data.ids[i], capture_sort: text };
     }
     function sharedScope(item) {
       const st = S.selectionStore;

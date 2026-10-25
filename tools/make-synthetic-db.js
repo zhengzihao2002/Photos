@@ -25,10 +25,10 @@ function build(db, { rows = 100000, seed = 1 } = {}) {
   const now = 1700000000;
   db.prepare("INSERT INTO source_folders (root_path, display_name, added_at) VALUES ('/synthetic/a','A',0),('/synthetic/b','B',0),('/synthetic/c','C',0)").run();
   const insert = db.prepare(`INSERT INTO items (source_folder_id, relative_path, filename, media_type, extension, file_size_bytes, file_mtime, width, height,
-    duration_seconds, capture_time_local, capture_date, capture_year, capture_month, lens_model, gps_latitude, gps_longitude, has_gps, is_raw, is_gif,
+    duration_seconds, capture_time_local, capture_sort, capture_date, capture_year, capture_month, lens_model, gps_latitude, gps_longitude, has_gps, is_raw, is_gif,
     is_panorama, is_live_photo, is_live_photo_component, burst_id, is_burst_cover, is_deleted, is_favorite, title_user, rotation, created_at, updated_at,
     place_locality_en, place_country_code, place_version, thumb_sm_status, face_version)
-    VALUES (@s,@p,@f,@m,@e,@size,@mtime,4000,3000,@dur,@t,@d,@y,@mo,@lens,@lat,@lng,@gps,@raw,@gif,@pano,@live,@comp,@burst,@cover,@del,@fav,@title,@rot,@c,@c,@city,'XX',101,'done',1)`);
+    VALUES (@s,@p,@f,@m,@e,@size,@mtime,4000,3000,@dur,@t,@t,@d,@y,@mo,@lens,@lat,@lng,@gps,@raw,@gif,@pano,@live,@comp,@burst,@cover,@del,@fav,@title,@rot,@c,@c,@city,'XX',101,'done',1)`);
   const t0 = Date.UTC(2006, 0, 1) / 1000;
   const span = (Date.UTC(2026, 0, 1) / 1000) - t0;
   let n = 0; let cursor = t0; let burstSeq = 0;

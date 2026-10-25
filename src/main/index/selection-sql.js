@@ -13,7 +13,7 @@
  *   x: [id, ...]                  individually removed items
  * Selected = in i, OR (not in x AND (a OR inside any range)).
  *
- * Sort key = (capture_time_local, id), the grid's own order, so a range
+ * Sort key = (capture_sort, id), the grid's own order, so a range
  * stays correct when the watcher inserts items while a selection exists.
  *
  * Validated strictly before anything is inlined: times must match
@@ -84,7 +84,7 @@ function buildSelectionClause(token) {
   if (s.all) covered.push('1');
   else {
     for (const [lo, hi] of s.ranges) {
-      covered.push('((capture_time_local, id) >= (' + keySql(lo) + ') AND (capture_time_local, id) <= (' + keySql(hi) + '))');
+      covered.push('((capture_sort, id) >= (' + keySql(lo) + ') AND (capture_sort, id) <= (' + keySql(hi) + '))');
     }
   }
   let body = covered.length ? '(' + covered.join(' OR ') + ')' : null;
