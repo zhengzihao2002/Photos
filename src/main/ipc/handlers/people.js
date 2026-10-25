@@ -46,7 +46,7 @@ const edits = require('../../people/people-edits');
 
 const SHOW_MIN_PHOTOS = 5;
 const ADD_MIN_PHOTOS = 2; // Add People lists unnamed people with at least this many photos
-const VISIBLE = 'i.is_deleted = 0 AND i.is_live_photo_component = 0 AND (i.burst_id IS NULL OR i.is_burst_cover = 1)';
+const VISIBLE = 'i.is_deleted = 0 AND i.is_live_photo_component = 0 AND i.is_edit_variant = 0 AND (i.burst_id IS NULL OR i.is_burst_cover = 1)';
 const PHOTO_COUNTS = `SELECT f.person_id AS id, COUNT(DISTINCT f.item_id) AS n
   FROM faces f JOIN items i ON i.id = f.item_id WHERE f.person_id IS NOT NULL AND ${VISIBLE} GROUP BY f.person_id`;
 

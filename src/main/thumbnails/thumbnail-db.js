@@ -21,7 +21,7 @@
 const path = require('path');
 
 const ELIGIBLE_SQL =
-  'i.is_deleted = 0 AND i.is_live_photo_component = 0 AND (i.burst_id IS NULL OR i.is_burst_cover = 1)';
+  'i.is_deleted = 0 AND i.is_live_photo_component = 0 AND i.is_edit_variant = 0 AND (i.burst_id IS NULL OR i.is_burst_cover = 1)';
 const JOB_COLUMNS =
   'i.id, i.source_folder_id, i.relative_path, i.extension, i.media_type, i.duration_seconds, s.root_path';
 const FROM_SQL = 'FROM items i JOIN source_folders s ON s.id = i.source_folder_id';

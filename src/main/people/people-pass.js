@@ -14,7 +14,7 @@
 const CLUSTER_VERSION = 3;
 const PARAMS = { cluster: 0.55, clusterWeak: 0.60, assign: 0.40, margin: 0.05, merge: 0.50, whole: 0.45 };
 const DIM = 128;
-const VISIBLE = 'i.is_deleted = 0 AND i.is_live_photo_component = 0 AND (i.burst_id IS NULL OR i.is_burst_cover = 1)';
+const VISIBLE = 'i.is_deleted = 0 AND i.is_live_photo_component = 0 AND i.is_edit_variant = 0 AND (i.burst_id IS NULL OR i.is_burst_cover = 1)';
 
 function toVec(buf) { const v = new Float32Array(DIM); Buffer.from(v.buffer).set(buf.subarray(0, DIM * 4)); return v; }
 function dot(a, b) { let s = 0; for (let i = 0; i < DIM; i++) s += a[i] * b[i]; return s; }

@@ -95,7 +95,7 @@ async function run(getWindow) {
   });
 
   // Items the grid shows (not a Live Photo's video half, not a hidden burst member): the same clause the app uses.
-  const VISIBLE = 'is_deleted = 0 AND is_live_photo_component = 0 AND (burst_id IS NULL OR is_burst_cover = 1)';
+  const VISIBLE = 'is_deleted = 0 AND is_live_photo_component = 0 AND is_edit_variant = 0 AND (burst_id IS NULL OR is_burst_cover = 1)';
 
   await step('every generated file is indexed, and counts are consistent', async () => {
     const raw = db.get().prepare("SELECT SUM(media_type = 'image') AS photos, SUM(media_type = 'video') AS videos FROM items WHERE is_deleted = 0").get();

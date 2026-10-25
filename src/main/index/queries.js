@@ -17,7 +17,7 @@
 const path = require('path');
 const { buildSelectionClause } = require('./selection-sql'); // M12.2
 
-const BASE_CLAUSE = 'is_deleted = 0 AND is_live_photo_component = 0 AND (burst_id IS NULL OR is_burst_cover = 1)';
+const BASE_CLAUSE = 'is_deleted = 0 AND is_live_photo_component = 0 AND is_edit_variant = 0 AND (burst_id IS NULL OR is_burst_cover = 1)';
 
 const FILTER_CLAUSES = {
   video: "media_type = 'video'",

@@ -15,7 +15,7 @@ const INHERIT_IOU = 0.5;
 // Environment problems, not file problems: retried later, never counted.
 const TRY_LATER = new Set(['source_missing', 'permission_denied', 'write_failed']);
 
-const VISIBLE_IMAGE = `(i.media_type = 'image' OR (i.media_type = 'video' AND i.thumb_sm_status = 'done')) AND i.is_deleted = 0 AND i.is_live_photo_component = 0
+const VISIBLE_IMAGE = `(i.media_type = 'image' OR (i.media_type = 'video' AND i.thumb_sm_status = 'done')) AND i.is_deleted = 0 AND i.is_live_photo_component = 0 AND i.is_edit_variant = 0
   AND (i.burst_id IS NULL OR i.is_burst_cover = 1)`;
 
 const blob = (f32) => Buffer.from(f32.buffer, f32.byteOffset, f32.byteLength);

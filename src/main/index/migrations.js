@@ -444,6 +444,24 @@ const migrations = [
       }
     },
   },
+  {
+    // Edited copies (IMG_E1234 next to IMG_1234) are hidden behind their original,
+    // like a burst's non-cover members. is_edit_variant is written only by
+    // edit-variant-pass.js; the visibility term joins every partial index's WHERE
+    // text (rebuilt here, text otherwise unchanged) and the pass runs once for
+    // existing libraries. No file and no file_mtime / file_size_bytes is touched.
+    version: 20,
+    up: (db) => {
+      const existing = new Set(db.prepare('PRAGMA table_info(items)').all().map((c) => c.name));
+      if (!existing.has('is_edit_variant')) db.exec('ALTER TABLE items ADD COLUMN is_edit_variant INTEGER NOT NULL DEFAULT 0;');
+      const indexes = db.prepare("SELECT name, sql FROM sqlite_master WHERE type = 'index' AND tbl_name = 'items' AND sql LIKE '%is_live_photo_component = 0%' AND sql NOT LIKE '%is_edit_variant%'").all();
+      for (const ix of indexes) {
+        db.exec('DROP INDEX ' + ix.name + ';');
+        db.exec(ix.sql.replace(/is_live_photo_component = 0/g, 'is_live_photo_component = 0 AND is_edit_variant = 0'));
+      }
+      require('./edit-variant-pass').runEditVariantPass(db);
+    },
+  },
 ];
 
 module.exports = { migrations };

@@ -37,6 +37,7 @@ const { createPlaceResolver, peekDatasetVersion } = require('../places/place-res
 const { runPlacePassLazy } = require('../places/place-pass');
 const { reconcileMoves } = require('./reconcile-moves'); // M12.8
 const { runLivePairingPass } = require('./live-pairing-pass'); // M15
+const { runEditVariantPass } = require('./edit-variant-pass');
 const { runIdentifierBackfill } = require('./live-identifier-backfill'); // M15.6
 
 // M8b.6: the app's own folders (from the main process) are never walked.
@@ -84,7 +85,9 @@ function reconcileMovesSafely(db, sourceFolderId, now) {
 // M15: Live Photo pairing by Content Identifier; never a reason to fail a scan.
 function livePairingSafely(db, sourceFolderId) {
   try {
-    return runLivePairingPass(db, sourceFolderId);
+    const live = runLivePairingPass(db, sourceFolderId);
+    live.edits = runEditVariantPass(db, sourceFolderId); // IMG_E1234 hidden behind IMG_1234
+    return live;
   } catch (err) {
     return { skipped: err.message };
   }
