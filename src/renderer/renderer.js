@@ -2619,8 +2619,19 @@
         // reload() briefly collapses the scroll area, which clamps scrollTop
         // to 0. Remember the position and restore it once data is back.
         const savedScrollTop = scrollEl ? scrollEl.scrollTop : 0;
+        // Newest photos are at the bottom. A grid that was empty (first import) or
+        // was resting at the bottom stays pinned to the bottom as items arrive;
+        // otherwise the position is kept where it was.
+        const wasEmpty = dl.getTotalCount() === 0;
+        const wasAtBottom = !!scrollEl && scrollEl.scrollTop >= scrollEl.scrollHeight - scrollEl.clientHeight - 2;
         await dl.refresh();
-        if (scrollEl) scrollEl.scrollTop = savedScrollTop;
+        if (!scrollEl) return;
+        const place = () => {
+          if ((wasEmpty || wasAtBottom) && dl.getTotalCount() > 0) scrollEl.scrollTop = scrollEl.scrollHeight;
+          else scrollEl.scrollTop = savedScrollTop;
+        };
+        place();
+        requestAnimationFrame(() => requestAnimationFrame(place));
       });
 
       const unsubscribeNavigation = navigationStore.subscribe(() => { tryConsumeNavigation(); });

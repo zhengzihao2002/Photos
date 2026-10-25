@@ -82,5 +82,5 @@ test('counts are consistent: per-source counts add up to the library total', () 
   const src = Q.getPhotoVideoCounts(d, { filter: 'source:1' });
   assert.deepStrictEqual(src, total);
   d.close();
-  fs.rmSync(path.join(__dirname, '..', '.cache'), { recursive: true, force: true });
+  fs.rmSync(path.join(__dirname, '..', '.cache', 'fingerprints'), { recursive: true, force: true });
 });
