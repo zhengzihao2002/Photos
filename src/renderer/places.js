@@ -527,7 +527,7 @@
     '.pa-tile { position: absolute; overflow: hidden; background: rgba(128,128,128,.18); cursor: default; }',
     '.pa-tile img { display: block; width: 100%; height: 100%; object-fit: cover; }',
     '.pa-tile.is-selected { outline: 3px solid #0a84ff; outline-offset: -3px; }',
-    '.pa-empty { padding: 120px 0; text-align: center; color: var(--text-primary); opacity: .6; font-size: 14px; }',
+    '.pa-empty { display: flex; align-items: center; justify-content: center; min-height: 60vh; padding: 0 24px; box-sizing: border-box; text-align: center; color: var(--text-primary); opacity: .6; font-size: 14px; }',
   ].join('\n');
   document.head.appendChild(css);
 

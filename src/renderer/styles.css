@@ -360,6 +360,8 @@ body.sidebar-hidden .viewer-toolbar {
   position: relative;
   width: 100%;
 }
+/* Empty views fill the area under the toolbar so their text is centered in it. */
+#grid-root:has(> .empty-state) { height: 100%; }
 
 .row-header {
   position: absolute;
@@ -550,7 +552,13 @@ body.sidebar-hidden .viewer-toolbar {
 }
 
 .timeline-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  min-height: 60vh;
   padding: 24px;
+  box-sizing: border-box;
   color: var(--text-secondary);
 }
 

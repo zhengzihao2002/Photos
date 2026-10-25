@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 
+- Empty views (No Photos, No Favorites, no results, empty Years/Months, People, Places) are now centered in the window instead of stuck under the toolbar.
 - **One rule for the shown date:** EXIF date taken (DateTimeOriginal), else EXIF CreateDate, else the file's modification time. File names are no longer used to guess a date. It is shown exactly as the file states it, never converted to this Mac's time zone.
 - **Ordering uses one common clock:** each photo also gets a hidden UTC sort key (from the EXIF time-zone offset, else the GPS clock, else this Mac's zone), so a photo taken later in New York sorts as newer than one taken earlier in Beijing even though it shows an older date. The sort key is never displayed.
 - Existing libraries re-read each file's metadata once after updating (originals are only read).

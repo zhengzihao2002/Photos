@@ -177,7 +177,7 @@
         style: { marginLeft: 'auto', border: 'none', background: 'transparent', color: 'var(--accent, #2f7ff7)', fontSize: '13px', cursor: 'pointer', padding: '2px 4px' },
       }, t('people.sort')));
 
-    const empty = people.length === 0 && h('div', { style: { padding: '48px 0', textAlign: 'center', color: 'var(--text-secondary, #8e8e93)' } },
+    const empty = people.length === 0 && h('div', { style: { minHeight: '50vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', color: 'var(--text-secondary, #8e8e93)' } },
       h('div', { style: { fontSize: '17px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '6px' } }, unnamed ? t('people.everyoneNamed') : t('people.none')),
       h('div', { style: { fontSize: '13px' } }, unnamed ? t('people.none.unnamedHint') : t('people.none.namedHint')));
 
