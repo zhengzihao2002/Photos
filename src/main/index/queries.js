@@ -329,7 +329,7 @@ function getReextractionCounts(db) {
     SELECT source_folder_id AS sourceFolderId, COUNT(*) AS count
     FROM items
     WHERE is_deleted = 0 AND (
-      extraction_version < 4
+      extraction_version < 5
       OR (extension IN ('heic', 'heif') AND width IS NULL)
       OR (capture_time_source IS NOT 'file_mtime' AND capture_time_local IS NOT NULL AND (
             capture_time_local <= '1970-01-01 00:00:00'

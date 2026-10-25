@@ -13,7 +13,7 @@ const exifr = require('exifr');
 const { cleanTitle, cleanCaption, cleanKeywords, parseExposureBias, parseFocal35 } = require('./embedded-text'); // M12.4
 const { readContainerDimensions } = require('./image-dimensions');
 const { readStillIdentifier } = require('./live-identifier'); // M15
-const { parseOffsetMinutes, offsetFromGps } = require('./capture-time');
+const { parseOffsetMinutes, offsetFromGps, parseDateText } = require('./capture-time');
 const {
   isPanoramaByAspectRatio,
   applyOrientation,
@@ -67,25 +67,42 @@ async function resolveRawDimensions(fullPath, extension, exif) {
 }
 
 function exifDateToPlausibleParts(value) {
-  if (!(value instanceof Date) || Number.isNaN(value.getTime())) return null;
-  const parts = dateToParts(value);
-  return isPlausibleCaptureParts(parts) ? parts : null;
+  if (value instanceof Date) {
+    if (Number.isNaN(value.getTime())) return null;
+    const parts = dateToParts(value);
+    return isPlausibleCaptureParts(parts) ? { parts, zone: '' } : null;
+  }
+  if (typeof value === 'string') { // XMP / IPTC dates arrive as ISO text, possibly with an offset
+    const parsed = parseDateText(value);
+    return parsed && isPlausibleCaptureParts(parsed.parts) ? parsed : null;
+  }
+  return null;
 }
 
-// Display time = EXIF DateTimeOriginal, else CreateDate. exifr revives the naive
-// "YYYY:MM:DD HH:MM:SS" text as a local Date, so the local getters give back the
-// exact digits the file carries. No file name guessing: no EXIF date means the
-// caller falls back to the file's modification time.
+// Display time = the first date the file carries, in this order: EXIF DateTimeOriginal,
+// CreateDate (DateTimeDigitized), then XMP / IPTC creation dates, then EXIF ModifyDate.
+// exifr revives the naive "YYYY:MM:DD HH:MM:SS" text as a local Date, so the local
+// getters give back the exact digits the file carries. No file name guessing: only a
+// file with no usable date at all falls back (in extract.js) to its modification time.
+// Each rung must pass the plausibility rule (M1 patch A.2); a sentinel such as
+// "0000:00:00 00:00:00" (revived by exifr as 1899-11-30) falls through to the next rung.
+const DATE_RUNGS = [
+  ['DateTimeOriginal', 'exif_original', ['OffsetTimeOriginal', 'OffsetTime']],
+  ['CreateDate', 'exif_create', ['OffsetTimeDigitized', 'OffsetTime']],
+  ['DateTimeDigitized', 'exif_create', ['OffsetTimeDigitized', 'OffsetTime']],
+  ['DateCreated', 'exif_create', []],
+  ['CreationDate', 'exif_create', []],
+  ['ModifyDate', 'exif_create', ['OffsetTime']],
+  ['DateTime', 'exif_create', ['OffsetTime']],
+  ['MetadataDate', 'exif_create', []],
+];
+
 function resolveCaptureTimeFromExif(exif) {
-  // Each rung must pass the plausibility rule (M1 patch A.2); a sentinel such
-  // as "0000:00:00 00:00:00" (revived by exifr as 1899-11-30) falls through.
-  const originalParts = exifDateToPlausibleParts(exif.DateTimeOriginal);
-  if (originalParts) {
-    return { parts: originalParts, source: 'exif_original', offsetText: exif.OffsetTimeOriginal || exif.OffsetTime };
-  }
-  const createParts = exifDateToPlausibleParts(exif.CreateDate);
-  if (createParts) {
-    return { parts: createParts, source: 'exif_create', offsetText: exif.OffsetTimeDigitized || exif.OffsetTime };
+  for (const [key, source, offsetKeys] of DATE_RUNGS) {
+    const found = exifDateToPlausibleParts(exif[key]);
+    if (!found) continue;
+    const offsetText = found.zone || offsetKeys.map((k) => exif[k]).find((v) => typeof v === 'string' && v);
+    return { parts: found.parts, source, offsetText };
   }
   return null;
 }

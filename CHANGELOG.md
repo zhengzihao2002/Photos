@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 
+- **If a file has a date, it is used.** Photos: EXIF date taken, then create/digitized date, then XMP/IPTC creation date, then EXIF modify date. Videos: Apple's creation date, then any creation/recorded date in the container or any of its streams (any letter case, date-only too). The file's modification time is used only when the file carries no date at all. Existing items are re-read once.
 - **Edited copies count once:** an `IMG_E1234` file next to `IMG_1234` in the same folder (how iPhone exports an edited photo) is now hidden behind its original, so the library shows the original only. A lone `IMG_E` file with no original stays visible. Nothing on disk is touched.
 - Empty views (No Photos, No Favorites, no results, empty Years/Months, People, Places) are now centered in the window instead of stuck under the toolbar.
 - **One rule for the shown date:** EXIF date taken (DateTimeOriginal), else EXIF CreateDate, else the file's modification time. File names are no longer used to guess a date. It is shown exactly as the file states it, never converted to this Mac's time zone.

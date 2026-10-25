@@ -130,3 +130,62 @@ test('upgrading from version 18 adds capture_sort and moves every time index ont
   const after = db.prepare("SELECT name FROM sqlite_master WHERE type='index' AND sql LIKE '%capture_sort%'").all().map((r) => r.name).sort();
   assert.deepStrictEqual(after, before);
 });
+
+test('videos: any date the container carries is used (tag case, any stream, date-only), mtime only when none', async () => {
+  const { execFileSync } = require('child_process');
+  const { extractVideoMetadata } = require('../src/main/index/extract-video');
+  const { resolveCaptureTimeFromContainer } = require('../src/main/index/extract-video');
+  // Apple local date with offset wins and keeps its offset
+  let r = resolveCaptureTimeFromContainer({ format: { tags: { 'com.apple.quicktime.creationdate': '2022-03-03T21:06:07-0800', creation_time: '2022-03-04T05:06:07.000000Z' } }, streams: [] }, null);
+  assert.deepStrictEqual([r.parts.hour, r.offsetMinutes], [21, -480]);
+  // upper-case key on an audio stream only
+  r = resolveCaptureTimeFromContainer({ format: { tags: {} }, streams: [{ codec_type: 'video', tags: {} }, { codec_type: 'audio', tags: { CREATION_TIME: '2021-01-02T03:04:05Z' } }] }, null);
+  assert.deepStrictEqual([r.parts.year, r.parts.hour, r.offsetMinutes], [2021, 3, 0]);
+  // date only (Matroska DATE)
+  r = resolveCaptureTimeFromContainer({ format: { tags: { DATE: '2022-03-04' } }, streams: [] }, null);
+  assert.deepStrictEqual([r.parts.year, r.parts.month, r.parts.day, r.parts.hour], [2022, 3, 4, 0]);
+  // the 1904 sentinel does not hide a valid date elsewhere
+  r = resolveCaptureTimeFromContainer({ format: { tags: { creation_time: '1904-01-01T00:00:00Z' } }, streams: [{ tags: { creation_time: '2020-05-06T07:08:09Z' } }] }, null);
+  assert.strictEqual(r.parts.year, 2020);
+  assert.strictEqual(resolveCaptureTimeFromContainer({ format: { tags: {} }, streams: [] }, null), null);
+
+  // a real file through ffprobe, when ffmpeg is on this machine
+  let ff = null;
+  try { ff = require('ffmpeg-static'); execFileSync(ff, ['-version'], { stdio: 'ignore' }); } catch (e) { ff = null; }
+  if (!ff) { try { execFileSync('ffmpeg', ['-version'], { stdio: 'ignore' }); ff = 'ffmpeg'; } catch (e) { ff = null; } }
+  if (ff) {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ctv-'));
+    try {
+      const f = path.join(dir, 'v.mov');
+      execFileSync(ff, ['-v', 'error', '-y', '-f', 'lavfi', '-i', 'testsrc=d=1:s=64x64:r=5', '-metadata', 'creation_time=2022-03-04T05:06:07Z', f]);
+      const old = new Date(Date.UTC(2001, 0, 1)); fs.utimesSync(f, old, old);
+      const meta = await extractItemMetadata({ fullPath: f, filename: 'v.mov', extension: 'mov', mediaType: 'video' });
+      assert.strictEqual(meta.capture_time_source, 'exif_create');
+      assert.strictEqual(meta.capture_time_local, '2022-03-04 05:06:07');
+      assert.strictEqual(meta.capture_sort, '2022-03-04 05:06:07');
+    } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+  }
+});
+
+test('images: any EXIF/XMP date is used before the file time, in order of preference', async () => {
+  const sharp = require('sharp');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'cti-'));
+  try {
+    const make = async (name, ifd) => {
+      const file = path.join(dir, name);
+      await sharp({ create: { width: 32, height: 32, channels: 3, background: '#444' } }).withExif(ifd).jpeg().toFile(file);
+      const old = new Date(Date.UTC(2001, 0, 1)); fs.utimesSync(file, old, old);
+      return extractItemMetadata({ fullPath: file, filename: name, extension: 'jpg', mediaType: 'image' });
+    };
+    // only the "last modified" EXIF date present: still EXIF, not the file time
+    const modOnly = await make('m.jpg', { IFD0: { DateTime: '2018:06:07 08:09:10' } });
+    assert.strictEqual(modOnly.capture_time_local, '2018-06-07 08:09:10');
+    assert.notStrictEqual(modOnly.capture_time_source, 'file_mtime');
+    // original beats create beats modify
+    const all = await make('a.jpg', { IFD0: { DateTime: '2018:06:07 08:09:10' }, IFD2: { DateTimeOriginal: '2017:01:02 03:04:05', DateTimeDigitized: '2017:01:02 03:04:09' } });
+    assert.strictEqual(all.capture_time_local, '2017-01-02 03:04:05');
+    // a sentinel original falls through to the next real date
+    const sent = await make('s.jpg', { IFD0: { DateTime: '2018:06:07 08:09:10' }, IFD2: { DateTimeOriginal: '0000:00:00 00:00:00' } });
+    assert.strictEqual(sent.capture_time_local, '2018-06-07 08:09:10');
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+});

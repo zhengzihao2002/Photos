@@ -33,6 +33,18 @@ function parseOffsetMinutes(value) {
   return (m[1] === '-' ? -1 : 1) * minutes;
 }
 
+const DATE_TEXT = /^(\d{4})[-:](\d{2})[-:](\d{2})(?:[T ](\d{2}):(\d{2}):(\d{2}))?(?:\.\d+)?\s*(Z|[+-]\d{2}:?\d{2})?/i;
+
+/** 'YYYY-MM-DD[T ]HH:MM:SS[.f][Z|+hh:mm]' (also with ':' in the date) -> { parts, zone }, or null. */
+function parseDateText(text) {
+  const m = DATE_TEXT.exec(String(text == null ? '' : text).replace(/^UTC\s+/i, '').trim());
+  if (!m) return null;
+  return {
+    parts: { year: Number(m[1]), month: Number(m[2]), day: Number(m[3]), hour: Number(m[4] || 0), minute: Number(m[5] || 0), second: Number(m[6] || 0) },
+    zone: m[7] || '',
+  };
+}
+
 function wallAsUtcMs(parts) {
   return Date.UTC(parts.year, parts.month - 1, parts.day, parts.hour, parts.minute, parts.second);
 }
@@ -79,6 +91,7 @@ function captureSortFromEpochMs(ms) {
 }
 
 module.exports = {
+  parseDateText,
   parseOffsetMinutes,
   offsetFromGps,
   deviceOffsetMinutes,
