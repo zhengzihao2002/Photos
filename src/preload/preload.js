@@ -212,6 +212,21 @@ contextBridge.exposeInMainWorld('api', {
   getConfig: () => ipcRenderer.invoke('config:get'),
   updateConfig: (payload) => ipcRenderer.invoke('config:update', payload),
 
+  // Settings > Updates (only runs when asked)
+  getUpdaterState: () => ipcRenderer.invoke('updater:get-state'),
+  checkForUpdates: () => ipcRenderer.invoke('updater:check'),
+  installUpdate: () => ipcRenderer.invoke('updater:install'),
+  onUpdaterState: (callback) => {
+    const listener = (_event, payload) => callback(payload);
+    ipcRenderer.on('updater:state', listener);
+    return () => ipcRenderer.removeListener('updater:state', listener);
+  },
+  onShowUpdates: (callback) => {
+    const listener = () => callback();
+    ipcRenderer.on('settings:show-updates', listener);
+    return () => ipcRenderer.removeListener('settings:show-updates', listener);
+  },
+
   onProgress: (callback) => {
     const listener = (_event, payload) => callback(payload);
     ipcRenderer.on('progress:update', listener);

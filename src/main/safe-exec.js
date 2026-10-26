@@ -16,7 +16,8 @@
  * validate() is pure apart from the guard lookup, so tests exercise it directly.
  */
 const path = require('path');
-const { execFile, execFileSync } = require('child_process');
+const { execFile, execFileSync, spawn } = require('child_process');
+const fs = require('fs');
 const { promisify } = require('util');
 const writeGuard = require('./write-guard');
 
@@ -105,4 +106,42 @@ function safeExecFileSync(file, args, options) {
   return execFileSync(file, args || [], options || {});
 }
 
-module.exports = { validate, safeExecFile, safeExecFileAsync, safeExecFileSync, TOOLS };
+
+// Update helper (updater.js): after Photos quits, swap the app bundle for the downloaded one and
+// open it again. The script is a fixed text; the four values arrive as positional arguments and are
+// never spliced into it. It only touches the app bundle, a staging folder next to it, and the
+// downloaded files in <data>/updates; no photo folder is ever named. If anything goes wrong the old
+// app is kept and reopened.
+const UPDATE_SCRIPT = [
+  'pid="$1"; app="$2"; zip="$3"; work="$4"',
+  'log="$work/update.log"',
+  'i=0; while kill -0 "$pid" 2>/dev/null && [ "$i" -lt 100 ]; do sleep 0.2; i=$((i+1)); done',
+  'kill -0 "$pid" 2>/dev/null && kill -9 "$pid" 2>/dev/null',
+  'parent="$(dirname "$app")"; stage="$parent/.photos-update.$$"',
+  'if mkdir "$stage" 2>>"$log" && /usr/bin/ditto -x -k "$zip" "$stage" 2>>"$log" && [ -d "$stage/Photos.app" ] \\',
+  '   && /usr/bin/codesign --verify --deep --strict "$stage/Photos.app" 2>>"$log"; then',
+  '  if mv "$app" "$stage/old.app" 2>>"$log"; then',
+  '    if mv "$stage/Photos.app" "$app" 2>>"$log"; then rm -rf "$stage"; else mv "$stage/old.app" "$app"; echo "swap failed; kept the old app" >>"$log"; fi',
+  '  fi',
+  '  /usr/bin/xattr -dr com.apple.quarantine "$app" 2>/dev/null',
+  'else echo "update could not be unpacked or verified; kept the old app" >>"$log"; fi',
+  'rm -rf "$stage" "$zip" "$zip.sha256" 2>/dev/null',
+  '/usr/bin/open "$app"',
+].join('\n');
+
+function validateUpdateHelper({ pid, appPath, zipPath, workDir }) {
+  if (!Number.isInteger(pid) || pid < 2) throw fail('update helper: bad pid');
+  for (const p of [appPath, zipPath, workDir]) if (typeof p !== 'string' || !path.isAbsolute(p) || p.includes('\0')) throw fail('update helper: paths must be absolute');
+  if (!appPath.endsWith('.app') || !fs.existsSync(path.join(appPath, 'Contents', 'MacOS'))) throw fail('update helper: not an app bundle: ' + appPath);
+  if (path.dirname(zipPath) !== workDir || path.basename(workDir) !== 'updates') throw fail('update helper: the download must sit in <data>/updates');
+  if (!writeGuard.isInstalled() || !writeGuard.check(zipPath).ok) throw fail('update helper: the download is outside the data folder');
+}
+
+/** Starts the update helper detached from this process. Returns nothing; it outlives the app. */
+function spawnUpdateHelper(opts) {
+  validateUpdateHelper(opts);
+  const child = spawn('/bin/bash', ['-c', UPDATE_SCRIPT, 'photos-update', String(opts.pid), opts.appPath, opts.zipPath, opts.workDir], { detached: true, stdio: 'ignore' });
+  child.unref();
+}
+
+module.exports = { spawnUpdateHelper, validateUpdateHelper, UPDATE_SCRIPT, validate, safeExecFile, safeExecFileAsync, safeExecFileSync, TOOLS };

@@ -1,7 +1,7 @@
 /* M14 catalog. Whole sentences only; plural = {one, other}. Checked by tools/check-i18n.js. */
 (function (root) {
   const catalog = {
-  "about.credits": "与 Apple 无关联，也未获得 Apple 认可。\n\n“照片”只读取你的照片文件夹，绝不会更改它们。唯一用到网络的地方是地图图块。\n\n致谢：地名和地标名称 © GeoNames（CC BY 4.0）。地图 © OpenStreetMap 贡献者、© OpenMapTiles、OpenFreeMap。人脸检测：YuNet（MIT）和 SFace（Apache-2.0），使用 ONNX Runtime（MIT）。MapLibre GL（BSD-3-Clause）、Supercluster（ISC）、Preact（MIT）、sharp 和 libvips、better-sqlite3（MIT）、FFmpeg、Electron（MIT）。完整列表见 THIRD_PARTY_NOTICES.md。",
+  "about.credits": "与 Apple 无关联，也未获得 Apple 认可。\n\n“照片”只读取你的照片文件夹，绝不会更改它们。唯一用到网络的地方是地图图块，以及你主动点击“检查更新”时。\n\n致谢：地名和地标名称 © GeoNames（CC BY 4.0）。地图 © OpenStreetMap 贡献者、© OpenMapTiles、OpenFreeMap。人脸检测：YuNet（MIT）和 SFace（Apache-2.0），使用 ONNX Runtime（MIT）。MapLibre GL（BSD-3-Clause）、Supercluster（ISC）、Preact（MIT）、sharp 和 libvips、better-sqlite3（MIT）、FFmpeg、Electron（MIT）。完整列表见 THIRD_PARTY_NOTICES.md。",
   "app.name": "照片",
   "badge.live": "实况",
   "badge.pano": "全景",
@@ -277,6 +277,19 @@
   "settings.err.busy": "另一项清除仍在进行。",
   "settings.err.clear": "清除失败：{details}",
   "settings.err.measure": "无法测量存储空间：{details}",
+  "menu.checkForUpdates": "检查更新…",
+  "settings.tab.updates": "更新",
+  "update.available": "有新版本 {latest}（当前为 {current}）。",
+  "update.check": "检查更新",
+  "update.checking": "正在检查更新…",
+  "update.downloading": "正在下载… {percent}%",
+  "update.error": "无法更新：{details}",
+  "update.install": "更新并重新启动",
+  "update.installing": "正在安装… 照片即将重新启动。",
+  "update.note": "更新来自本项目的 GitHub 发布页，仅在你操作时才会联网检查。你的照片文件夹和资料库数据不会被改动。",
+  "update.notPackaged": "更新只适用于已安装的应用，不适用于从源码运行的副本。",
+  "update.upToDate": "照片 {version} 已是最新版本。",
+  "update.version": "版本 {version}",
   "settings.tab.storage": "存储空间",
   "settings.usedByPhotos": "“照片”已使用",
   "sidebar.allAlbums": "所有相簿",

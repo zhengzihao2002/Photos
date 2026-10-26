@@ -1,7 +1,7 @@
 /* M14 catalog. Whole sentences only; plural = {one, other}. Checked by tools/check-i18n.js. */
 (function (root) {
   const catalog = {
-  "about.credits": "Not affiliated with or endorsed by Apple.\n\nPhotos only reads your photo folders and never changes them. The only network use is map tiles.\n\nCredits: Place and landmark names © GeoNames (CC BY 4.0). Maps © OpenStreetMap contributors, © OpenMapTiles, OpenFreeMap. Face detection: YuNet (MIT) and SFace (Apache-2.0) with ONNX Runtime (MIT). MapLibre GL (BSD-3-Clause), Supercluster (ISC), Preact (MIT), sharp and libvips, better-sqlite3 (MIT), FFmpeg, Electron (MIT). Full list: THIRD_PARTY_NOTICES.md.",
+  "about.credits": "Not affiliated with or endorsed by Apple.\n\nPhotos only reads your photo folders and never changes them. The only network use is map tiles and, when you ask, Check for Updates.\n\nCredits: Place and landmark names © GeoNames (CC BY 4.0). Maps © OpenStreetMap contributors, © OpenMapTiles, OpenFreeMap. Face detection: YuNet (MIT) and SFace (Apache-2.0) with ONNX Runtime (MIT). MapLibre GL (BSD-3-Clause), Supercluster (ISC), Preact (MIT), sharp and libvips, better-sqlite3 (MIT), FFmpeg, Electron (MIT). Full list: THIRD_PARTY_NOTICES.md.",
   "app.name": "Photos",
   "badge.live": "LIVE",
   "badge.pano": "PANO",
@@ -293,6 +293,19 @@
   "settings.err.busy": "Another clear is still running.",
   "settings.err.clear": "Clear failed: {details}",
   "settings.err.measure": "Could not measure storage: {details}",
+  "menu.checkForUpdates": "Check for Updates…",
+  "settings.tab.updates": "Updates",
+  "update.available": "Version {latest} is available (you have {current}).",
+  "update.check": "Check for Updates",
+  "update.checking": "Checking for updates…",
+  "update.downloading": "Downloading… {percent}%",
+  "update.error": "Could not update: {details}",
+  "update.install": "Update and Restart",
+  "update.installing": "Installing… Photos will restart in a moment.",
+  "update.note": "Updates come from this project's GitHub Releases, only when you ask. Your photo folders and library data are never touched.",
+  "update.notPackaged": "Updates apply to the installed app only, not to a copy running from source.",
+  "update.upToDate": "Photos {version} is up to date.",
+  "update.version": "Version {version}",
   "settings.tab.storage": "Storage",
   "settings.usedByPhotos": "used by Photos",
   "sidebar.allAlbums": "All Albums",

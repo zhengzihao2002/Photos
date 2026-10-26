@@ -22,7 +22,47 @@
       h('path', { d: 'M3 13h18 M7 16.5h3', fill: 'none', stroke: 'currentColor', 'stroke-width': 1.6, 'stroke-linecap': 'round' }));
   }
 
+  function UpdatesIcon() {
+    return h('svg', { viewBox: '0 0 24 24', 'aria-hidden': 'true' },
+      h('path', { d: 'M12 4v10 M7.5 10l4.5 4.5 4.5-4.5 M5 19h14', fill: 'none', stroke: 'currentColor', 'stroke-width': 1.6, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }));
+  }
+
+  // Updates tab: runs only when asked. Check -> Update and Restart (download, verify, swap, reopen).
+  function Updates({ active }) {
+    const [st, setSt] = useState({ phase: 'idle', current: '', latest: null, percent: 0, error: null });
+    useEffect(() => {
+      window.api.getUpdaterState().then(setSt, () => {});
+      const off = window.api.onUpdaterState(setSt);
+      return off;
+    }, []);
+    useEffect(() => {
+      if (!active) return undefined;
+      const off = window.api.onShowUpdates(() => { window.api.checkForUpdates(); });
+      if (/[?&]tab=updates/.test(location.search)) window.api.checkForUpdates();
+      return off;
+    }, [active]);
+    const busy = st.phase === 'checking' || st.phase === 'downloading' || st.phase === 'installing';
+    let line = '';
+    if (st.phase === 'checking') line = t('update.checking');
+    else if (st.phase === 'uptodate') line = t('update.upToDate', { version: st.current });
+    else if (st.phase === 'available') line = t('update.available', { latest: st.latest, current: st.current });
+    else if (st.phase === 'downloading') line = t('update.downloading', { percent: st.percent });
+    else if (st.phase === 'installing') line = t('update.installing');
+    else if (st.phase === 'error') line = st.error === 'notPackaged' ? t('update.notPackaged') : t('update.error', { details: st.error });
+    return h('div', { class: 'st-page up-page' },
+      h('div', { class: 'st-total' }, t('update.version', { version: st.current })),
+      h('div', { class: 'up-line', role: 'status' }, line),
+      busy && st.phase === 'downloading' && h('div', { class: 'st-bar up-bar' }, h('span', { style: { width: st.percent + '%', background: '#0a84ff' } })),
+      h('div', { class: 'up-actions' },
+        st.phase === 'available'
+          ? h('button', { class: 'st-btn up-primary', type: 'button', onClick: () => window.api.installUpdate() }, t('update.install'))
+          : h('button', { class: 'st-btn', type: 'button', disabled: busy, onClick: () => window.api.checkForUpdates() }, t('update.check'))),
+      h('div', { class: 'up-note' }, t('update.note')));
+  }
+
   function Settings() {
+    const [tab, setTab] = useState(/[?&]tab=updates/.test(location.search) ? 'updates' : 'storage');
+    useEffect(() => window.api.onShowUpdates(() => setTab('updates')), []);
     const [sizes, setSizes] = useState(null);
     const [busy, setBusy] = useState(null); // kind being cleared, or 'measure'
     const [error, setError] = useState(null);
@@ -60,9 +100,13 @@
     const anyClearable = rows.some((r) => r.clear && r.bytes > 0);
     const status = busy === 'measure' ? t('settings.calculating') : busy ? t('settings.clearing') : (error || '');
 
+    const tabs = h('div', { class: 'st-tabs' },
+      h('button', { class: 'st-tab' + (tab === 'storage' ? ' is-selected' : ''), type: 'button', 'aria-pressed': tab === 'storage' ? 'true' : 'false', onClick: () => setTab('storage') }, h(StorageIcon), t('settings.tab.storage')),
+      h('button', { class: 'st-tab' + (tab === 'updates' ? ' is-selected' : ''), type: 'button', 'aria-pressed': tab === 'updates' ? 'true' : 'false', onClick: () => setTab('updates') }, h(UpdatesIcon), t('settings.tab.updates')));
+    if (tab === 'updates') return h('div', null, tabs, h(Updates, { active: true }));
+
     return h('div', null,
-      h('div', { class: 'st-tabs' },
-        h('button', { class: 'st-tab is-selected', type: 'button', 'aria-pressed': 'true' }, h(StorageIcon), t('settings.tab.storage'))),
+      tabs,
       h('div', { class: 'st-page' },
         sizes
           ? h('div', null,

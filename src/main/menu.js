@@ -41,6 +41,7 @@ function buildMenu(opts = {}) {
             label: t('app.name'),
             submenu: [
               { label: t('menu.about'), click: () => app.showAboutPanel() },
+              { label: t('menu.checkForUpdates'), click: () => require('./settings-window').open({ updates: true }) },
               { type: 'separator' },
               // M8c.6: Photos > Settings... (Cmd+,), as in Apple Photos.
               { label: t('menu.settings'), accelerator: 'Command+,', click: () => require('./settings-window').open() },

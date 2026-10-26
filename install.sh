@@ -6,13 +6,14 @@
 #   bash install.sh --dir ~/Applications install somewhere else instead (must be writable; no sudo is used)
 #   bash install.sh --local Photos.zip  install from a ZIP you already have (offline, CI)
 #   bash install.sh --no-open           do not open the app afterwards
-#   bash install.sh --force             replace a running copy without asking
+#   bash install.sh --force             (accepted for compatibility; a running copy is always quit for you)
 #   bash install.sh --uninstall         remove the app (asks before deleting its data folder)
 #   bash install.sh --help
 #
 # What it does: downloads Photos-arm64.zip and its SHA-256 from the repository's GitHub Releases into a
-# temporary folder, verifies the checksum, unpacks it with ditto, installs the app WITH its icon, checks the
-# signature, and offers to open it. Nothing is piped from the network into a shell. No sudo.
+# temporary folder, verifies the checksum, unpacks it with ditto, quits a running Photos for you, replaces the
+# app WITH its icon, checks the signature, and opens it again. It never asks a question. Nothing is piped from
+# the network into a shell. No sudo.
 # The app's data lives in a folder named PhotosData next to Photos.app; upgrades never touch it.
 # By default both sit inside the project folder, so deleting that folder removes everything.
 set -euo pipefail
@@ -26,7 +27,6 @@ DIR="$HERE"   # the project folder: the app and its data go here, so deleting th
 VERSION=""
 LOCAL_ZIP=""
 OPEN_AFTER=1
-FORCE=0
 UNINSTALL=0
 TMP=""
 
@@ -43,7 +43,7 @@ while [ $# -gt 0 ]; do
     --dir)       [ $# -ge 2 ] || fail "--dir needs a folder"; DIR="$2"; shift 2 ;;
     --local)     [ $# -ge 2 ] || fail "--local needs a ZIP file"; LOCAL_ZIP="$2"; shift 2 ;;
     --no-open)   OPEN_AFTER=0; shift ;;
-    --force)     FORCE=1; shift ;;
+    --force)     shift ;;   # kept so old command lines still work
     --uninstall) UNINSTALL=1; shift ;;
     --help|-h)   usage; exit 0 ;;
     *)           fail "unknown option: $1 (try --help)" ;;
@@ -66,9 +66,19 @@ DIR="$(cd "$DIR" 2>/dev/null && pwd -P)" || fail "Cannot use the folder: $DIR"
 APP="$DIR/$APP_NAME.app"
 DATA="$DIR/PhotosData"
 
+# Quit a running copy of THIS app (the one at $APP) cleanly, and wait for it to finish.
+quit_running() {
+  pgrep -f "$APP/Contents/MacOS/" >/dev/null 2>&1 || return 0
+  say "Quitting the running Photos …"
+  pkill -TERM -f "$APP/Contents/MacOS/" 2>/dev/null || true      # the app shuts down cleanly on SIGTERM
+  n=0
+  while pgrep -f "$APP/Contents/MacOS/" >/dev/null 2>&1 && [ "$n" -lt 100 ]; do sleep 0.2; n=$((n+1)); done
+  if pgrep -f "$APP/Contents/MacOS/" >/dev/null 2>&1; then pkill -KILL -f "$APP/Contents/MacOS/" 2>/dev/null || true; sleep 1; fi
+}
+
 # ---- uninstall --------------------------------------------------------------------------------------------
 if [ "$UNINSTALL" -eq 1 ]; then
-  if pgrep -f "$APP/Contents/MacOS/" >/dev/null 2>&1 && [ "$FORCE" -ne 1 ]; then fail "Photos is running. Quit it first (or add --force)."; fi
+  quit_running
   if [ -d "$APP" ]; then rm -rf "$APP"; say "Removed $APP"; else say "No app found at $APP"; fi
   if [ -d "$DATA" ]; then
     printf 'Also delete the data folder (library index, thumbnails, settings)? Your photos are never touched. [y/N] '
@@ -113,10 +123,7 @@ NEW="$TMP/unpacked/$APP_NAME.app"
 [ -d "$NEW" ] || fail "The ZIP does not contain $APP_NAME.app."
 
 if [ -d "$APP" ]; then
-  if pgrep -f "$APP/Contents/MacOS/" >/dev/null 2>&1; then
-    if [ "$FORCE" -eq 1 ]; then pkill -f "$APP/Contents/MacOS/" || true; sleep 1
-    else fail "Photos is running. Quit it and run this again (or add --force). Your data is not touched either way."; fi
-  fi
+  quit_running
   say "Replacing the existing copy (your data folder is left alone)."
   rm -rf "$APP"
 fi
@@ -134,12 +141,8 @@ say "Its data will live in: $DATA   (delete both, or the folder they are in, to 
 
 # ---- open -------------------------------------------------------------------------------------------------
 if [ "$OPEN_AFTER" -eq 1 ]; then
-  printf 'Open Photos now? [Y/n] '
-  read -r answer || answer="y"
-  case "$answer" in
-    n|N|no|NO) ;;
-    *) open "$APP" || true ;;
-  esac
+  say "Opening Photos …"
+  open "$APP" || true
 fi
 
 cat <<EONOTE

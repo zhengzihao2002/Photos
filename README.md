@@ -20,7 +20,10 @@ The script downloads the latest release from GitHub, checks its SHA-256, install
 
 ### Update
 
-Every change to the app on `main` is built and released automatically. To update: `git pull` in the project folder, then `bash install.sh` again (it replaces the app and keeps `PhotosData`; quit Photos first).
+Every change to the app on `main` is built and released automatically.
+
+- **In the app:** **Photos → Check for Updates…** (or **Settings → Updates**). When a newer version exists, click **Update and Restart**: Photos downloads it, checks the SHA-256, quits, swaps itself and reopens. Nothing is checked unless you click.
+- **From the terminal:** `git pull` in the project folder, then `bash install.sh`. It quits a running Photos for you, replaces the app, keeps `PhotosData` and reopens it. No questions asked.
 
 ### If macOS blocks the first launch
 
@@ -42,7 +45,7 @@ In a folder named `PhotosData` **next to** `Photos.app` (by default both are ins
 ## Promises
 
 - **Read-only.** Photos never writes, moves, renames, deletes or labels a file in your photo folders, and never creates a file beside one. Features that would write (Delete, Edit, Share…) are visible but disabled. Favorites, titles, captions, keywords, rotation and people corrections live **only in the app's database**. Remove a folder and add it again and you are back to the original. The promise is enforced four ways (audit, a runtime write guard, validated external tools, a read-only disk-image test) — see [`docs/ZERO-WRITES-AUDIT.md`](docs/ZERO-WRITES-AUDIT.md).
-- **Offline.** No account, no telemetry, no update check. The only network use is map tiles from OpenFreeMap. Face recognition, place names and landmarks all work offline.
+- **Offline.** No account, no telemetry, no automatic update check. The only network use is map tiles from OpenFreeMap, and GitHub when you click Check for Updates. Face recognition, place names and landmarks all work offline.
 - **Self-contained.** Everything it writes is inside `PhotosData`.
 - **No street addresses.** Locations show a city and, where you are at one, a landmark (Eiffel Tower, Yosemite National Park…), from a bundled offline dataset.
 

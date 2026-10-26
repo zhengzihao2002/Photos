@@ -188,6 +188,20 @@
       "max": 4,
       "writes": "thumbnails.log (append, rotate) and <data>/tmp/thumbs",
       "safe": "logsDir and tmp are inside the data folder."
+    },
+    {
+      "file": "src/main/updater.js",
+      "id": "fs-mutate",
+      "max": 3,
+      "writes": "Creates and clears <data>/updates (the downloaded ZIP and its log)",
+      "safe": "Paths are built from paths.dataRoot() + 'updates'; never a source folder."
+    },
+    {
+      "file": "src/main/updater.js",
+      "id": "write-stream",
+      "max": 1,
+      "writes": "The downloaded update ZIP, <data>/updates/Photos-arm64.zip (only after the person clicks Update and Restart)",
+      "safe": "The path is built from paths.dataRoot() + 'updates'; the write guard allows only the data folder."
     }
   ],
   "notes": [

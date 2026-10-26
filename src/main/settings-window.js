@@ -9,11 +9,13 @@ const { t } = require('./i18n'); // M14
 
 let win = null;
 
-function open() {
+/** opts.updates: open on the Updates tab and check right away (Photos > Check for Updates…). */
+function open(opts = {}) {
   if (win && !win.isDestroyed()) {
     if (win.isMinimized()) win.restore();
     win.show();
     win.focus();
+    if (opts.updates) win.webContents.send('settings:show-updates');
     return;
   }
   win = new BrowserWindow({
@@ -38,7 +40,7 @@ function open() {
   });
   win.once('ready-to-show', () => { if (win && !win.isDestroyed()) win.show(); });
   win.on('closed', () => { win = null; });
-  win.loadFile(path.join(__dirname, '..', 'renderer', 'settings.html'));
+  win.loadFile(path.join(__dirname, '..', 'renderer', 'settings.html'), opts.updates ? { query: { tab: 'updates' } } : undefined);
 }
 
 /** M14: new title after a language change (the page itself reloads). */

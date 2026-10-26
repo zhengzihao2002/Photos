@@ -69,3 +69,11 @@ body.settings-window {
 .st-btn-spacer { min-width: 58px; }
 .st-footer { display: flex; align-items: center; margin-top: 14px; }
 .st-status { flex: 1; color: var(--text-secondary); font-size: 12px; }
+
+/* Updates tab */
+.up-page { display: flex; flex-direction: column; gap: 14px; }
+.up-line { min-height: 20px; font-size: 13px; color: var(--text-primary); }
+.up-bar { margin: 0; }
+.up-actions { display: flex; gap: 8px; }
+.up-primary { background: #0a84ff; color: #fff; border-color: #0a84ff; }
+.up-note { margin-top: auto; font-size: 11px; color: var(--text-secondary); }

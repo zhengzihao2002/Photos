@@ -2622,7 +2622,7 @@
         // Newest photos are at the bottom. A grid that was empty (first import) or
         // was resting at the bottom stays pinned to the bottom as items arrive;
         // otherwise the position is kept where it was.
-        const wasEmpty = dl.getTotalCount() === 0;
+        const wasEmpty = !dl.getTotalCount();
         const wasAtBottom = !!scrollEl && scrollEl.scrollTop >= scrollEl.scrollHeight - scrollEl.clientHeight - 2;
         await dl.refresh();
         if (!scrollEl) return;
