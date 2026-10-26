@@ -197,12 +197,13 @@
     const turnsRef = useRef(null);
     useEffect(() => {
       // Keep edits in order, including rapid clicks before a previous save has returned.
-      const state = { points: [], pending: Promise.resolve(), live: true };
+      const state = { points: [], pending: Promise.resolve(), live: true, loaded: false };
       turnsRef.current = state;
       setTurns([]);
       if (itemId != null) state.pending = window.api.getVideoTurns(itemId).then((r) => {
+        state.loaded = true;
         if (Array.isArray(r)) { state.points = r; if (state.live) setTurns(r); }
-      }, () => {});
+      }, () => { state.loaded = true; if (state.live) setTurns([]); });
       return () => { state.live = false; };
     }, [itemId, url]);
     const [t, setT] = useState(0);
@@ -220,6 +221,7 @@
         for (const p of state.points) { if (p.at <= at + 0.0001) cur = p.turn; else break; }
         return window.api.setVideoTurn(itemId, at, (cur + delta + 360) % 360);
       }).then((r) => {
+        state.direction = delta;
         if (Array.isArray(r)) { state.points = r; if (state.live) setTurns(r); }
       }, () => {});
     }
@@ -251,6 +253,41 @@
     } : (rotation ? { visibility: 'hidden' } : undefined);
     const [playing, setPlaying] = useState(false);
     const [dur, setDur] = useState(0);
+    const turnFrameRef = useRef(null);
+    const turnAnimationRef = useRef(null);
+    useLayoutEffect(() => {
+      const v = vref.current, previous = turnFrameRef.current;
+      if (!v || !eff || !eff.w || !eff.h || !v.videoWidth || !v.videoHeight) return;
+      // Animate the fitted picture with transforms only: swapping the video's layout
+      // box must not make the paused frame jump in size before it starts turning.
+      const fit = Math.min((turned ? eff.h : eff.w) / v.videoWidth,
+        (turned ? eff.w : eff.h) / v.videoHeight);
+      const state = turnsRef.current;
+      let delta = previous ? (rotation - previous.rotation + 540) % 360 - 180 : 0;
+      if (delta === -180 && state && state.direction > 0) delta = 180;
+      const angle = previous ? previous.angle + delta : rotation;
+      turnFrameRef.current = { rotation, angle, fit, w: eff.w, h: eff.h, baseRotation, loaded: !!(state && state.loaded) };
+      if (!previous || (previous.rotation === rotation && previous.w === eff.w && previous.h === eff.h)) return;
+      const active = turnAnimationRef.current;
+      const progress = active && active.animation.effect.getComputedTiming().progress;
+      const fromAngle = progress != null ? active.fromAngle + (active.angle - active.fromAngle) * progress : previous.angle;
+      const fromScale = (progress != null ? active.fromScale + (1 - active.fromScale) * progress : 1) * previous.fit / fit;
+      if (active) active.animation.cancel();
+      turnAnimationRef.current = null;
+      // Leave initial loading, resizing, whole-video rotation and viewer zoom alone.
+      if (!delta || !previous.loaded || previous.baseRotation !== baseRotation ||
+          previous.w !== eff.w || previous.h !== eff.h || !canZoom() ||
+          v.getAnimations().some((a) => a.playState === 'running')) return;
+      const animation = v.animate([
+        { transform: `rotate(${fromAngle}deg) scale(${fromScale})` },
+        { transform: `rotate(${angle}deg) scale(1)` },
+      ], { duration: 260, easing: ZOOM_EASE });
+      turnAnimationRef.current = { animation, fromAngle, angle, fromScale };
+    }, [rotation, baseRotation, eff && eff.w, eff && eff.h, dur, turns]);
+    useLayoutEffect(() => () => {
+      const active = turnAnimationRef.current;
+      if (active) active.animation.cancel();
+    }, []);
     const [muted, setMuted] = useState(false);
     const [vol, setVol] = useState(1);
     const scrubRef = useRef(null); // { wasPlaying } during a scrub drag
