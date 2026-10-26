@@ -281,7 +281,7 @@
       const animation = v.animate([
         { transform: `rotate(${fromAngle}deg) scale(${fromScale})` },
         { transform: `rotate(${angle}deg) scale(1)` },
-      ], { duration: 260, easing: ZOOM_EASE });
+      ], { duration: 450, easing: 'cubic-bezier(0.4, 0, 0.2, 1)' });
       turnAnimationRef.current = { animation, fromAngle, angle, fromScale };
     }, [rotation, baseRotation, eff && eff.w, eff && eff.h, dur, turns]);
     useLayoutEffect(() => () => {
