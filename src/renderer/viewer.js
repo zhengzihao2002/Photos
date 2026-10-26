@@ -42,6 +42,8 @@
     info: ['M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18z', 'M12 11v6', 'M12 7.5v.5'],
     heart: ['M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.5-7 10-7 10z'],
     rotate: ['M4 12a8 8 0 1 0 2.3-5.6', 'M4 4v4h4'],
+    turnLeft: ['M5 11h14v10H5z', 'M10 14l5 2-5 2z', 'M19 8a3 3 0 0 0-3-3H5', 'M8 2L5 5l3 3'],
+    turnRight: ['M5 11h14v10H5z', 'M10 14l5 2-5 2z', 'M5 8a3 3 0 0 1 3-3h11', 'M16 2l3 3-3 3'],
     share: ['M12 3v12', 'M8 7l4-4 4 4', 'M6 11v9h12v-9'],
     trash: ['M5 7h14', 'M10 7V4h4v3', 'M7 7l1 13h8l1-13'],
   };
@@ -192,11 +194,16 @@
     const vref = useRef(null);
     // Manual turn points: from `at` seconds on the picture is turned `turn` degrees clockwise (database only).
     const [turns, setTurns] = useState([]);
+    const turnsRef = useRef(null);
     useEffect(() => {
-      let live = true;
+      // Keep edits in order, including rapid clicks before a previous save has returned.
+      const state = { points: [], pending: Promise.resolve(), live: true };
+      turnsRef.current = state;
       setTurns([]);
-      if (itemId != null) window.api.getVideoTurns(itemId).then((r) => { if (live && Array.isArray(r)) setTurns(r); }, () => {});
-      return () => { live = false; };
+      if (itemId != null) state.pending = window.api.getVideoTurns(itemId).then((r) => {
+        if (Array.isArray(r)) { state.points = r; if (state.live) setTurns(r); }
+      }, () => {});
+      return () => { state.live = false; };
     }, [itemId, url]);
     const [t, setT] = useState(0);
     let turnNow = 0;
@@ -204,14 +211,25 @@
     const rotation = (baseRotation + turnNow) % 360;
     function turnFromHere(delta) {
       const v = vref.current;
-      if (!v || itemId == null) return;
+      const state = turnsRef.current;
+      if (!v || itemId == null || !state) return;
       const at = v.currentTime;
-      let cur = 0;
-      for (const p of turns) { if (p.at <= at + 0.0001) cur = p.turn; else break; }
-      window.api.setVideoTurn(itemId, at, (cur + delta + 360) % 360).then((r) => { if (Array.isArray(r)) setTurns(r); }, () => {});
+      setT(at); // use the paused frame even if its timeupdate event has not arrived yet
+      state.pending = state.pending.then(() => {
+        let cur = 0;
+        for (const p of state.points) { if (p.at <= at + 0.0001) cur = p.turn; else break; }
+        return window.api.setVideoTurn(itemId, at, (cur + delta + 360) % 360);
+      }).then((r) => {
+        if (Array.isArray(r)) { state.points = r; if (state.live) setTurns(r); }
+      }, () => {});
     }
     function resetTurns() {
-      window.api.clearVideoTurns(itemId).then(() => setTurns([]), () => {});
+      const state = turnsRef.current;
+      if (itemId == null || !state) return;
+      state.pending = state.pending.then(() => window.api.clearVideoTurns(itemId)).then(() => {
+        state.points = [];
+        if (state.live) setTurns([]);
+      }, () => {});
     }
     // M12.11: a turned video is drawn in a box with swapped sides, then rotated about its centre.
     const wrapRef = useRef(null);
@@ -293,9 +311,12 @@
           onPointerUp: (e) => endScrub(e.currentTarget),
           onPointerCancel: (e) => endScrub(e.currentTarget) }),
         h('span', { className: 'viewer-vtime' }, '-' + fmtTime(Math.max(0, dur - t))),
-        h('button', { className: 'viewer-vbtn', title: tr('viewer.turnFromHere'), 'aria-label': tr('viewer.turnFromHere'), onMouseDown: noFocus,
+        h('button', { className: 'viewer-vbtn', title: tr('viewer.turnLeftFromHere'), 'aria-label': tr('viewer.turnLeftFromHere'), onMouseDown: noFocus,
+          onClick: (e) => turnFromHere(e.altKey ? 90 : -90) },
+          h(Icon, { name: 'turnLeft', size: 18 })),
+        h('button', { className: 'viewer-vbtn', title: tr('viewer.turnRightFromHere'), 'aria-label': tr('viewer.turnRightFromHere'), onMouseDown: noFocus,
           onClick: (e) => turnFromHere(e.altKey ? -90 : 90) },
-          h(Icon, { name: 'rotate', size: 18 })),
+          h(Icon, { name: 'turnRight', size: 18 })),
         turns.length > 0 && h('button', { className: 'viewer-vbtn viewer-vreset', title: tr('viewer.turnsReset'), 'aria-label': tr('viewer.turnsReset'), onMouseDown: noFocus, onClick: resetTurns }, tr('viewer.turnsResetShort')),
         h('button', { className: 'viewer-vbtn', 'aria-label': muted ? tr('viewer.unmute') : tr('viewer.mute'), onMouseDown: noFocus,
           onClick: () => { const v = vref.current; if (v) v.muted = !v.muted; } },

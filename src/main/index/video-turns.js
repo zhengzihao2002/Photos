@@ -20,7 +20,8 @@ function setTurn(db, { id, at, turn }) {
   if (!Number.isInteger(id) || id < 1) throw new Error('Invalid item');
   if (typeof at !== 'number' || !Number.isFinite(at) || at < 0 || at > MAX_SECONDS) throw new Error('Invalid time');
   if (turn !== null && !ALLOWED_TURNS.has(turn)) throw new Error('Invalid turn');
-  const when = Math.round(at * 10) / 10;
+  // Snap backwards so the point already applies to the frame where the user paused.
+  const when = Math.floor(at * 10) / 10;
   const run = db.transaction(() => {
     const item = db.prepare("SELECT media_type FROM items WHERE id = ? AND is_deleted = 0").get(id);
     if (!item || item.media_type !== 'video') return listTurns(db, id);

@@ -34,6 +34,19 @@ test('turn points are validated and only apply to videos', () => {
   assert.deepStrictEqual(T.setTurn(db, { id: 99, at: 1, turn: 90 }), []);
 });
 
+test('a turn applies at the paused time, including repeated turns in either direction', () => {
+  const db = freshDb(); seed(db);
+  const at = 12.36; // rounding to the nearest tenth used to defer the turn until 12.4
+  for (const delta of [90, 90, -90, -90, -90, 90]) {
+    const expected = (T.turnAt(T.listTurns(db, 1), at) + delta + 360) % 360;
+    const points = T.setTurn(db, { id: 1, at, turn: expected });
+    assert.strictEqual(T.turnAt(points, at), expected);
+    assert.strictEqual(T.turnAt(points, 12.29), 0);
+    assert.strictEqual(points.length, 1);
+  }
+  db.close();
+});
+
 test('turn points go away with their item', () => {
   const db = freshDb(); seed(db);
   T.setTurn(db, { id: 1, at: 1, turn: 90 });
