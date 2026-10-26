@@ -164,6 +164,7 @@
         // names, CC BY 4.0) is added here. Always visible, bottom right.
         attributionControl: false, // credits live behind the "Legal" label (addLegal)
       });
+      window.PhotosMapPresentation.prepare(map);
       map.touchZoomRotate.disableRotation();
       addLegal(elRef.current);
       // Credit links are web links; following one would navigate the app
@@ -822,6 +823,7 @@
           center: [lng, lat], zoom: 14.5, interactive: false,
           attributionControl: false,
         });
+        window.PhotosMapPresentation.prepare(map);
         map.on('error', (e) => console.warn('[map]', e && e.error ? e.error.message : e));
         const onTheme = () => map.setStyle(window.__PhotosMapStyleFor(theme.matches));
         theme.addEventListener('change', onTheme);

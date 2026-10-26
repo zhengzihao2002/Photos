@@ -47,6 +47,7 @@
       const theme = window.matchMedia('(prefers-color-scheme: dark)');
       const map = new gl.Map({ container: elRef.current, style: window.__PhotosMapStyleFor(theme.matches),
         center: [lng, lat], zoom: 13, dragRotate: false, pitchWithRotate: false, attributionControl: false });
+      window.PhotosMapPresentation.prepare(map);
       map.touchZoomRotate.disableRotation();
       map.addControl(new gl.NavigationControl({ showCompass: false }), 'bottom-right');
       addLegal(elRef.current);
@@ -129,6 +130,7 @@
       const theme = window.matchMedia('(prefers-color-scheme: dark)');
       const map = new gl.Map({ container: elRef.current, style: window.__PhotosMapStyleFor(theme.matches),
         center: [points.lngs[0], points.lats[0]], zoom: 3, dragRotate: false, pitchWithRotate: false, attributionControl: false });
+      window.PhotosMapPresentation.prepare(map);
       map.touchZoomRotate.disableRotation();
       map.addControl(new gl.NavigationControl({ showCompass: false }), 'bottom-right');
       addLegal(elRef.current);
