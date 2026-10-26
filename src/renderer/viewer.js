@@ -188,8 +188,31 @@
 
   // Video (M5.7): paused on open (no autoplay), custom control bar.
   // apiRef.current = { toggle } while mounted; released on unmount/url change.
-  function VideoPlayer({ url, poster, onError, apiRef, rotation, stageBox }) {
+  function VideoPlayer({ url, poster, onError, apiRef, rotation: baseRotation, stageBox, itemId }) {
     const vref = useRef(null);
+    // Manual turn points: from `at` seconds on the picture is turned `turn` degrees clockwise (database only).
+    const [turns, setTurns] = useState([]);
+    useEffect(() => {
+      let live = true;
+      setTurns([]);
+      if (itemId != null) window.api.getVideoTurns(itemId).then((r) => { if (live && Array.isArray(r)) setTurns(r); }, () => {});
+      return () => { live = false; };
+    }, [itemId, url]);
+    const [t, setT] = useState(0);
+    let turnNow = 0;
+    for (const p of turns) { if (p.at <= t + 0.0001) turnNow = p.turn; else break; }
+    const rotation = (baseRotation + turnNow) % 360;
+    function turnFromHere(delta) {
+      const v = vref.current;
+      if (!v || itemId == null) return;
+      const at = v.currentTime;
+      let cur = 0;
+      for (const p of turns) { if (p.at <= at + 0.0001) cur = p.turn; else break; }
+      window.api.setVideoTurn(itemId, at, (cur + delta + 360) % 360).then((r) => { if (Array.isArray(r)) setTurns(r); }, () => {});
+    }
+    function resetTurns() {
+      window.api.clearVideoTurns(itemId).then(() => setTurns([]), () => {});
+    }
     // M12.11: a turned video is drawn in a box with swapped sides, then rotated about its centre.
     const wrapRef = useRef(null);
     const [box, setBox] = useState(null);
@@ -209,7 +232,6 @@
       transform: 'rotate(' + rotation + 'deg)',
     } : (rotation ? { visibility: 'hidden' } : undefined);
     const [playing, setPlaying] = useState(false);
-    const [t, setT] = useState(0);
     const [dur, setDur] = useState(0);
     const [muted, setMuted] = useState(false);
     const [vol, setVol] = useState(1);
@@ -271,6 +293,10 @@
           onPointerUp: (e) => endScrub(e.currentTarget),
           onPointerCancel: (e) => endScrub(e.currentTarget) }),
         h('span', { className: 'viewer-vtime' }, '-' + fmtTime(Math.max(0, dur - t))),
+        h('button', { className: 'viewer-vbtn', title: tr('viewer.turnFromHere'), 'aria-label': tr('viewer.turnFromHere'), onMouseDown: noFocus,
+          onClick: (e) => turnFromHere(e.altKey ? -90 : 90) },
+          h(Icon, { name: 'rotate', size: 18 })),
+        turns.length > 0 && h('button', { className: 'viewer-vbtn viewer-vreset', title: tr('viewer.turnsReset'), 'aria-label': tr('viewer.turnsReset'), onMouseDown: noFocus, onClick: resetTurns }, tr('viewer.turnsResetShort')),
         h('button', { className: 'viewer-vbtn', 'aria-label': muted ? tr('viewer.unmute') : tr('viewer.mute'), onMouseDown: noFocus,
           onClick: () => { const v = vref.current; if (v) v.muted = !v.muted; } },
           h(Icon, { name: muted || vol === 0 ? 'mute' : 'sound', size: 18 })),
@@ -970,7 +996,7 @@
       h('div', { className: 'viewer-stage' + (geom && geom.zoomed ? ' is-zoomed' : '') + (panning ? ' is-panning' : ''), ref: stageRef,
         style: sheet > 0 ? { transform: 'translateY(' + (-sheet) + 'px)' } : undefined },
         isVideo && h(VideoPlayer, {
-          key: media.url, url: media.url, poster: img ? img.url : null, apiRef: videoApiRef, rotation: item && item.rotation ? item.rotation : 0, stageBox: stageSize, // M12.11
+          key: media.url, url: media.url, poster: img ? img.url : null, apiRef: videoApiRef, rotation: item && item.rotation ? item.rotation : 0, stageBox: stageSize, itemId: item ? item.id : null, // M12.11
           onError: () => { setMedia((m) => (m ? { ...m, kind: 'unplayable-video' } : m)); setNotice(tr('viewer.err.videoFormat')); },
         }),
         img && !isVideo && h('img', {

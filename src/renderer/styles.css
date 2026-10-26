@@ -1635,3 +1635,5 @@ body.drop-active::after {
   pointer-events: none;
   z-index: 3;
 }
+
+.viewer-vreset { width: auto; padding: 0 8px; font-size: 11px; }

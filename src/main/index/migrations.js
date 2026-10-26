@@ -462,6 +462,18 @@ const migrations = [
       require('./edit-variant-pass').runEditVariantPass(db);
     },
   },
+  {
+    // Manual video turn points (video-turns.js): database only, removed with the item.
+    version: 21,
+    up: (db) => {
+      db.exec(`CREATE TABLE IF NOT EXISTS video_turns (
+        item_id INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE,
+        at REAL NOT NULL,
+        turn INTEGER NOT NULL,
+        PRIMARY KEY (item_id, at)
+      ) WITHOUT ROWID;`);
+    },
+  },
 ];
 
 module.exports = { migrations };

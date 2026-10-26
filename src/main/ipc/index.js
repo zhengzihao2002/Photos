@@ -29,6 +29,7 @@ const infoHandlers = require('./handlers/info'); // M8c.2b
 const storageHandlers = require('./handlers/storage'); // M8c.6
 const editsHandlers = require('./handlers/edits'); // M12
 const updaterHandlers = require('./handlers/updater');
+const videoTurnsHandlers = require('./handlers/video-turns');
 
 const handlers = [
   ...systemHandlers,
@@ -46,6 +47,7 @@ const handlers = [
   ...storageHandlers,
   ...editsHandlers,
   ...updaterHandlers,
+  ...videoTurnsHandlers,
 ];
 
 function registerIpcHandlers() {

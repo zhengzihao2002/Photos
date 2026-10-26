@@ -15,8 +15,8 @@
 
 const WINDOW_SECONDS = 3600;
 
-const HAS_USER_DATA = '(is_favorite = 1 OR title_user IS NOT NULL OR caption_user IS NOT NULL OR keywords_user_owned = 1 OR rotation != 0)';
-const NO_USER_DATA = '(is_favorite = 0 AND title_user IS NULL AND caption_user IS NULL AND keywords_user_owned = 0 AND rotation = 0)';
+const HAS_USER_DATA = '(is_favorite = 1 OR title_user IS NOT NULL OR caption_user IS NOT NULL OR keywords_user_owned = 1 OR rotation != 0 OR EXISTS (SELECT 1 FROM video_turns WHERE item_id = items.id))';
+const NO_USER_DATA = '(is_favorite = 0 AND title_user IS NULL AND caption_user IS NULL AND keywords_user_owned = 0 AND rotation = 0 AND NOT EXISTS (SELECT 1 FROM video_turns WHERE item_id = items.id))';
 const COLS = 'id, filename, media_type, file_size_bytes, file_mtime, capture_time_local, width, height';
 
 function sameFile(a, b) {
@@ -62,6 +62,7 @@ function reconcileMoves(db, sourceFolderId, now) {
     const clearDonor = db.prepare(
       'UPDATE items SET is_favorite = 0, title_user = NULL, caption_user = NULL, keywords_user_owned = 0, rotation = 0 WHERE id = ?'
     );
+    const moveTurns = db.prepare('UPDATE video_turns SET item_id = @r WHERE item_id = @d');
     const dropDonorKeywords = db.prepare('DELETE FROM item_keywords WHERE item_id = ? AND origin = 1');
 
     let moved = 0;
@@ -71,6 +72,7 @@ function reconcileMoves(db, sourceFolderId, now) {
       if ((recipientMatches.get(recipientId) || []).length !== 1) continue;
       moveRow.run({ d: donorId, r: recipientId });
       moveKeywords.run({ d: donorId, r: recipientId });
+      moveTurns.run({ d: donorId, r: recipientId });
       clearDonor.run(donorId);
       dropDonorKeywords.run(donorId);
       moved += 1;

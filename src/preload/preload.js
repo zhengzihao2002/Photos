@@ -212,6 +212,10 @@ contextBridge.exposeInMainWorld('api', {
   getConfig: () => ipcRenderer.invoke('config:get'),
   updateConfig: (payload) => ipcRenderer.invoke('config:update', payload),
 
+  // Manual video turn points (database only)
+  getVideoTurns: (id) => ipcRenderer.invoke('video-turns:get', { id: Number(id) }),
+  setVideoTurn: (id, at, turn) => ipcRenderer.invoke('video-turns:set', { id: Number(id), at: Number(at), turn: turn === null ? null : Number(turn) }),
+  clearVideoTurns: (id) => ipcRenderer.invoke('video-turns:clear', { id: Number(id) }),
   // Settings > Updates (only runs when asked)
   getUpdaterState: () => ipcRenderer.invoke('updater:get-state'),
   checkForUpdates: () => ipcRenderer.invoke('updater:check'),

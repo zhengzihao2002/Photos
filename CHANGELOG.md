@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 
+- **Turn a video mid-playback:** if the camera was rotated while recording, press the rotate button in the video bar at that moment to turn the picture from there on (Option turns it the other way; press again to turn further). The turns are saved per video in the app's database only; Reset in the bar removes them. The video file is never changed.
 - **Update from inside the app:** Photos → Check for Updates… (also Settings → Updates). One click on Update and Restart downloads the release, verifies it, quits, swaps the app and reopens it. Only runs when you click.
 - `install.sh` now quits a running Photos itself, replaces it and reopens it, with no questions.
 - Importing into an empty album now lands on the newest photos at the bottom; a grid already resting at the bottom stays there as photos arrive, and any other scroll position is kept.
