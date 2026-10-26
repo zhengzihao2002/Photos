@@ -1220,8 +1220,8 @@
     useEffect(() => dateRangeStore.subscribe(setRange), []);
     const selLabel = useSelectionLabel(); // M12.2
     return h('div', { style: { display: 'flex', flexDirection: 'column', justifyContent: 'center', lineHeight: 1.2, minWidth: 0 } },
-      h('div', { style: { fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)' } }, tr('toolbar.library')),
-      h('div', { style: { fontSize: '12px', fontWeight: 500, color: 'var(--text-primary)', opacity: 0.8, whiteSpace: 'nowrap' } },
+      h('div', { style: { fontSize: 'calc(15px * var(--text-scale, 1))', fontWeight: 700, color: 'var(--text-primary)' } }, tr('toolbar.library')),
+      h('div', { style: { fontSize: 'calc(12px * var(--text-scale, 1))', fontWeight: 500, color: 'var(--text-primary)', opacity: 0.8, whiteSpace: 'nowrap' } },
         [range ? formatDateRange(range.start, range.end) : null, selLabel].filter(Boolean).join(' \u00b7 ') || '\u00A0'));
   }
 
@@ -1328,7 +1328,7 @@
 
     const titleEl = h('div', {
       style: {
-        fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)',
+        fontSize: 'calc(15px * var(--text-scale, 1))', fontWeight: 700, color: 'var(--text-primary)',
         whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '40vw',
       },
     }, title);
@@ -1339,7 +1339,7 @@
           type: 'button', title: tr('toolbar.backToPeople'), onClick: () => addPeopleStore.set(false),
           style: {
             WebkitAppRegion: 'no-drag', border: 'none', background: 'transparent', cursor: 'pointer',
-            color: 'var(--text-primary)', fontSize: '24px', fontWeight: 400, lineHeight: 1, padding: '0 8px 4px', borderRadius: '6px', whiteSpace: 'nowrap',
+            color: 'var(--text-primary)', fontSize: 'calc(24px * var(--text-scale, 1))', fontWeight: 400, lineHeight: 1, padding: '0 8px 4px', borderRadius: '6px', whiteSpace: 'nowrap',
           },
         }, '\u2039'),
         titleEl);
@@ -1349,7 +1349,7 @@
       if (!selLabel) return titleEl;
       return h('div', { style: { display: 'flex', flexDirection: 'column', justifyContent: 'center', lineHeight: 1.2, minWidth: 0 } },
         titleEl,
-        h('div', { style: { fontSize: '12px', fontWeight: 500, color: 'var(--text-primary)', opacity: 0.8, whiteSpace: 'nowrap' } }, selLabel));
+        h('div', { style: { fontSize: 'calc(12px * var(--text-scale, 1))', fontWeight: 500, color: 'var(--text-primary)', opacity: 0.8, whiteSpace: 'nowrap' } }, selLabel));
     }
 
     const parts = [];
@@ -1371,7 +1371,7 @@
           },
           onBlur: (e) => { if (editingName) commitPersonName(e.currentTarget.value); },
           style: {
-            WebkitAppRegion: 'no-drag', width: '240px', fontSize: '15px', fontWeight: 700, padding: '1px 6px', borderRadius: '5px',
+            WebkitAppRegion: 'no-drag', width: '240px', fontSize: 'calc(15px * var(--text-scale, 1))', fontWeight: 700, padding: '1px 6px', borderRadius: '5px',
             border: '1px solid var(--accent, #2f7ff7)', background: 'transparent', color: 'var(--text-primary)', outline: 'none',
           },
         })
@@ -1382,7 +1382,7 @@
       : titleEl;
     const titleBlock = h('div', { style: { display: 'flex', flexDirection: 'column', justifyContent: 'center', lineHeight: 1.2, minWidth: 0 } },
       nameEl,
-      h('div', { style: { fontSize: '12px', fontWeight: 500, color: 'var(--text-primary)', opacity: 0.8, whiteSpace: 'nowrap' } },
+      h('div', { style: { fontSize: 'calc(12px * var(--text-scale, 1))', fontWeight: 500, color: 'var(--text-primary)', opacity: 0.8, whiteSpace: 'nowrap' } },
         parts.length ? parts.join(' \u00B7 ') : '\u00A0'));
     if (section === 'people' && !person && group) {
       // M10.7: back from a group's grid to the People page.
@@ -1391,7 +1391,7 @@
           type: 'button', title: tr('toolbar.backToPeople'), onClick: () => groupStore.set(null),
           style: {
             WebkitAppRegion: 'no-drag', border: 'none', background: 'transparent', cursor: 'pointer',
-            color: 'var(--text-primary)', fontSize: '24px', fontWeight: 400, lineHeight: 1, padding: '0 8px 4px', borderRadius: '6px', whiteSpace: 'nowrap',
+            color: 'var(--text-primary)', fontSize: 'calc(24px * var(--text-scale, 1))', fontWeight: 400, lineHeight: 1, padding: '0 8px 4px', borderRadius: '6px', whiteSpace: 'nowrap',
           },
         }, '\u2039'),
         titleBlock);
@@ -1403,7 +1403,7 @@
           type: 'button', title: tr('places.back'), onClick: () => goBackFromPerson(), // K12
           style: {
             WebkitAppRegion: 'no-drag', border: 'none', background: 'transparent', cursor: 'pointer',
-            color: 'var(--text-primary)', fontSize: '24px', fontWeight: 400, lineHeight: 1, padding: '0 8px 4px', borderRadius: '6px', whiteSpace: 'nowrap',
+            color: 'var(--text-primary)', fontSize: 'calc(24px * var(--text-scale, 1))', fontWeight: 400, lineHeight: 1, padding: '0 8px 4px', borderRadius: '6px', whiteSpace: 'nowrap',
           },
         }, '\u2039'),
         titleBlock);
@@ -1415,7 +1415,7 @@
         type: 'button', title: tr('toolbar.backToMap'), onClick: () => mapAreaStore.set(null),
         style: {
           WebkitAppRegion: 'no-drag', border: 'none', background: 'transparent', cursor: 'pointer',
-          color: 'var(--text-primary)', fontSize: '24px', fontWeight: 400, lineHeight: 1, padding: '0 8px 4px', borderRadius: '6px', whiteSpace: 'nowrap',
+          color: 'var(--text-primary)', fontSize: 'calc(24px * var(--text-scale, 1))', fontWeight: 400, lineHeight: 1, padding: '0 8px 4px', borderRadius: '6px', whiteSpace: 'nowrap',
         },
       }, '\u2039'),
       titleEl);
@@ -1458,17 +1458,17 @@
     return h('div', {
       style: {
         display: 'flex', alignItems: 'center', gap: '8px', marginLeft: '14px',
-        fontSize: '12px', color: 'var(--text-secondary)', WebkitAppRegion: 'no-drag', whiteSpace: 'nowrap',
+        fontSize: 'calc(12px * var(--text-scale, 1))', color: 'var(--text-secondary)', WebkitAppRegion: 'no-drag', whiteSpace: 'nowrap',
       },
     },
-      h('span', { style: { color: '#ff9f0a', fontSize: '13px' } }, '\u26A0'),
+      h('span', { style: { color: '#ff9f0a', fontSize: 'calc(13px * var(--text-scale, 1))' } }, '\u26A0'),
       h('span', null, tr('toolbar.folderNotFound')),
       h('button', {
         type: 'button',
         onClick: () => folderActions.relinkViaPicker(src),
         style: {
           WebkitAppRegion: 'no-drag', background: 'none', border: '1px solid var(--divider)', borderRadius: '6px',
-          color: 'var(--text-primary)', padding: '3px 10px', fontSize: '12px', cursor: 'default',
+          color: 'var(--text-primary)', padding: '3px 10px', fontSize: 'calc(12px * var(--text-scale, 1))', cursor: 'default',
         },
       }, tr('toolbar.relink')));
   }
@@ -1770,7 +1770,7 @@
         type: 'button', title: tr('toolbar.addPeopleTip'), onClick: () => addPeopleStore.set(true),
         style: {
           WebkitAppRegion: 'no-drag', height: '28px', padding: '0 12px', border: 'none', borderRadius: '14px', cursor: 'pointer',
-          background: 'var(--control-bg, rgba(128,128,128,0.18))', color: 'var(--text-primary)', fontSize: '13px',
+          background: 'var(--control-bg, rgba(128,128,128,0.18))', color: 'var(--text-primary)', fontSize: 'calc(13px * var(--text-scale, 1))',
         },
       }, tr('toolbar.addPeopleButton')),
       section === 'people' && personSel && h('button', {
@@ -1778,7 +1778,7 @@
         style: {
           WebkitAppRegion: 'no-drag', width: '34px', height: '28px', border: 'none', borderRadius: '14px', cursor: 'pointer',
           background: (personViewSel === 'photos' && faceDisplaySel === 'photos') ? 'var(--control-bg, rgba(128,128,128,0.18))' : 'var(--accent, #2f7ff7)',
-          color: (personViewSel === 'photos' && faceDisplaySel === 'photos') ? 'var(--text-primary)' : '#fff', fontSize: '16px', lineHeight: 1,
+          color: (personViewSel === 'photos' && faceDisplaySel === 'photos') ? 'var(--text-primary)' : '#fff', fontSize: 'calc(16px * var(--text-scale, 1))', lineHeight: 1,
         },
       }, '\u2026'),
       mode === 'all' && !(section === 'map' && !mapArea) && h(ZoomPill, { cols })
@@ -2936,15 +2936,15 @@
       let title = tr('section.noPhotos');
       if (searchStore.get()) {
         return h('div', { className: 'empty-state' },
-          h('div', { style: { fontSize: '20px', fontWeight: 600, color: 'var(--text-primary)' } },
+          h('div', { style: { fontSize: 'calc(20px * var(--text-scale, 1))', fontWeight: 600, color: 'var(--text-primary)' } },
             tr('section.noResults', { text: searchStore.get() })),
-          h('div', { style: { marginTop: '6px', fontSize: '13px', color: 'var(--text-secondary)' } }, tr('section.noResults.hint')));
+          h('div', { style: { marginTop: '6px', fontSize: 'calc(13px * var(--text-scale, 1))', color: 'var(--text-secondary)' } }, tr('section.noResults.hint')));
       }
       if ((filterStore.get() || '').includes('::kind:')) {
         return h('div', { className: 'empty-state' },
-          h('div', { style: { fontSize: '20px', fontWeight: 600, color: 'var(--text-primary)' } },
+          h('div', { style: { fontSize: 'calc(20px * var(--text-scale, 1))', fontWeight: 600, color: 'var(--text-primary)' } },
             kindStore.get() === 'videos' ? tr('section.noVideos') : tr('section.noPhotos')),
-          h('div', { style: { marginTop: '6px', fontSize: '13px', color: 'var(--text-secondary)' } },
+          h('div', { style: { marginTop: '6px', fontSize: 'calc(13px * var(--text-scale, 1))', color: 'var(--text-secondary)' } },
             tr('section.chooseAll')));
       }
       let hint = tr('section.empty.hint');
@@ -2956,8 +2956,8 @@
         hint = section === 'favorite' ? tr('section.noFavorites.hint') : null; // M12.3
       }
       return h('div', { className: 'empty-state' },
-        h('div', { style: { fontSize: '20px', fontWeight: 600, color: 'var(--text-primary)' } }, title),
-        hint && h('div', { style: { marginTop: '6px', fontSize: '13px', color: 'var(--text-secondary)' } }, hint));
+        h('div', { style: { fontSize: 'calc(20px * var(--text-scale, 1))', fontWeight: 600, color: 'var(--text-primary)' } }, title),
+        hint && h('div', { style: { marginTop: '6px', fontSize: 'calc(13px * var(--text-scale, 1))', color: 'var(--text-secondary)' } }, hint));
     }
 
     // M6 (B.6e): tiles are rendered FLAT, keyed by item index and absolutely
@@ -3010,7 +3010,7 @@
             top: layout.getTotalHeight() + 'px',
             height: GRID_FOOTER_HEIGHT + 'px',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', userSelect: 'none',
+            fontSize: 'calc(16px * var(--text-scale, 1))', fontWeight: 600, color: 'var(--text-primary)', userSelect: 'none',
           },
         }, parts.join(', ')));
       }

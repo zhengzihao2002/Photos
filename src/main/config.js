@@ -48,6 +48,7 @@
 const fs = require('fs');
 const path = require('path');
 const paths = require('./paths');
+const textSize = require('../shared/text-size');
 
 const SCHEMA_VERSION = 1;
 
@@ -79,6 +80,7 @@ function defaultConfig() {
       enabled: true,      // M10.8: People face analysis (Apple default: on)
     },
     language: null,       // M14: 'en' | 'zh-Hans'; null = follow the Mac's language until the user chooses
+    textSize: 'default',
   };
 }
 
@@ -132,6 +134,7 @@ function normalize(raw) {
       enabled: typeof raw.people?.enabled === 'boolean' ? raw.people.enabled : defaults.people.enabled,
     },
     language: raw.language === 'en' || raw.language === 'zh-Hans' ? raw.language : null,
+    textSize: textSize.normalize(raw.textSize),
   };
 }
 

@@ -44,6 +44,27 @@ function clearTurns(db, id) {
   return [];
 }
 
+/** Move a point atomically; a collision must not discard either saved turn. */
+function moveTurn(db, { id, from, to }) {
+  if (!Number.isInteger(id) || id < 1) throw new Error('Invalid item');
+  for (const at of [from, to]) {
+    if (typeof at !== 'number' || !Number.isFinite(at) || at < 0 || at > MAX_SECONDS) throw new Error('Invalid time');
+  }
+  const oldTime = Math.round(from * 10) / 10;
+  const newTime = Math.floor(to * 10) / 10;
+  return db.transaction(() => {
+    const item = db.prepare('SELECT media_type FROM items WHERE id = ? AND is_deleted = 0').get(id);
+    if (!item || item.media_type !== 'video' || oldTime === newTime) return listTurns(db, id);
+    const point = db.prepare('SELECT turn FROM video_turns WHERE item_id = ? AND at = ?').get(id, oldTime);
+    if (!point) return listTurns(db, id);
+    if (db.prepare('SELECT 1 FROM video_turns WHERE item_id = ? AND at = ?').get(id, newTime)) {
+      throw new Error('video-turn-collision');
+    }
+    db.prepare('UPDATE video_turns SET at = ? WHERE item_id = ? AND at = ?').run(newTime, id, oldTime);
+    return listTurns(db, id);
+  })();
+}
+
 /** The turn in force at `time` seconds, given points sorted by `at`. */
 function turnAt(points, time) {
   let turn = 0;
@@ -51,4 +72,4 @@ function turnAt(points, time) {
   return turn;
 }
 
-module.exports = { listTurns, setTurn, clearTurns, turnAt };
+module.exports = { listTurns, setTurn, clearTurns, moveTurn, turnAt };

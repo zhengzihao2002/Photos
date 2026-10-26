@@ -18,13 +18,20 @@
  */
 
 const config = require('../../config');
+const { BrowserWindow } = require('electron');
 
 async function configGet() {
   return config.load();
 }
 
 async function configUpdate(event, payload = {}) {
-  return config.update(payload.patch || {});
+  const next = config.update(payload.patch || {});
+  if (Object.prototype.hasOwnProperty.call(payload.patch || {}, 'textSize')) {
+    for (const win of BrowserWindow.getAllWindows()) {
+      if (!win.isDestroyed()) win.webContents.send('appearance:text-size', next.textSize);
+    }
+  }
+  return next;
 }
 
 module.exports = [

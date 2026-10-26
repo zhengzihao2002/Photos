@@ -211,11 +211,18 @@ contextBridge.exposeInMainWorld('api', {
 
   getConfig: () => ipcRenderer.invoke('config:get'),
   updateConfig: (payload) => ipcRenderer.invoke('config:update', payload),
+  getTextSize: () => ipcRenderer.sendSync('appearance:get-text-size'),
+  onTextSizeChanged: (callback) => {
+    const listener = (_event, size) => callback(size);
+    ipcRenderer.on('appearance:text-size', listener);
+    return () => ipcRenderer.removeListener('appearance:text-size', listener);
+  },
 
   // Manual video turn points (database only)
   getVideoTurns: (id) => ipcRenderer.invoke('video-turns:get', { id: Number(id) }),
   setVideoTurn: (id, at, turn) => ipcRenderer.invoke('video-turns:set', { id: Number(id), at: Number(at), turn: turn === null ? null : Number(turn) }),
   clearVideoTurns: (id) => ipcRenderer.invoke('video-turns:clear', { id: Number(id) }),
+  moveVideoTurn: (id, from, to) => ipcRenderer.invoke('video-turns:move', { id: Number(id), from: Number(from), to: Number(to) }),
   // Settings > Updates (only runs when asked)
   getUpdaterState: () => ipcRenderer.invoke('updater:get-state'),
   checkForUpdates: () => ipcRenderer.invoke('updater:check'),

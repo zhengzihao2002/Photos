@@ -51,6 +51,7 @@ const handlers = [
 ];
 
 function registerIpcHandlers() {
+  ipcMain.on('appearance:get-text-size', (event) => { event.returnValue = isTrustedSender(event) ? require('../config').load().textSize : 'default'; });
   // M14: pages ask for the language synchronously while they load, so the first render is already translated.
   ipcMain.on('i18n:get-locale', (event) => { event.returnValue = isTrustedSender(event) ? require('../i18n').getLocale() : 'en'; });
   for (const { channel, handle } of handlers) {

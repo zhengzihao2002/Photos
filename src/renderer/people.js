@@ -162,8 +162,8 @@
 
     const heading = h('div', { style: { display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', margin: '0 0 14px' } },
       h('div', null,
-        h('div', { style: { fontSize: '17px', fontWeight: 700, color: 'var(--text-primary)' } }, unnamed ? t('people.addPeople') : t('people.title')),
-        unnamed && h('div', { style: { fontSize: '12px', marginTop: '3px', color: 'var(--text-secondary, #8e8e93)' } }, t('people.addPeople.hint'))),
+        h('div', { style: { fontSize: 'calc(17px * var(--text-scale, 1))', fontWeight: 700, color: 'var(--text-primary)' } }, unnamed ? t('people.addPeople') : t('people.title')),
+        unnamed && h('div', { style: { fontSize: 'calc(12px * var(--text-scale, 1))', marginTop: '3px', color: 'var(--text-secondary, #8e8e93)' } }, t('people.addPeople.hint'))),
       unnamed === false && people.length > 1 && h('button', {
         type: 'button', title: t('people.sort'),
         onClick: async (e) => {
@@ -174,12 +174,12 @@
             if (res && res.choice) setSortByName(res.choice === 'name');
           } catch (err) { S.noticeStore.set(t('err.menu', { details: err.message })); }
         },
-        style: { marginLeft: 'auto', border: 'none', background: 'transparent', color: 'var(--accent, #2f7ff7)', fontSize: '13px', cursor: 'pointer', padding: '2px 4px' },
+        style: { marginLeft: 'auto', border: 'none', background: 'transparent', color: 'var(--accent, #2f7ff7)', fontSize: 'calc(13px * var(--text-scale, 1))', cursor: 'pointer', padding: '2px 4px' },
       }, t('people.sort')));
 
     const empty = people.length === 0 && h('div', { style: { minHeight: '50vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', color: 'var(--text-secondary, #8e8e93)' } },
-      h('div', { style: { fontSize: '17px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '6px' } }, unnamed ? t('people.everyoneNamed') : t('people.none')),
-      h('div', { style: { fontSize: '13px' } }, unnamed ? t('people.none.unnamedHint') : t('people.none.namedHint')));
+      h('div', { style: { fontSize: 'calc(17px * var(--text-scale, 1))', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '6px' } }, unnamed ? t('people.everyoneNamed') : t('people.none')),
+      h('div', { style: { fontSize: 'calc(13px * var(--text-scale, 1))' } }, unnamed ? t('people.none.unnamedHint') : t('people.none.namedHint')));
 
     const cards = list.map((p) => h('button', {
       key: p.id, type: 'button', title: t('people.cardTip', { name: p.name || t('people.unnamed'), count: p.photoCount }),
@@ -224,19 +224,19 @@
           else if (e.key === 'Escape') setNaming(null);
         },
         onBlur: (e) => { if (naming === p.id) commitName(p, e.currentTarget.value); },
-        style: { position: 'absolute', left: '8px', right: '8px', bottom: '8px', zIndex: 2, padding: '6px 8px', fontSize: '13px',
+        style: { position: 'absolute', left: '8px', right: '8px', bottom: '8px', zIndex: 2, padding: '6px 8px', fontSize: 'calc(13px * var(--text-scale, 1))',
           borderRadius: '6px', border: '1px solid var(--accent, #2f7ff7)', background: 'rgba(0,0,0,0.65)', color: '#fff', outline: 'none' },
       }),
       naming !== p.id && p.name && h('div', { style: { position: 'absolute', left: 0, right: 0, bottom: 0, padding: '28px 12px 10px', textAlign: 'left',
-        background: 'linear-gradient(transparent, rgba(0,0,0,0.55))', color: '#fff', fontSize: '13px', fontWeight: 700,
+        background: 'linear-gradient(transparent, rgba(0,0,0,0.55))', color: '#fff', fontSize: 'calc(13px * var(--text-scale, 1))', fontWeight: 700,
         whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } }, p.name)));
 
     return h('div', { ref: fadeIn, onClick: () => setSelected([]), style: { height: '100%', overflowY: 'auto', padding: '20px 32px 32px', boxSizing: 'border-box' } },
-      unnamed === false && h('div', { style: { fontSize: '17px', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 14px' } }, t('people.groups')),
+      unnamed === false && h('div', { style: { fontSize: 'calc(17px * var(--text-scale, 1))', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 14px' } }, t('people.groups')),
       unnamed === false && (groups.length === 0
         ? h('div', { style: { borderRadius: '12px', background: 'rgba(128,128,128,0.12)', padding: '18px 20px', margin: '0 0 30px' } },
-          h('div', { style: { fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' } }, t('people.noGroups')),
-          h('div', { style: { fontSize: '12px', color: 'var(--text-secondary, #8e8e93)' } },
+          h('div', { style: { fontSize: 'calc(13px * var(--text-scale, 1))', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' } }, t('people.noGroups')),
+          h('div', { style: { fontSize: 'calc(12px * var(--text-scale, 1))', color: 'var(--text-secondary, #8e8e93)' } },
             t('people.noGroups.hint')))
         : h('div', { style: { display: 'flex', flexWrap: 'wrap', gap: '24px', margin: '0 0 30px' } },
           groups.map((g) => {
@@ -252,14 +252,14 @@
               groupThumbs[g.coverItemId] && h('img', { src: groupThumbs[g.coverItemId], alt: '', draggable: false,
                 style: { width: '100%', height: '100%', objectFit: 'cover', display: 'block' } }),
               h('div', { style: { position: 'absolute', left: 0, right: 0, bottom: 0, padding: '28px 12px 10px', textAlign: 'left',
-                background: 'linear-gradient(transparent, rgba(0,0,0,0.55))', color: '#fff', fontSize: '13px', fontWeight: 700,
+                background: 'linear-gradient(transparent, rgba(0,0,0,0.55))', color: '#fff', fontSize: 'calc(13px * var(--text-scale, 1))', fontWeight: 700,
                 whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } },
                 g.names.length === 2 ? g.names.join(' & ') : g.names.slice(0, -1).join(', ') + ' & ' + g.names[g.names.length - 1]));
           }))),
       heading,
       empty,
       people.length > 0 && h('div', { style: { display: 'flex', flexWrap: 'wrap', gap: '24px' } }, cards),
-      finding && h('div', { style: { marginTop: '22px', textAlign: 'center', fontSize: '12px', color: 'var(--text-secondary, #8e8e93)' } }, t('people.finding')));
+      finding && h('div', { style: { marginTop: '22px', textAlign: 'center', fontSize: 'calc(12px * var(--text-scale, 1))', color: 'var(--text-secondary, #8e8e93)' } }, t('people.finding')));
   }
 
   window.__PhotosPeopleView = PeopleView;
@@ -481,7 +481,7 @@
     const moreTile = (clusterId, extra, size) => h('button', {
       key: 'more' + clusterId, type: 'button', onClick: () => toggleExpand(clusterId),
       style: { width: size + 'px', height: size + 'px', borderRadius: '8px', border: 'none', cursor: 'pointer', flex: '0 0 auto',
-        background: 'rgba(128,128,128,0.22)', color: 'var(--text-primary)', fontSize: Math.max(13, Math.round(size / 5)) + 'px', fontWeight: 600 },
+        background: 'rgba(128,128,128,0.22)', color: 'var(--text-primary)', fontSize: 'calc(' + Math.max(13, Math.round(size / 5)) + 'px * var(--text-scale, 1))', fontWeight: 600 },
     }, expanded[clusterId] ? t('people.less') : '+' + extra);
     const rowFaces = (clusterId, samples, total, size) => {
       const list = expanded[clusterId] || samples;
@@ -491,17 +491,17 @@
     };
 
     const page = { height: '100%', overflowY: 'auto', padding: '20px 32px 32px', boxSizing: 'border-box' };
-    const muted = { fontSize: '12px', color: 'var(--text-secondary, #8e8e93)' };
+    const muted = { fontSize: 'calc(12px * var(--text-scale, 1))', color: 'var(--text-secondary, #8e8e93)' };
 
     if (mode === 'review') {
       if (groups == null) return null;
       return h('div', { ref: fadeIn, style: page },
         h('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '6px' } },
-          h('div', { style: { fontSize: '17px', fontWeight: 700, color: 'var(--text-primary)' } }, info && info.name ? t('people.review.title', { name: info.name }) : t('people.review.titleFaces')),
+          h('div', { style: { fontSize: 'calc(17px * var(--text-scale, 1))', fontWeight: 700, color: 'var(--text-primary)' } }, info && info.name ? t('people.review.title', { name: info.name }) : t('people.review.titleFaces')),
           h('button', { type: 'button', onClick: () => S.personViewStore.set('photos'),
             style: { border: 'none', background: 'var(--accent, #2f7ff7)', color: '#fff', borderRadius: '6px', padding: '4px 14px', cursor: 'pointer' } }, t('people.done'))),
         h('div', { style: Object.assign({ marginBottom: '16px' }, muted) }, t('people.review.hint')),
-        h('div', { style: { fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', margin: '6px 0 10px' } }, t('people.isThis', { name })),
+        h('div', { style: { fontSize: 'calc(14px * var(--text-scale, 1))', fontWeight: 700, color: 'var(--text-primary)', margin: '6px 0 10px' } }, t('people.isThis', { name })),
         (suggestions || []).length === 0
           ? h('div', { style: Object.assign({ marginBottom: '20px' }, muted) }, suggestions == null ? t('people.looking') : t('people.noMore'))
           : (suggestions || []).map((sg) => h('div', { key: 's' + sg.clusterId, style: { display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' } },
@@ -511,13 +511,13 @@
               style: { border: 'none', background: 'var(--accent, #2f7ff7)', color: '#fff', borderRadius: '6px', padding: '4px 14px', cursor: 'pointer' } }, t('people.yes')),
             h('button', { type: 'button', onClick: () => answer(sg, false),
               style: { border: '1px solid rgba(128,128,128,0.5)', background: 'transparent', color: 'var(--text-primary)', borderRadius: '6px', padding: '4px 14px', cursor: 'pointer' } }, t('people.no')))),
-        h('div', { style: { fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', margin: '22px 0 10px' } },
+        h('div', { style: { fontSize: 'calc(14px * var(--text-scale, 1))', fontWeight: 700, color: 'var(--text-primary)', margin: '22px 0 10px' } },
           info && info.name ? t('people.namedGroups', { name: info.name }) : t('people.thisPersons')),
         groups.map((g, i) => h('div', { key: g.clusterId, style: { marginBottom: '18px' } },
           h('div', { style: { display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '6px' } },
-            h('div', { style: { fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' } }, t('people.groupN', { n: i + 1, faces: t('people.faces', { count: g.faceCount }) })),
+            h('div', { style: { fontSize: 'calc(13px * var(--text-scale, 1))', fontWeight: 600, color: 'var(--text-primary)' } }, t('people.groupN', { n: i + 1, faces: t('people.faces', { count: g.faceCount }) })),
             groups.length > 1 && h('button', { type: 'button', onClick: () => removeGroup(g),
-              style: { border: '1px solid var(--accent, #2f7ff7)', background: 'transparent', color: 'var(--accent, #2f7ff7)', borderRadius: '6px', padding: '2px 10px', fontSize: '12px', cursor: 'pointer' } },
+              style: { border: '1px solid var(--accent, #2f7ff7)', background: 'transparent', color: 'var(--accent, #2f7ff7)', borderRadius: '6px', padding: '2px 10px', fontSize: 'calc(12px * var(--text-scale, 1))', cursor: 'pointer' } },
               t('people.not', { name }))),
           h('div', { style: { display: 'flex', gap: '8px', flexWrap: 'wrap' } }, rowFaces(g.clusterId, g.faces, g.faceCount, zoom(96))))));
     }

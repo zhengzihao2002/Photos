@@ -190,10 +190,13 @@
 
   // Video (M5.7): paused on open (no autoplay), custom control bar.
   // apiRef.current = { toggle } while mounted; released on unmount/url change.
-  function VideoPlayer({ url, poster, onError, apiRef, rotation: baseRotation, stageBox, itemId }) {
+  function VideoPlayer({ url, poster, onError, apiRef, rotation: baseRotation, stageBox, itemId, editorOpen, onCloseEditor }) {
     const vref = useRef(null);
     // Manual turn points: from `at` seconds on the picture is turned `turn` degrees clockwise (database only).
     const [turns, setTurns] = useState([]);
+    const [previewTurns, setPreviewTurns] = useState(null);
+    const [saving, setSaving] = useState(0);
+    const [saveError, setSaveError] = useState('');
     const turnsRef = useRef(null);
     useEffect(() => {
       // Keep edits in order, including rapid clicks before a previous save has returned.
@@ -208,34 +211,54 @@
     }, [itemId, url]);
     const [t, setT] = useState(0);
     let turnNow = 0;
-    for (const p of turns) { if (p.at <= t + 0.0001) turnNow = p.turn; else break; }
+    for (const p of previewTurns || turns) { if (p.at <= t + 0.0001) turnNow = p.turn; else break; }
     const rotation = (baseRotation + turnNow) % 360;
+    function saveTurns(change, direction) {
+      const state = turnsRef.current;
+      if (itemId == null || !state) return Promise.resolve(false);
+      setSaving((n) => n + 1); setSaveError('');
+      const result = state.pending.then(() => change(state.points)).then((r) => {
+        if (direction != null) state.direction = direction;
+        if (Array.isArray(r)) { state.points = r; if (state.live) setTurns(r); }
+        return true;
+      }, (err) => {
+        if (state.live) setSaveError(tr(String(err.message || err).includes('video-turn-collision') ? 'viewer.turnEditor.collision' : 'viewer.turnEditor.saveError'));
+        return false;
+      }).finally(() => { if (state.live) setSaving((n) => n - 1); });
+      state.pending = result.then(() => {});
+      return result;
+    }
     function turnFromHere(delta) {
       const v = vref.current;
       const state = turnsRef.current;
       if (!v || itemId == null || !state) return;
       const at = v.currentTime;
       setT(at); // use the paused frame even if its timeupdate event has not arrived yet
-      state.pending = state.pending.then(() => {
+      return saveTurns((points) => {
         let cur = 0;
-        for (const p of state.points) { if (p.at <= at + 0.0001) cur = p.turn; else break; }
+        for (const p of points) { if (p.at <= at + 0.0001) cur = p.turn; else break; }
         return window.api.setVideoTurn(itemId, at, (cur + delta + 360) % 360);
-      }).then((r) => {
-        state.direction = delta;
-        if (Array.isArray(r)) { state.points = r; if (state.live) setTurns(r); }
-      }, () => {});
+      }, delta);
     }
     function resetTurns() {
-      const state = turnsRef.current;
-      if (itemId == null || !state) return;
-      state.pending = state.pending.then(() => window.api.clearVideoTurns(itemId)).then(() => {
-        state.points = [];
-        if (state.live) setTurns([]);
-      }, () => {});
+      return saveTurns(() => window.api.clearVideoTurns(itemId));
     }
     // M12.11: a turned video is drawn in a box with swapped sides, then rotated about its centre.
     const wrapRef = useRef(null);
+    const editorRef = useRef(null);
+    const [editorHeight, setEditorHeight] = useState(220);
     const [box, setBox] = useState(null);
+    useLayoutEffect(() => {
+      if (!editorOpen || !editorRef.current) return;
+      const el = editorRef.current;
+      const measure = () => setEditorHeight(el.getBoundingClientRect().height);
+      measure();
+      let frame;
+      const ro = new ResizeObserver(() => { cancelAnimationFrame(frame); frame = requestAnimationFrame(measure); });
+      ro.observe(el);
+      return () => { cancelAnimationFrame(frame); ro.disconnect(); };
+    }, [editorOpen]);
+    useEffect(() => { if (editorOpen && vref.current) vref.current.pause(); }, [editorOpen]);
     (window.preactHooks.useLayoutEffect || useEffect)(() => { // before the first paint: no unturned flash
       const el = wrapRef.current;
       if (!el) return undefined;
@@ -246,7 +269,7 @@
       return () => ro.disconnect();
     }, []);
     const turned = rotation === 90 || rotation === 270;
-    const eff = stageBox && stageBox.w && stageBox.h ? stageBox : box; // M12.11: known on the first render, so the turn is in place before any zoom animation reads it
+    const eff = stageBox && stageBox.w && stageBox.h ? { w: stageBox.w, h: Math.max(1, stageBox.h - (editorOpen ? editorHeight : 0)) } : box; // M12.11: known before the first zoom animation
     const videoStyle = rotation && eff ? {
       width: (turned ? eff.h : eff.w) + 'px', height: (turned ? eff.w : eff.h) + 'px', flex: 'none',
       transform: 'rotate(' + rotation + 'deg)',
@@ -325,7 +348,13 @@
       if (v && st && st.wasPlaying) v.play().catch(() => {});
       if (el) el.blur();
     };
-    return h('div', { ref: wrapRef, className: 'viewer-video-wrap' + (idle ? ' is-idle' : ''), onMouseMove: () => wakeRef.current() },
+    const seekTo = (at) => {
+      const v = vref.current;
+      if (v) { v.pause(); v.currentTime = at; setT(at); wakeRef.current(); }
+    };
+    return h(window.preact.Fragment, null,
+      h('div', { ref: wrapRef, className: 'viewer-video-wrap' + (idle ? ' is-idle' : '') + (editorOpen ? ' is-editing' : ''),
+        style: editorOpen ? { bottom: editorHeight + 'px' } : undefined, onMouseMove: () => wakeRef.current() },
       h('video', {
         ref: vref, className: 'viewer-video', style: videoStyle, src: url, poster: poster || undefined, preload: 'metadata', playsInline: true,
         onPlay: () => setPlaying(true), onPause: () => setPlaying(false), onEnded: () => setPlaying(false),
@@ -360,7 +389,12 @@
           h(Icon, { name: muted || vol === 0 ? 'mute' : 'sound', size: 18 })),
         h('input', { className: 'viewer-vvol', type: 'range', min: 0, max: 1, step: 0.05, value: muted ? 0 : vol, 'aria-label': tr('viewer.volume'),
           onInput: (e) => { const v = vref.current; if (v) { v.volume = Number(e.currentTarget.value); v.muted = v.volume === 0; } },
-          onPointerUp: (e) => e.currentTarget.blur() })));
+          onPointerUp: (e) => e.currentTarget.blur() }))),
+      editorOpen && h(window.PhotosVideoTurnEditor, { turns, time: t, duration: dur, playing, saving: saving > 0, error: saveError, panelRef: editorRef, Icon,
+        onSeek: seekTo, onToggle: toggle, onAdd: turnFromHere, onPreview: setPreviewTurns, onClose: onCloseEditor,
+        onMove: (from, to) => saveTurns(() => window.api.moveVideoTurn(itemId, from, to)),
+        onSet: (at, turn) => saveTurns(() => window.api.setVideoTurn(itemId, at, turn)),
+        onRemove: (at) => saveTurns(() => window.api.setVideoTurn(itemId, at, null)), onClear: resetTurns }));
   }
 
   // Live Photo motion (M5.7): plays once over the still, then onDone.
@@ -450,6 +484,10 @@
     const [panning, setPanning] = useState(false);
     const [media, setMedia] = useState(null);  // { kind, url, liveUrl } from getDisplaySource
     const videoApiRef = useRef(null);          // { toggle } while a video is mounted
+    const [turnEditorOpen, setTurnEditorOpen] = useState(false);
+    const turnEditorOpenRef = useRef(false);
+    turnEditorOpenRef.current = turnEditorOpen;
+    useEffect(() => setTurnEditorOpen(false), [state && state.itemId]);
     const [livePlaying, setLivePlaying] = useState(false);
     const [liveSound, setLiveSound] = useState(false); // M6: true when LIVE was pressed
     const closeTimer = useRef(null);
@@ -972,6 +1010,7 @@
           }
           return;
         }
+        if (e.key === 'Escape' && turnEditorOpenRef.current) { e.preventDefault(); setTurnEditorOpen(false); return; }
         if (e.key === ' ' && videoApiRef.current) { e.preventDefault(); videoApiRef.current.toggle(); return; } // Space = play/pause on videos
         if (e.key === 'Escape' || e.key === ' ') { e.preventDefault(); S.viewerStore.close(); return; }
         if (e.metaKey && (e.key === '=' || e.key === '+')) { e.preventDefault(); if (zoomable()) zoomRef.current.applyZoom((w) => w * 1.25, 0, 0, true); return; }
@@ -1050,11 +1089,14 @@
           h(ToolButton, { icon: 'rotate', label: tr('viewer.rotateLeft'), disabled: !item, onClick: (e) => window.__PhotosViewerRotate(e && e.altKey ? 90 : -90) }), // M12.11
           h(ToolButton, { icon: 'trash', label: tr('viewer.delete'), disabled: true })),
         h('div', { className: 'viewer-group' },
-          h(ToolButton, { icon: 'edit', label: tr('viewer.edit'), disabled: true }))),
+          isVideo ? h('button', { className: 'viewer-btn viewer-turn-editor-toggle' + (turnEditorOpen ? ' is-active' : ''),
+            'aria-pressed': turnEditorOpen, 'aria-label': tr(turnEditorOpen ? 'viewer.turnEditor.done' : 'viewer.turnEditor.open'), onMouseDown: noFocus,
+            onClick: () => { setTurnEditorOpen(!turnEditorOpen); if (!turnEditorOpen) { sheetRef.current = 0; setSheet(0); } } }, tr(turnEditorOpen ? 'viewer.turnEditor.done' : 'viewer.turnEditor.open'))
+            : h(ToolButton, { icon: 'edit', label: tr('viewer.edit'), disabled: true }))),
       h('div', { className: 'viewer-stage' + (geom && geom.zoomed ? ' is-zoomed' : '') + (panning ? ' is-panning' : ''), ref: stageRef,
         style: sheet > 0 ? { transform: 'translateY(' + (-sheet) + 'px)' } : undefined },
         isVideo && h(VideoPlayer, {
-          key: media.url, url: media.url, poster: img ? img.url : null, apiRef: videoApiRef, rotation: item && item.rotation ? item.rotation : 0, stageBox: stageSize, itemId: item ? item.id : null, // M12.11
+          key: media.url, url: media.url, poster: img ? img.url : null, apiRef: videoApiRef, rotation: item && item.rotation ? item.rotation : 0, stageBox: stageSize, itemId: item ? item.id : null, editorOpen: turnEditorOpen, onCloseEditor: () => setTurnEditorOpen(false), // M12.11
           onError: () => { setMedia((m) => (m ? { ...m, kind: 'unplayable-video' } : m)); setNotice(tr('viewer.err.videoFormat')); },
         }),
         img && !isVideo && h('img', {

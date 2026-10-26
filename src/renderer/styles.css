@@ -58,6 +58,7 @@ body {
   height: 100%;
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
+  font-size: calc(16px * var(--text-scale, 1));
   color: var(--text-primary);
 }
 
@@ -119,7 +120,7 @@ input, textarea, [contenteditable] {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  font-size: 15px;
+  font-size: calc(15px * var(--text-scale, 1));
 }
 
 .sb-items,
@@ -140,7 +141,7 @@ input, textarea, [contenteditable] {
   border-radius: 5px;
   background: transparent;
   font: inherit;
-  font-size: 12px;
+  font-size: calc(12px * var(--text-scale, 1));
   font-weight: 600;
   text-align: left;
   color: var(--sidebar-header);
@@ -370,7 +371,7 @@ body.sidebar-hidden .viewer-toolbar {
   display: flex;
   align-items: flex-end;
   padding: 0 4px 6px;
-  font-size: 15px;
+  font-size: calc(15px * var(--text-scale, 1));
   font-weight: 600;
   color: var(--text-primary);
 }
@@ -402,7 +403,7 @@ body.sidebar-hidden .viewer-toolbar {
   box-sizing: border-box;
   height: 100%;
   color: var(--text-secondary);
-  font-size: 15px;
+  font-size: calc(15px * var(--text-scale, 1));
 }
 .tile-img {
   width: 100%;
@@ -424,7 +425,7 @@ body.sidebar-hidden .viewer-toolbar {
   align-items: center;
   justify-content: center;
   color: var(--text-secondary);
-  font-size: 20px;
+  font-size: calc(20px * var(--text-scale, 1));
 }
 
 .tile-video-badge {
@@ -435,13 +436,13 @@ body.sidebar-hidden .viewer-toolbar {
   align-items: center;
   gap: 4px;
   color: #ffffff;
-  font-size: 11px;
+  font-size: calc(11px * var(--text-scale, 1));
   font-weight: 600;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
 }
 
 .tile-play-icon {
-  font-size: 10px;
+  font-size: calc(10px * var(--text-scale, 1));
 }
 
 /* U14: map-pin symbol on located items (top right), as in Apple Photos. */
@@ -464,7 +465,7 @@ body.sidebar-hidden .viewer-toolbar {
   left: 6px;
   top: 6px;
   color: #ffffff;
-  font-size: 10px;
+  font-size: calc(10px * var(--text-scale, 1));
   font-weight: 700;
   letter-spacing: 0.04em;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
@@ -484,11 +485,11 @@ body.sidebar-hidden .viewer-toolbar {
 }
 
 .zoom-icon-sm {
-  font-size: 10px;
+  font-size: calc(10px * var(--text-scale, 1));
 }
 
 .zoom-icon-lg {
-  font-size: 16px;
+  font-size: calc(16px * var(--text-scale, 1));
 }
 
 .zoom-slider {
@@ -541,13 +542,13 @@ body.sidebar-hidden .viewer-toolbar {
 
 .timeline-tile-label {
   margin-top: 6px;
-  font-size: 13px;
+  font-size: calc(13px * var(--text-scale, 1));
   font-weight: 500;
   color: var(--text-primary);
 }
 
 .timeline-tile-count {
-  font-size: 11px;
+  font-size: calc(11px * var(--text-scale, 1));
   color: var(--text-secondary);
 }
 
@@ -563,7 +564,7 @@ body.sidebar-hidden .viewer-toolbar {
 }
 
 .timeline-year-header {
-  font-size: 15px;
+  font-size: calc(15px * var(--text-scale, 1));
   font-weight: 600;
   color: var(--text-primary);
   margin: 24px 0 12px;
@@ -652,14 +653,14 @@ body.sidebar-hidden .viewer-toolbar {
 .viewer-btn:hover:not(.is-disabled) { background: var(--divider); }
 .viewer-btn.is-active { color: var(--accent); }
 .viewer-btn.is-disabled { opacity: 0.35; }
-.viewer-btn-text { font-size: 13px; font-weight: 500; padding: 0 8px; }
+.viewer-btn-text { font-size: calc(13px * var(--text-scale, 1)); font-weight: 500; padding: 0 8px; }
 
 .viewer-title {
   position: absolute;
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
-  max-width: 36%;
+  max-width: calc(36% / var(--text-scale, 1));
   text-align: center;
   line-height: 1.25;
   white-space: nowrap;
@@ -667,8 +668,8 @@ body.sidebar-hidden .viewer-toolbar {
   text-overflow: ellipsis;
   pointer-events: none;
 }
-.viewer-title-date { font-size: 13px; font-weight: 600; }
-.viewer-title-time { font-size: 11px; color: var(--text-secondary); }
+.viewer-title-date { font-size: calc(13px * var(--text-scale, 1)); font-weight: 600; overflow: hidden; text-overflow: ellipsis; }
+.viewer-title-time { font-size: calc(11px * var(--text-scale, 1)); color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; }
 .viewer-toolbar-spacer { flex: 1; }
 
 /* M8c.1 (U7): capsules in the library toolbar's pill style (.zoom-pill). */
@@ -697,7 +698,7 @@ body.sidebar-hidden .viewer-toolbar {
   border: 0;
   background: transparent;
   color: var(--text-secondary);
-  font-size: 13px;
+  font-size: calc(13px * var(--text-scale, 1));
   line-height: 1;
   width: 16px;
   height: 24px;
@@ -739,7 +740,7 @@ body.sidebar-hidden .viewer-toolbar {
   transform: translateX(-50%);
   padding: 6px 12px;
   border-radius: 999px;
-  font-size: 12px;
+  font-size: calc(12px * var(--text-scale, 1));
   color: #fff;
   background: rgba(0, 0, 0, 0.6);
   -webkit-backdrop-filter: blur(8px);
@@ -748,7 +749,7 @@ body.sidebar-hidden .viewer-toolbar {
   white-space: nowrap;
 }
 .viewer-empty {
-  font-size: 14px;
+  font-size: calc(14px * var(--text-scale, 1));
   color: var(--text-secondary);
   text-align: center;
   padding: 24px;
@@ -848,7 +849,7 @@ body.sidebar-hidden .viewer-toolbar {
 }
 .viewer-vbtn:hover { background: rgba(255, 255, 255, 0.15); }
 .viewer-vtime {
-  font-size: 11px;
+  font-size: calc(11px * var(--text-scale, 1));
   font-variant-numeric: tabular-nums;
   min-width: 38px;
   text-align: center;
@@ -868,7 +869,7 @@ body.sidebar-hidden .viewer-toolbar {
   gap: 4px;
   padding: 3px 8px 3px 6px;
   border-radius: 6px;
-  font-size: 11px;
+  font-size: calc(11px * var(--text-scale, 1));
   font-weight: 600;
   letter-spacing: 0.04em;
   color: #fff;
@@ -996,7 +997,7 @@ body.sidebar-hidden .viewer-toolbar {
 
 .album-name {
   margin-top: 8px;
-  font-size: 13px;
+  font-size: calc(13px * var(--text-scale, 1));
   font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
@@ -1005,7 +1006,7 @@ body.sidebar-hidden .viewer-toolbar {
 
 .album-count {
   margin-top: 2px;
-  font-size: 12px;
+  font-size: calc(12px * var(--text-scale, 1));
   color: var(--text-secondary);
 }
 
@@ -1060,7 +1061,7 @@ body.drop-active::after {
   -webkit-backdrop-filter: blur(22px) saturate(1.2);
   backdrop-filter: blur(22px) saturate(1.2);
   color: var(--text-primary);
-  font-size: 26px;
+  font-size: calc(26px * var(--text-scale, 1));
   font-weight: 700;
   line-height: 1.6;
   pointer-events: none;
@@ -1080,7 +1081,7 @@ body.drop-active::after {
   border-radius: 10px;
   background: var(--sidebar-hover-bg);
   color: var(--sidebar-text);
-  font-size: 12px;
+  font-size: calc(12px * var(--text-scale, 1));
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -1159,7 +1160,7 @@ body.drop-active::after {
   border: 0;
   background: transparent;
   color: var(--text-secondary);
-  font-size: 15px;
+  font-size: calc(15px * var(--text-scale, 1));
   line-height: 1;
   cursor: default;
 }
@@ -1204,7 +1205,7 @@ body.drop-active::after {
   border-radius: 999px;
   background: transparent;
   font: inherit;
-  font-size: 13px;
+  font-size: calc(13px * var(--text-scale, 1));
   font-weight: 500;
   white-space: nowrap;
   color: var(--text-secondary);
@@ -1264,12 +1265,12 @@ body.drop-active::after {
 
 .timeline-grid.is-years .timeline-tile-label {
   margin-top: 10px;
-  font-size: 20px;
+  font-size: calc(20px * var(--text-scale, 1));
   font-weight: 700;
 }
 
 .timeline-grid.is-years .timeline-tile-count {
-  font-size: 13px;
+  font-size: calc(13px * var(--text-scale, 1));
 }
 
 /* M6 (B.6d): the view control sits at the exact horizontal center of the
@@ -1401,7 +1402,7 @@ body.drop-active::after {
   outline: none;
   background: transparent;
   font: inherit;
-  font-size: 13px;
+  font-size: calc(13px * var(--text-scale, 1));
   color: var(--text-primary);
   -webkit-app-region: no-drag;
 }
@@ -1422,7 +1423,7 @@ body.drop-active::after {
   border-radius: 50%;
   background: var(--text-secondary);
   color: var(--content-bg);
-  font-size: 12px;
+  font-size: calc(12px * var(--text-scale, 1));
   line-height: 1;
   opacity: 0.7;
   cursor: default;
@@ -1510,7 +1511,7 @@ body.drop-active::after {
   border-radius: 5px;
   background: rgba(0, 0, 0, 0.55);
   color: #ffffff;
-  font-size: 11px;
+  font-size: calc(11px * var(--text-scale, 1));
   font-weight: 600;
   line-height: 16px;
   text-shadow: none;
@@ -1532,7 +1533,7 @@ body.drop-active::after {
   border-radius: 50%;
   background: rgba(0, 0, 0, 0.55);
   color: #fff;
-  font: 700 11px/16px -apple-system, BlinkMacSystemFont, sans-serif;
+  font: 700 calc(11px * var(--text-scale, 1))/16px -apple-system, BlinkMacSystemFont, sans-serif;
   text-align: center;
   pointer-events: none;
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.35);
@@ -1587,9 +1588,9 @@ body.drop-active::after {
   line-height: 1;
   text-shadow: none;
 }
-.tile-live-badge { padding: 2px 7px 2px 3px; font-size: 10px; }
+.tile-live-badge { padding: 2px 7px 2px 3px; font-size: calc(10px * var(--text-scale, 1)); }
 .tile-live-badge svg { width: 13px; height: 13px; }
-.viewer-live-badge { padding: 3px 9px 3px 5px; font-size: 11px; }
+.viewer-live-badge { padding: 3px 9px 3px 5px; font-size: calc(11px * var(--text-scale, 1)); }
 .viewer-live-badge svg { width: 15px; height: 15px; }
 .viewer-live-badge.is-playing { background: rgba(28, 28, 30, 0.78); }
 
@@ -1636,4 +1637,4 @@ body.drop-active::after {
   z-index: 3;
 }
 
-.viewer-vreset { width: auto; padding: 0 8px; font-size: 11px; }
+.viewer-vreset { width: auto; padding: 0 8px; font-size: calc(11px * var(--text-scale, 1)); }

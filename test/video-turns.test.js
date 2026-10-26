@@ -53,3 +53,42 @@ test('turn points go away with their item', () => {
   db.prepare('DELETE FROM items WHERE id = 1').run();
   assert.strictEqual(db.prepare('SELECT COUNT(*) n FROM video_turns').get().n, 0);
 });
+
+test('moving a turn preserves its angle, other points and the original media metadata', () => {
+  const db = freshDb(); seed(db);
+  T.setTurn(db, { id: 1, at: 2, turn: 90 });
+  T.setTurn(db, { id: 1, at: 4, turn: 270 });
+  const original = db.prepare('SELECT * FROM items WHERE id = 1').get();
+  assert.deepStrictEqual(T.moveTurn(db, { id: 1, from: 2, to: 5.26 }), [{ at: 4, turn: 270 }, { at: 5.2, turn: 90 }]);
+  assert.strictEqual(T.turnAt(T.listTurns(db, 1), 3), 0);
+  assert.strictEqual(T.turnAt(T.listTurns(db, 1), 5.26), 90);
+  assert.deepStrictEqual(T.moveTurn(db, { id: 1, from: 5.2, to: 0 }), [{ at: 0, turn: 90 }, { at: 4, turn: 270 }]);
+  assert.deepStrictEqual(db.prepare('SELECT * FROM items WHERE id = 1').get(), original);
+  db.close();
+});
+
+test('moving onto another turn is rejected without losing either point', () => {
+  const db = freshDb(); seed(db);
+  T.setTurn(db, { id: 1, at: 2, turn: 90 });
+  T.setTurn(db, { id: 1, at: 4, turn: 0 });
+  const before = T.listTurns(db, 1);
+  assert.throws(() => T.moveTurn(db, { id: 1, from: 2, to: 4.06 }), /video-turn-collision/);
+  assert.deepStrictEqual(T.listTurns(db, 1), before);
+  assert.deepStrictEqual(T.moveTurn(db, { id: 1, from: 2, to: 2.06 }), before);
+  assert.deepStrictEqual(T.moveTurn(db, { id: 1, from: 99, to: 3 }), before);
+  db.close();
+});
+
+test('moving turns validates times and cannot edit photos or deleted videos', () => {
+  const db = freshDb(); seed(db);
+  T.setTurn(db, { id: 1, at: 2, turn: 90 });
+  for (const value of [-1, NaN, Infinity, 86401]) {
+    assert.throws(() => T.moveTurn(db, { id: 1, from: 2, to: value }), /Invalid time/);
+    assert.throws(() => T.moveTurn(db, { id: 1, from: value, to: 3 }), /Invalid time/);
+  }
+  assert.throws(() => T.moveTurn(db, { id: 0, from: 2, to: 3 }), /Invalid item/);
+  assert.deepStrictEqual(T.moveTurn(db, { id: 2, from: 2, to: 3 }), []);
+  db.prepare('UPDATE items SET is_deleted = 1 WHERE id = 1').run();
+  assert.deepStrictEqual(T.moveTurn(db, { id: 1, from: 2, to: 3 }), [{ at: 2, turn: 90 }]);
+  db.close();
+});

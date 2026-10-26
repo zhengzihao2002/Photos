@@ -27,6 +27,38 @@
       h('path', { d: 'M12 4v10 M7.5 10l4.5 4.5 4.5-4.5 M5 19h14', fill: 'none', stroke: 'currentColor', 'stroke-width': 1.6, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }));
   }
 
+  function AppearanceIcon() {
+    return h('svg', { viewBox: '0 0 24 24', 'aria-hidden': 'true' },
+      h('path', { d: 'M3 19L9 5l6 14 M5 14h8 M16 19l3-8 3 8 M17 16h4', fill: 'none', stroke: 'currentColor', 'stroke-width': 1.6, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }));
+  }
+
+  function Appearance() {
+    const [size, setSize] = useState(window.api.getTextSize());
+    const [saving, setSaving] = useState(false);
+    const [error, setError] = useState('');
+    useEffect(() => window.api.onTextSizeChanged(setSize), []);
+    async function choose(value) {
+      setSaving(true); setError('');
+      try { const config = await window.api.updateConfig({ patch: { textSize: value } }); setSize(config.textSize); }
+      catch (err) { setError(t('settings.appearance.error')); }
+      finally { setSaving(false); }
+    }
+    const labels = {
+      small: t('settings.textSize.small'), default: t('settings.textSize.default'),
+      large: t('settings.textSize.large'), 'extra-large': t('settings.textSize.extraLarge'),
+    };
+    return h('div', { class: 'st-page st-appearance' },
+      h('h2', null, t('settings.textSize.title')),
+      h('p', { class: 'st-appearance-note' }, t('settings.textSize.hint')),
+      h('div', { class: 'st-text-sizes', role: 'group', 'aria-label': t('settings.textSize.title') },
+        Object.entries(labels).map(([value, label]) => h('button', { key: value, type: 'button', class: 'st-text-size' + (size === value ? ' is-selected' : ''),
+          'aria-pressed': size === value, disabled: saving, onClick: () => choose(value) },
+          h('span', { class: 'st-text-size-sample', style: { fontSize: 20 * window.PhotosTextSize.factors[value] + 'px' }, 'aria-hidden': 'true' }, 'Aa'),
+          h('span', null, label)))),
+      h('div', { class: 'st-text-preview' }, h('strong', null, t('settings.textSize.previewTitle')), h('p', null, t('settings.textSize.previewBody'))),
+      error && h('div', { role: 'alert', class: 'st-appearance-error' }, error));
+  }
+
   // Updates tab: runs only when asked. Check -> Update and Restart (download, verify, swap, reopen).
   function Updates({ active }) {
     const [st, setSt] = useState({ phase: 'idle', current: '', latest: null, percent: 0, error: null });
@@ -101,9 +133,11 @@
     const status = busy === 'measure' ? t('settings.calculating') : busy ? t('settings.clearing') : (error || '');
 
     const tabs = h('div', { class: 'st-tabs' },
+      h('button', { class: 'st-tab' + (tab === 'appearance' ? ' is-selected' : ''), type: 'button', 'aria-pressed': tab === 'appearance' ? 'true' : 'false', onClick: () => setTab('appearance') }, h(AppearanceIcon), t('settings.tab.appearance')),
       h('button', { class: 'st-tab' + (tab === 'storage' ? ' is-selected' : ''), type: 'button', 'aria-pressed': tab === 'storage' ? 'true' : 'false', onClick: () => setTab('storage') }, h(StorageIcon), t('settings.tab.storage')),
       h('button', { class: 'st-tab' + (tab === 'updates' ? ' is-selected' : ''), type: 'button', 'aria-pressed': tab === 'updates' ? 'true' : 'false', onClick: () => setTab('updates') }, h(UpdatesIcon), t('settings.tab.updates')));
     if (tab === 'updates') return h('div', null, tabs, h(Updates, { active: true }));
+    if (tab === 'appearance') return h('div', null, tabs, h(Appearance));
 
     return h('div', null,
       tabs,
