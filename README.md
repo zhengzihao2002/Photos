@@ -55,7 +55,7 @@ Menu bar → **View → Language** → English / 简体中文. Everything switch
 
 ## Requirements and limits
 
-The map shows a sparse mix of landmarks, parks, transport and businesses at overview zoom, prioritizes landmarks when labels compete for space, and reveals more places as you zoom closer. Map tiles stream on demand; there is no bulk offline map download. An Apple Maps provider was investigated but needs Apple Maps authorization and packaged-app verification before it can be enabled; see [the investigation](docs/MAP-PROVIDERS.md).
+The map shows notable landmarks from a small bundled offline layer at wider zoom levels, then adds businesses and finally ordinary transit stops as you zoom closer. This avoids the transit-only overview in the provider's wider tiles. Map tiles stream on demand; there is no bulk offline map download. An Apple Maps provider was investigated but needs Apple Maps authorization and packaged-app verification before it can be enabled; see [the investigation](docs/MAP-PROVIDERS.md).
 
 Apple Silicon only (no Intel build). macOS 12+. Formats: JPEG, PNG, GIF, WebP, TIFF, BMP, HEIC/HEIF, many RAW formats, MP4/MOV and others (converted to a cached copy when the browser engine cannot play them). Libraries of 100,000+ items are supported (see [`docs/PERFORMANCE.md`](docs/PERFORMANCE.md)).
 

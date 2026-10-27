@@ -12,6 +12,7 @@ const path = require('path');
 const vm = require('vm');
 
 const DIR = path.join(__dirname, '..', 'src', 'renderer', 'vendor', 'map-styles');
+require('./build-map-landmarks').writeLandmarks(DIR);
 const LAND = '#34475d';
 const ROAD = '#637891';
 const ROAD_MAJOR = '#8a9fb9';
@@ -132,19 +133,20 @@ function enhance(style, darkMode) {
   style.layers.push({ id: 'photos-park-labels', type: 'symbol', source: 'openmaptiles', 'source-layer': 'park', minzoom: 12,
     filter: ['has', 'name'], layout: { 'text-field': ENGLISH_LABEL, 'text-font': ['Noto Sans Bold'], 'text-size': 12,
       'text-max-width': 9, 'text-padding': 4 }, paint: { 'text-color': colors.park, 'text-halo-color': darkMode ? '#17483f' : '#e0f0d5', 'text-halo-width': 1.5 } });
-  // Keep a mixed selection of places at overview zoom, as in Apple's map.
+  // Ordinary stops must not dominate the overview. At z12-13 the vector
+  // provider mostly has transit, so use our separate offline landmarks there.
   // Rank is local to a tile/grid cell, so use a tighter business threshold
-  // and reserve collision space for landmarks, parks and transport first.
-  const importantCategory = ['match', CATEGORY, ['culture', 'attraction', 'park', 'transit'], true, false];
+  // and reserve collision space for landmarks and parks first.
+  const importantCategory = ['match', CATEGORY, ['culture', 'attraction', 'park'], true, false];
   const poiRank = ['coalesce', ['get', 'rank'], 999];
   const priority = ['+', poiRank, ['case', importantCategory, 0, 50]];
   for (const [suffix, minzoom, maxzoom, importantRank, businessRank, padding] of [
-    ['major', 12, 14, 12, 2, 8],
     ['neighborhood', 14, 16, 30, 10, 5],
     ['street', 16, 17, 60, 30, 3],
     ['detail', 17, 24, 10000, 10000, 2],
   ]) {
     const filter = ['all', ['has', 'name'], ['<=', poiRank, ['case', importantCategory, importantRank, businessRank]]];
+    if (suffix === 'neighborhood') filter.push(['!=', CATEGORY, 'transit']);
     style.layers.push({ id: 'photos-poi-' + suffix, type: 'symbol', source: 'openmaptiles', 'source-layer': 'poi', minzoom, maxzoom,
       filter,
       layout: { 'icon-image': ['case', LANDMARK, ['concat', 'photos-poi-landmark-', CATEGORY], ['concat', 'photos-poi-', CATEGORY]], 'icon-size': ['interpolate', ['linear'], ['zoom'], 12, 0.7, 16, 0.9, 18, 1],
@@ -154,6 +156,21 @@ function enhance(style, darkMode) {
         'text-max-width': 9, 'text-line-height': 1.1, 'text-padding': padding, 'symbol-sort-key': priority },
       paint: { 'text-color': textColor, 'text-halo-color': darkMode ? '#304159' : '#fcfaf5', 'text-halo-width': 1.2, 'text-halo-blur': 0.2 } });
   }
+  style.sources['photos-landmarks'] = { type: 'geojson', data: { type: 'FeatureCollection', features: [] },
+    attribution: 'Landmark names: <a href="https://www.geonames.org/">GeoNames</a> (CC BY 4.0)' };
+  const landmarks = [];
+  for (const [suffix, minzoom, maxzoom, score] of [['regional', 8, 10, 65], ['city', 10, 12, 40], ['overview', 12, 14, 25], ['local', 14, 24, 20]]) {
+    landmarks.push({ id: 'photos-landmarks-' + suffix, type: 'symbol', source: 'photos-landmarks', minzoom, maxzoom,
+      filter: ['>=', ['get', 'score'], score],
+      layout: { 'icon-image': 'photos-poi-landmark-attraction', 'icon-size': 0.85,
+        'icon-padding': 8, 'text-field': ENGLISH_LABEL, 'text-font': ['Noto Sans Bold'], 'text-size': 11,
+        'text-variable-anchor': ['bottom', 'top', 'left', 'right'], 'text-radial-offset': 1.7,
+        'text-max-width': 10, 'text-padding': 8, 'symbol-sort-key': ['-', 0, ['get', 'score']] },
+      paint: { 'text-color': darkMode ? '#e6e9f8' : '#60528b', 'text-halo-color': darkMode ? '#304159' : '#fcfaf5', 'text-halo-width': 1.4 } });
+  }
+  // MapLibre places later symbol layers first for collision priority. Keep
+  // landmarks above ordinary POIs so their space is reserved first.
+  style.layers.push(...landmarks);
 }
 
 const light = JSON.parse(fs.readFileSync(path.join(DIR, 'positron.json'), 'utf8'));
@@ -204,6 +221,9 @@ const out = '/**\n'
   + '  lightZh: ' + JSON.stringify(withLabels(light, CHINESE_LABEL)) + ',\n'
   + '  darkZh: ' + JSON.stringify(withLabels(dark, CHINESE_LABEL)) + ',\n'
   + '};\n'
+  + 'for (const style of Object.values(window.__PhotosMapStyles)) {\n'
+  + '  style.sources["photos-landmarks"].data = window.__PhotosMapLandmarks || { type: "FeatureCollection", features: [] };\n'
+  + '}\n'
   + '// M14: the style for the active language and colour scheme.\n'
   + 'window.__PhotosMapStyleFor = function (dark) {\n'
   + "  const zh = !!(window.i18n && window.i18n.getLocale() === 'zh-Hans');\n"
