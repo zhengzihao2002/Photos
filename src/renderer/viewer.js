@@ -69,7 +69,8 @@
       const sc = t.closest('#grid-scroll, .places-overlay-scroll');
       if (!sc) continue;
       const r = t.getBoundingClientRect(), b = sc.getBoundingClientRect();
-      const topLimit = b.top + (sc.id === 'grid-scroll' ? 56 : 0);
+      const toolbar = document.getElementById('toolbar');
+      const topLimit = b.top + (sc.id === 'grid-scroll' ? (toolbar ? toolbar.getBoundingClientRect().height : 56) : 0);
       if (r.width >= 4 && r.bottom > topLimit && r.top < b.bottom) return r;
     }
     return null;
@@ -1057,7 +1058,7 @@
     const sliderEnabled = !!geom && geom.maxW > geom.fitW + 1 && !(item && item.media_type === 'video');
 
     return h('div', { className: 'viewer' + (closing === 'zoom' ? ' is-zoom-close' : closing ? ' is-closing' : '') + (zoomOpen === 'zooming' ? ' is-zoom-open is-zoom-wait' : zoomOpen === 'running' ? ' is-zoom-open' : zoomOpen === 'done' ? ' is-zoom-done' : '') + (item && item.media_type === 'video' ? ' is-video-item' : '') },
-      h('div', { className: 'viewer-toolbar', style: { height: toolbarH + 'px' } },
+      h('div', { className: 'viewer-toolbar', style: { minHeight: 'var(--toolbar-height, ' + toolbarH + 'px)' } },
         // M6 (B.4): same sidebar toggle as the grid toolbar (renders only while
         // the sidebar is hidden).
         window.__PhotosSidebarToggleButton && h(window.__PhotosSidebarToggleButton),

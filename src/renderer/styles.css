@@ -342,7 +342,7 @@ body.sidebar-hidden .viewer-toolbar {
 
 .toolbar-sidebar-toggle {
   flex-shrink: 0;
-  margin-right: 10px;
+  margin-right: calc(10px * var(--text-scale, 1));
 }
 
 #grid-scroll {
@@ -353,8 +353,8 @@ body.sidebar-hidden .viewer-toolbar {
   position: relative;
   /* M6: extend up behind the 56px toolbar so photos scroll UNDER it; the
      padding keeps the first row below the toolbar when scrolled to the top. */
-  margin-top: -56px;
-  padding-top: 56px;
+  margin-top: calc(-1 * var(--toolbar-height, 56px));
+  padding-top: var(--toolbar-height, 56px);
 }
 
 #grid-root {
@@ -610,11 +610,11 @@ body.sidebar-hidden .viewer-toolbar {
   position: relative;
   flex-shrink: 0;
   box-sizing: border-box;
-  height: 52px; /* overridden inline with the grid toolbar's measured height */
-  padding: 0 12px;
+  height: calc(52px * var(--text-scale, 1)); /* the main toolbar's measured height supplies the minimum */
+  padding: 0 calc(12px * var(--text-scale, 1));
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: calc(10px * var(--text-scale, 1));
   -webkit-app-region: drag; /* overlay covers #content's drag strip */
   user-select: none;
   z-index: 5; /* M8c.1 (U7): above the photo, which can pass under it */
@@ -641,10 +641,10 @@ body.sidebar-hidden .viewer-toolbar {
   border: 0;
   background: transparent;
   color: var(--text-primary);
-  min-width: 32px;
-  height: 28px;
+  min-width: calc(32px * var(--text-scale, 1));
+  height: calc(28px * var(--text-scale, 1));
   padding: 0;
-  border-radius: 6px;
+  border-radius: calc(6px * var(--text-scale, 1));
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -653,7 +653,7 @@ body.sidebar-hidden .viewer-toolbar {
 .viewer-btn:hover:not(.is-disabled) { background: var(--divider); }
 .viewer-btn.is-active { color: var(--accent); }
 .viewer-btn.is-disabled { opacity: 0.35; }
-.viewer-btn-text { font-size: calc(13px * var(--text-scale, 1)); font-weight: 500; padding: 0 8px; }
+.viewer-btn-text { font-size: calc(13px * var(--text-scale, 1)); font-weight: 500; padding: 0 calc(8px * var(--text-scale, 1)); }
 
 .viewer-title {
   position: absolute;
@@ -677,21 +677,21 @@ body.sidebar-hidden .viewer-toolbar {
   -webkit-app-region: no-drag;
   display: inline-flex;
   align-items: center;
-  gap: 2px;
-  height: 30px;
+  gap: calc(2px * var(--text-scale, 1));
+  height: calc(30px * var(--text-scale, 1));
   box-sizing: border-box;
-  padding: 0 3px;
-  border-radius: 999px;
+  padding: 0 calc(3px * var(--text-scale, 1));
+  border-radius: calc(999px * var(--text-scale, 1));
   border: 1px solid var(--seg-border);
   background: var(--seg-bg);
   -webkit-backdrop-filter: blur(20px) saturate(1.4);
   backdrop-filter: blur(20px) saturate(1.4);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
-.viewer-group .viewer-btn { min-width: 34px; height: 24px; border-radius: 999px; }
-.viewer-group.is-round { width: 30px; padding: 0; justify-content: center; }
-.viewer-group.is-round .viewer-btn { min-width: 26px; width: 26px; }
-.viewer-group.is-zoom { gap: 4px; padding: 0 6px; }
+.viewer-group .viewer-btn { min-width: calc(34px * var(--text-scale, 1)); height: calc(24px * var(--text-scale, 1)); border-radius: calc(999px * var(--text-scale, 1)); }
+.viewer-group.is-round { width: calc(30px * var(--text-scale, 1)); padding: 0; justify-content: center; }
+.viewer-group.is-round .viewer-btn { min-width: calc(26px * var(--text-scale, 1)); width: calc(26px * var(--text-scale, 1)); }
+.viewer-group.is-zoom { gap: calc(4px * var(--text-scale, 1)); padding: 0 calc(6px * var(--text-scale, 1)); }
 .viewer-zoom-step {
   -webkit-app-region: no-drag;
   appearance: none;
@@ -700,8 +700,8 @@ body.sidebar-hidden .viewer-toolbar {
   color: var(--text-secondary);
   font-size: calc(13px * var(--text-scale, 1));
   line-height: 1;
-  width: 16px;
-  height: 24px;
+  width: calc(16px * var(--text-scale, 1));
+  height: calc(24px * var(--text-scale, 1));
   padding: 0;
   cursor: default;
 }
@@ -709,7 +709,7 @@ body.sidebar-hidden .viewer-toolbar {
 
 .viewer-zoom {
   -webkit-app-region: no-drag;
-  width: 96px;
+  width: calc(96px * var(--text-scale, 1));
   margin: 0;
   accent-color: var(--text-secondary);
 }
@@ -819,9 +819,9 @@ body.sidebar-hidden .viewer-toolbar {
   box-sizing: border-box;
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 10px;
-  border-radius: 12px;
+  gap: calc(8px * var(--text-scale, 1));
+  padding: calc(6px * var(--text-scale, 1)) calc(10px * var(--text-scale, 1));
+  border-radius: calc(12px * var(--text-scale, 1));
   color: #fff;
   /* M6: lighter glass so the bar doesn't blend into the dark-mode background
      (#1e1e1e) or black video borders. */
@@ -837,9 +837,9 @@ body.sidebar-hidden .viewer-toolbar {
   appearance: none;
   border: 0;
   padding: 0;
-  width: 28px;
-  height: 28px;
-  border-radius: 6px;
+  width: calc(28px * var(--text-scale, 1));
+  height: calc(28px * var(--text-scale, 1));
+  border-radius: calc(6px * var(--text-scale, 1));
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -851,12 +851,12 @@ body.sidebar-hidden .viewer-toolbar {
 .viewer-vtime {
   font-size: calc(11px * var(--text-scale, 1));
   font-variant-numeric: tabular-nums;
-  min-width: 38px;
+  min-width: calc(38px * var(--text-scale, 1));
   text-align: center;
   opacity: 0.9;
 }
-.viewer-vscrub { flex: 1; min-width: 60px; margin: 0; accent-color: #fff; }
-.viewer-vvol { width: 70px; margin: 0; accent-color: #fff; }
+.viewer-vscrub { flex: 1; min-width: calc(60px * var(--text-scale, 1)); margin: 0; accent-color: #fff; }
+.viewer-vvol { width: calc(70px * var(--text-scale, 1)); margin: 0; accent-color: #fff; }
 
 /* M5.7: Live Photo */
 .viewer-live-badge {
@@ -1175,8 +1175,8 @@ body.drop-active::after {
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: 1fr; /* equal widths so the highlight slides cleanly */
-  padding: 3px;
-  border-radius: 999px;
+  padding: calc(3px * var(--text-scale, 1));
+  border-radius: calc(999px * var(--text-scale, 1));
   border: 1px solid var(--seg-border);
   background: var(--seg-bg);
   -webkit-backdrop-filter: blur(20px) saturate(1.4);
@@ -1187,10 +1187,10 @@ body.drop-active::after {
 
 .seg-indicator {
   position: absolute;
-  top: 3px;
-  bottom: 3px;
-  left: 3px;
-  border-radius: 999px;
+  top: calc(3px * var(--text-scale, 1));
+  bottom: calc(3px * var(--text-scale, 1));
+  left: calc(3px * var(--text-scale, 1));
+  border-radius: calc(999px * var(--text-scale, 1));
   background: var(--seg-active-bg);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18), 0 0 0 0.5px rgba(0, 0, 0, 0.06);
   transition: transform 260ms cubic-bezier(0.3, 0.7, 0.2, 1);
@@ -1200,9 +1200,9 @@ body.drop-active::after {
 .seg-btn {
   position: relative;
   z-index: 1;
-  padding: 5px 16px;
+  padding: calc(5px * var(--text-scale, 1)) calc(16px * var(--text-scale, 1));
   border: 0;
-  border-radius: 999px;
+  border-radius: calc(999px * var(--text-scale, 1));
   background: transparent;
   font: inherit;
   font-size: calc(13px * var(--text-scale, 1));
@@ -1298,9 +1298,9 @@ body.drop-active::after {
   margin-left: auto;
   display: flex;
   align-items: center;
-  height: 30px;
-  padding: 0 3px;
-  border-radius: 999px;
+  height: calc(30px * var(--text-scale, 1));
+  padding: 0 calc(3px * var(--text-scale, 1));
+  border-radius: calc(999px * var(--text-scale, 1));
   border: 1px solid var(--seg-border);
   background: var(--seg-bg);
   -webkit-backdrop-filter: blur(20px) saturate(1.4);
@@ -1313,11 +1313,11 @@ body.drop-active::after {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 24px;
+  width: calc(34px * var(--text-scale, 1));
+  height: calc(24px * var(--text-scale, 1));
   padding: 0;
   border: 0;
-  border-radius: 999px;
+  border-radius: calc(999px * var(--text-scale, 1));
   background: transparent;
   color: var(--text-primary);
   cursor: default;
@@ -1326,8 +1326,8 @@ body.drop-active::after {
 }
 
 .zoom-btn svg {
-  width: 15px;
-  height: 15px;
+  width: calc(15px * var(--text-scale, 1));
+  height: calc(15px * var(--text-scale, 1));
 }
 
 .zoom-btn:hover:not(:disabled) {
@@ -1350,9 +1350,9 @@ body.drop-active::after {
 }
 
 .zoom-divider {
-  width: 1px;
-  height: 14px;
-  margin: 0 1px;
+  width: calc(1px * var(--text-scale, 1));
+  height: calc(14px * var(--text-scale, 1));
+  margin: 0 calc(1px * var(--text-scale, 1));
   background: var(--seg-border);
 }
 
@@ -1361,13 +1361,13 @@ body.drop-active::after {
   margin-left: auto;
   display: flex;
   align-items: center;
-  gap: 6px;
-  flex: 0 1 220px;
-  width: 220px;
-  min-width: 110px;
-  height: 30px;
-  padding: 0 10px;
-  border-radius: 999px;
+  gap: calc(6px * var(--text-scale, 1));
+  flex: 0 1 calc(220px * var(--text-scale, 1));
+  width: calc(220px * var(--text-scale, 1));
+  min-width: calc(110px * var(--text-scale, 1));
+  height: calc(30px * var(--text-scale, 1));
+  padding: 0 calc(10px * var(--text-scale, 1));
+  border-radius: calc(999px * var(--text-scale, 1));
   border: 1px solid var(--seg-border);
   background: var(--seg-bg);
   -webkit-backdrop-filter: blur(20px) saturate(1.4);
@@ -1378,8 +1378,8 @@ body.drop-active::after {
 }
 
 .search-pill:focus-within {
-  flex-basis: 260px;
-  width: 260px;
+  flex-basis: calc(260px * var(--text-scale, 1));
+  width: calc(260px * var(--text-scale, 1));
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 35%, transparent);
 }
 
@@ -1390,8 +1390,8 @@ body.drop-active::after {
 
 .search-icon {
   flex-shrink: 0;
-  width: 14px;
-  height: 14px;
+  width: calc(14px * var(--text-scale, 1));
+  height: calc(14px * var(--text-scale, 1));
   color: var(--text-secondary);
 }
 
@@ -1416,8 +1416,8 @@ body.drop-active::after {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 16px;
-  height: 16px;
+  width: calc(16px * var(--text-scale, 1));
+  height: calc(16px * var(--text-scale, 1));
   padding: 0;
   border: 0;
   border-radius: 50%;
@@ -1436,12 +1436,12 @@ body.drop-active::after {
 
 /* ---- M6: view-filter button (albums / All Photos), left of the zoom pill */
 .filter-pill {
-  margin-left: 10px;
+  margin-left: calc(10px * var(--text-scale, 1));
   display: flex;
   align-items: center;
-  height: 30px;
-  padding: 0 3px;
-  border-radius: 999px;
+  height: calc(30px * var(--text-scale, 1));
+  padding: 0 calc(3px * var(--text-scale, 1));
+  border-radius: calc(999px * var(--text-scale, 1));
   border: 1px solid var(--seg-border);
   background: var(--seg-bg);
   -webkit-backdrop-filter: blur(20px) saturate(1.4);
@@ -1451,18 +1451,18 @@ body.drop-active::after {
 }
 
 .filter-pill ~ .zoom-pill {
-  margin-left: 10px;
+  margin-left: calc(10px * var(--text-scale, 1));
 }
 
 .filter-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 24px;
+  width: calc(34px * var(--text-scale, 1));
+  height: calc(24px * var(--text-scale, 1));
   padding: 0;
   border: 0;
-  border-radius: 999px;
+  border-radius: calc(999px * var(--text-scale, 1));
   background: transparent;
   color: var(--text-primary);
   cursor: default;
@@ -1471,8 +1471,8 @@ body.drop-active::after {
 }
 
 .filter-btn svg {
-  width: 16px;
-  height: 16px;
+  width: calc(16px * var(--text-scale, 1));
+  height: calc(16px * var(--text-scale, 1));
 }
 
 .filter-btn:hover {
@@ -1637,4 +1637,20 @@ body.drop-active::after {
   z-index: 3;
 }
 
-.viewer-vreset { width: auto; padding: 0 8px; font-size: calc(11px * var(--text-scale, 1)); }
+.viewer-vreset { width: auto; padding: 0 calc(8px * var(--text-scale, 1)); font-size: calc(11px * var(--text-scale, 1)); }
+
+/* Text size also scales toolbar hit areas and symbols. Keep native window controls fixed. */
+#toolbar { gap: calc(12px * var(--text-scale, 1)); }
+#toolbar > button { flex-shrink: 0; }
+#toolbar > button > svg { width: calc(16px * var(--text-scale, 1)); height: calc(16px * var(--text-scale, 1)); }
+#toolbar .toolbar-sidebar-toggle, .viewer-toolbar .toolbar-sidebar-toggle { width: calc(30px * var(--text-scale, 1)); height: calc(26px * var(--text-scale, 1)); }
+#toolbar .toolbar-sidebar-toggle svg, .viewer-toolbar .toolbar-sidebar-toggle svg { width: calc(18px * var(--text-scale, 1)); height: calc(18px * var(--text-scale, 1)); }
+.viewer-btn > svg { width: calc(19px * var(--text-scale, 1)); height: calc(19px * var(--text-scale, 1)); }
+.viewer-vbtn > svg { width: calc(18px * var(--text-scale, 1)); height: calc(18px * var(--text-scale, 1)); }
+.viewer-group, .viewer-vbtn, .zoom-pill, .zoom-btn, .filter-pill, .filter-btn { flex-shrink: 0; }
+html[data-text-size]:not([data-text-size="default"]) #toolbar { height: auto; min-height: 56px; padding-top: calc(8px * var(--text-scale, 1)); padding-bottom: calc(8px * var(--text-scale, 1)); flex-wrap: wrap; }
+html[data-text-size]:not([data-text-size="default"]) #toolbar > .seg { position: static; transform: none; }
+html[data-text-size]:not([data-text-size="default"]) .viewer-toolbar { height: auto; padding-top: calc(8px * var(--text-scale, 1)); padding-bottom: calc(8px * var(--text-scale, 1)); flex-wrap: wrap; }
+html[data-text-size]:not([data-text-size="default"]) .viewer-title { position: static; transform: none; flex: 1; min-width: 0; max-width: none; }
+html[data-text-size]:not([data-text-size="default"]) .viewer-toolbar-spacer { display: none; }
+html[data-text-size]:not([data-text-size="default"]) .viewer-vbar { flex-wrap: wrap; }

@@ -629,7 +629,7 @@
         className: 'seg-indicator',
         'aria-hidden': 'true',
         style: {
-          width: 'calc((100% - 6px) / ' + options.length + ')',
+          width: 'calc((100% - 6px * var(--text-scale, 1)) / ' + options.length + ')',
           transform: 'translateX(' + (activeIndex * 100) + '%)',
         },
       }),
@@ -1626,7 +1626,7 @@
       type: 'button', title: tr('toolbar.rotateTip'), 'aria-label': tr('toolbar.rotateAria'), disabled: !has,
       onClick: (e) => rotateSelection(e.altKey ? 90 : -90),
       style: {
-        WebkitAppRegion: 'no-drag', width: '34px', height: '28px', border: 'none', borderRadius: '14px',
+        WebkitAppRegion: 'no-drag', width: 'calc(34px * var(--text-scale, 1))', height: 'calc(28px * var(--text-scale, 1))', border: 'none', borderRadius: 'calc(14px * var(--text-scale, 1))',
         cursor: has ? 'pointer' : 'default', opacity: has ? 1 : 0.35,
         background: 'var(--control-bg, rgba(128,128,128,0.18))', color: 'var(--text-primary)', padding: 0,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -1658,7 +1658,7 @@
       type: 'button', title: on ? tr('unfavorite') : tr('favorite'), 'aria-label': tr('favorite'), disabled,
       onClick: async () => { setState(on ? 'off' : 'on'); await toggleFavoriteForSelection(); },
       style: {
-        WebkitAppRegion: 'no-drag', width: '34px', height: '28px', border: 'none', borderRadius: '14px',
+        WebkitAppRegion: 'no-drag', width: 'calc(34px * var(--text-scale, 1))', height: 'calc(28px * var(--text-scale, 1))', border: 'none', borderRadius: 'calc(14px * var(--text-scale, 1))',
         cursor: disabled ? 'default' : 'pointer', opacity: disabled ? 0.35 : 1,
         background: 'var(--control-bg, rgba(128,128,128,0.18))', color: 'var(--text-primary)', padding: 0,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -1769,14 +1769,14 @@
       section === 'people' && !personSel && !addSel && !groupOpen && h('button', {
         type: 'button', title: tr('toolbar.addPeopleTip'), onClick: () => addPeopleStore.set(true),
         style: {
-          WebkitAppRegion: 'no-drag', height: '28px', padding: '0 12px', border: 'none', borderRadius: '14px', cursor: 'pointer',
+          WebkitAppRegion: 'no-drag', height: 'calc(28px * var(--text-scale, 1))', padding: '0 calc(12px * var(--text-scale, 1))', border: 'none', borderRadius: 'calc(14px * var(--text-scale, 1))', cursor: 'pointer',
           background: 'var(--control-bg, rgba(128,128,128,0.18))', color: 'var(--text-primary)', fontSize: 'calc(13px * var(--text-scale, 1))',
         },
       }, tr('toolbar.addPeopleButton')),
       section === 'people' && personSel && h('button', {
         type: 'button', title: tr('toolbar.more'), 'aria-label': tr('toolbar.more'), onClick: openPersonPageMenu,
         style: {
-          WebkitAppRegion: 'no-drag', width: '34px', height: '28px', border: 'none', borderRadius: '14px', cursor: 'pointer',
+          WebkitAppRegion: 'no-drag', width: 'calc(34px * var(--text-scale, 1))', height: 'calc(28px * var(--text-scale, 1))', border: 'none', borderRadius: 'calc(14px * var(--text-scale, 1))', cursor: 'pointer',
           background: (personViewSel === 'photos' && faceDisplaySel === 'photos') ? 'var(--control-bg, rgba(128,128,128,0.18))' : 'var(--accent, #2f7ff7)',
           color: (personViewSel === 'photos' && faceDisplaySel === 'photos') ? 'var(--text-primary)' : '#fff', fontSize: 'calc(16px * var(--text-scale, 1))', lineHeight: 1,
         },
@@ -3177,6 +3177,13 @@
   window.addEventListener("DOMContentLoaded", () => {
     render(h(AppGrid), document.getElementById('grid-root'));
     render(h(Toolbar), document.getElementById('toolbar'));
+    // Wrapped controls may change toolbar height after a live text-size change.
+    const toolbar = document.getElementById('toolbar');
+    const measureToolbar = () => document.documentElement.style.setProperty('--toolbar-height', toolbar.getBoundingClientRect().height + 'px');
+    measureToolbar();
+    const toolbarObserver = new ResizeObserver(measureToolbar);
+    toolbarObserver.observe(toolbar);
+    window.addEventListener('beforeunload', () => toolbarObserver.disconnect(), { once: true });
     enqueueBackfillScans();
     // B.4: View > Hide/Show Sidebar (Alt+Cmd+S) toggles the store; every
     // change (including the restore below) keeps the menu label in sync.

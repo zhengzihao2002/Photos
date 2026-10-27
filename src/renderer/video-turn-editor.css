@@ -1,4 +1,4 @@
-.viewer-turn-editor-toggle { padding: 0 10px; font: 500 calc(13px * var(--text-scale, 1)) -apple-system, BlinkMacSystemFont, sans-serif; white-space: nowrap; }
+.viewer-turn-editor-toggle { padding: 0 calc(10px * var(--text-scale, 1)); font: 500 calc(13px * var(--text-scale, 1)) -apple-system, BlinkMacSystemFont, sans-serif; white-space: nowrap; }
 .viewer.is-video-item .viewer-title { position: static; transform: none; flex: 1; min-width: 0; max-width: none; }
 .viewer.is-video-item .viewer-toolbar-spacer { display: none; }
 .viewer-video-wrap.is-editing .viewer-vbar { display: none; }
@@ -13,15 +13,15 @@
 .vte-help, .vte-save, .vte-count, .vte-selection { color: var(--text-secondary); }
 .vte-help { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .vte-save { margin-left: auto; white-space: nowrap; }
-.vte-tools { margin: 8px 0 4px; gap: 8px; flex-wrap: wrap; }
-.vte-btn { appearance: none; border: 1px solid var(--seg-border); border-radius: 6px; background: var(--seg-bg); color: inherit; padding: 4px 8px;
-  display: inline-flex; align-items: center; justify-content: center; gap: 5px; font: inherit; min-height: 28px; white-space: nowrap; }
+.vte-tools { margin: calc(8px * var(--text-scale, 1)) 0 calc(4px * var(--text-scale, 1)); gap: calc(8px * var(--text-scale, 1)); flex-wrap: wrap; }
+.vte-btn { appearance: none; border: 1px solid var(--seg-border); border-radius: calc(6px * var(--text-scale, 1)); background: var(--seg-bg); color: inherit; padding: calc(4px * var(--text-scale, 1)) calc(8px * var(--text-scale, 1));
+  display: inline-flex; align-items: center; justify-content: center; gap: calc(5px * var(--text-scale, 1)); font: inherit; min-height: calc(28px * var(--text-scale, 1)); white-space: nowrap; }
 .vte-btn:hover:not(:disabled) { background: var(--divider); }
 .vte-btn:disabled, .vte input:disabled, .vte select:disabled { opacity: 0.4; }
 .vte-time { font-variant-numeric: tabular-nums; font-size: calc(12px * var(--text-scale, 1)); padding-right: 8px; white-space: nowrap; }
 .vte-time > span { color: var(--text-secondary); }
-.vte-zoom { margin-left: auto; display: flex; align-items: center; gap: 8px; color: var(--text-secondary); }
-.vte-zoom input { width: 82px; margin: 0; accent-color: var(--accent); }
+.vte-zoom { margin-left: auto; display: flex; align-items: center; gap: calc(8px * var(--text-scale, 1)); color: var(--text-secondary); }
+.vte-zoom input { width: calc(82px * var(--text-scale, 1)); margin: 0; accent-color: var(--accent); }
 .vte-scroll { overflow-x: auto; overflow-y: hidden; padding: 0 10px; scrollbar-width: thin; }
 .vte-track { position: relative; height: 91px; min-width: 100%; touch-action: none; cursor: crosshair; }
 .vte-track:focus-visible { outline-offset: -2px; }
@@ -41,11 +41,14 @@
 .vte-marker.is-selected .vte-diamond { box-shadow: 0 0 0 2px color-mix(in srgb, #ff9f0a 35%, transparent); }
 .vte-playhead { position: absolute; top: 20px; bottom: 6px; border-left: 1px solid #ff453a; pointer-events: none; z-index: 3; }
 .vte-playhead > span { position: absolute; top: 0; left: -4px; width: 7px; height: 7px; background: #ff453a; clip-path: polygon(0 0, 100% 0, 100% 55%, 50% 100%, 0 55%); }
-.vte-inspector { gap: 10px; margin-top: 6px; flex-wrap: wrap; }
+.vte-inspector { gap: calc(10px * var(--text-scale, 1)); margin-top: calc(6px * var(--text-scale, 1)); flex-wrap: wrap; }
 .vte-inspector label { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
-.vte-inspector input, .vte-inspector select { border: 1px solid var(--seg-border); border-radius: 5px; background: var(--seg-bg); color: inherit; font: inherit; padding: 4px 6px; min-height: 28px; }
-.vte-inspector input { width: 78px; font-variant-numeric: tabular-nums; }
-.vte-inspector select { min-width: 64px; }
+.vte-inspector input, .vte-inspector select { border: 1px solid var(--seg-border); border-radius: calc(5px * var(--text-scale, 1)); background: var(--seg-bg); color: inherit; font: inherit; padding: calc(4px * var(--text-scale, 1)) calc(6px * var(--text-scale, 1)); min-height: calc(28px * var(--text-scale, 1)); }
+.vte-inspector input { width: calc(78px * var(--text-scale, 1)); font-variant-numeric: tabular-nums; }
+.vte-inspector select { min-width: calc(64px * var(--text-scale, 1)); }
 .vte-count { margin-left: auto; white-space: nowrap; }
 .vte-error { color: #ff453a; margin-top: 5px; }
 @media (max-width: 850px) { .vte-help { display: none; } .vte-selection { display: none; } }
+
+.vte-btn > svg { width: calc(17px * var(--text-scale, 1)); height: calc(17px * var(--text-scale, 1)); }
+.vte-play > svg { width: calc(16px * var(--text-scale, 1)); height: calc(16px * var(--text-scale, 1)); }
