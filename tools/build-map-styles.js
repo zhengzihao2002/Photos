@@ -132,14 +132,20 @@ function enhance(style, darkMode) {
   style.layers.push({ id: 'photos-park-labels', type: 'symbol', source: 'openmaptiles', 'source-layer': 'park', minzoom: 12,
     filter: ['has', 'name'], layout: { 'text-field': ENGLISH_LABEL, 'text-font': ['Noto Sans Bold'], 'text-size': 12,
       'text-max-width': 9, 'text-padding': 4 }, paint: { 'text-color': colors.park, 'text-halo-color': darkMode ? '#17483f' : '#e0f0d5', 'text-halo-width': 1.5 } });
-  for (const [suffix, minzoom, maxzoom, rank] of [['major', 12, 14, 10], ['neighborhood', 14, 16, 60], ['detail', 16, 24, 10000]]) {
+  // Rank is local to a tile/grid cell, not a global importance score: even
+  // ordinary shops can have rank 1. Keep commercial POIs out of overview
+  // maps by category as well as rank, then reveal them at street scale.
+  const overviewCategory = ['match', CATEGORY, ['culture', 'attraction', 'park'], true, false];
+  for (const [suffix, minzoom, maxzoom, rank, padding] of [['major', 13, 16, 3, 7], ['neighborhood', 16, 17, 12, 4], ['detail', 17, 24, 10000, 2]]) {
+    const filter = ['all', ['has', 'name'], ['<=', ['coalesce', ['get', 'rank'], 999], rank]];
+    if (suffix === 'major') filter.push(overviewCategory);
     style.layers.push({ id: 'photos-poi-' + suffix, type: 'symbol', source: 'openmaptiles', 'source-layer': 'poi', minzoom, maxzoom,
-      filter: ['all', ['has', 'name'], ['<=', ['coalesce', ['get', 'rank'], 999], rank]],
+      filter,
       layout: { 'icon-image': ['case', LANDMARK, ['concat', 'photos-poi-landmark-', CATEGORY], ['concat', 'photos-poi-', CATEGORY]], 'icon-size': ['interpolate', ['linear'], ['zoom'], 12, 0.7, 16, 0.9, 18, 1],
-        'icon-padding': 1.5, 'text-field': ENGLISH_LABEL, 'text-font': ['Noto Sans Bold'],
+        'icon-padding': padding, 'text-field': ENGLISH_LABEL, 'text-font': ['Noto Sans Bold'],
         'text-size': ['interpolate', ['linear'], ['zoom'], 12, 10.5, 16, 12, 18, 13],
         'text-variable-anchor': ['left', 'right', 'top', 'bottom'], 'text-radial-offset': 0.75,
-        'text-max-width': 9, 'text-line-height': 1.1, 'text-padding': 1.5, 'symbol-sort-key': ['coalesce', ['get', 'rank'], 999] },
+        'text-max-width': 9, 'text-line-height': 1.1, 'text-padding': padding, 'symbol-sort-key': ['coalesce', ['get', 'rank'], 999] },
       paint: { 'text-color': textColor, 'text-halo-color': darkMode ? '#304159' : '#fcfaf5', 'text-halo-width': 1.2, 'text-halo-blur': 0.2 } });
   }
 }
