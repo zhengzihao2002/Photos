@@ -75,7 +75,7 @@ jobs:
         run: |
           APP="${{ steps.app.outputs.path }}"
           R="$APP/Contents/Resources"
-          for f in geo/places.json geo/landmarks.json models/face_detection_yunet_2023mar.onnx models/face_recognition_sface_2021dec.onnx icon.icns en.lproj/InfoPlist.strings zh-Hans.lproj/InfoPlist.strings LICENSE.txt THIRD_PARTY_NOTICES.md app/package.json app/src/main/main.js app/src/shared/i18n/en.js app/src/shared/i18n/zh-Hans.js app/src/renderer/vendor/map-styles/styles.js app/src/renderer/vendor/map-styles/landmarks.js app/src/renderer/info.html app/src/renderer/settings.html app/src/renderer/vendor/maplibre/maplibre-gl-csp.js app/src/renderer/vendor/supercluster/supercluster.min.js; do
+          for f in geo/places.json geo/landmarks.json models/face_detection_yunet_2023mar.onnx models/face_recognition_sface_2021dec.onnx icon.icns en.lproj/InfoPlist.strings zh-Hans.lproj/InfoPlist.strings LICENSE.txt THIRD_PARTY_NOTICES.md app/package.json app/src/main/main.js app/src/shared/i18n/en.js app/src/shared/i18n/zh-Hans.js app/src/renderer/vendor/map-styles/styles.js app/src/renderer/info.html app/src/renderer/settings.html app/src/renderer/vendor/maplibre/maplibre-gl-csp.js app/src/renderer/vendor/supercluster/supercluster.min.js; do
             test -e "$R/$f" || { echo "MISSING in app: $f"; exit 1; }
           done
           U="$R/app/node_modules"

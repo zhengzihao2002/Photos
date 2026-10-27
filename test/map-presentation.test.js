@@ -7,7 +7,6 @@ const { scaleStyle, scaleTextSize } = require('../src/renderer/lib/map-presentat
 
 function styles() {
   const window = {};
-  vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../src/renderer/vendor/map-styles/landmarks.js'), 'utf8'), { window });
   vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../src/renderer/vendor/map-styles/styles.js'), 'utf8'), { window });
   return { window, data: JSON.parse(JSON.stringify(window.__PhotosMapStyles)) };
 }
@@ -18,7 +17,7 @@ test('all map themes draw named points of interest with category colors and coll
     assert.equal(new Set(ids).size, ids.length);
     const pois = style.layers.filter((l) => l.id.startsWith('photos-poi-'));
     assert.equal(pois.length, 3);
-    assert.deepEqual(pois.map((l) => [l.minzoom, l.maxzoom]), [[14, 16], [16, 17], [17, 24]]);
+    assert.deepEqual(pois.map((l) => [l.minzoom, l.maxzoom]), [[12, 14], [14, 16], [16, 24]]);
     for (const layer of pois) {
       assert.equal(layer['source-layer'], 'poi');
       assert.equal(layer.layout['icon-allow-overlap'], undefined);
@@ -68,24 +67,4 @@ test('map text scaling preserves zoom stops, geometry and the shared original st
   const step = scaleTextSize(['step', ['zoom'], 10, 12, 14, 16, 18], 1.2);
   assert.deepEqual(step.slice(0, 6), ['step', ['zoom'], 12, 12, 16.8, 16]);
   assert.ok(Math.abs(step[6] - 21.6) < 0.0001);
-});
-
-test('overview maps ship real offline landmarks independent of transit-only vector tiles', () => {
-  for (const style of Object.values(styles().data)) {
-    const source = style.sources['photos-landmarks'];
-    assert.equal(source.type, 'geojson');
-    assert.ok(source.data.features.length > 1000 && source.data.features.length < 8000);
-    for (const name of ['Times Square', 'Empire State Building', 'Eiffel Tower', 'Sydney Opera House', 'Taj Mahal']) {
-      const feature = source.data.features.find(f => f.properties.name === name);
-      assert.ok(feature, name + ' is available without detailed map tiles');
-      assert.ok(feature.properties.score >= 25);
-      assert.equal(feature.geometry.type, 'Point');
-      assert.ok(feature.geometry.coordinates.every(Number.isFinite));
-      assert.ok(feature.properties['name:zh-Hans']);
-    }
-    const overview = style.layers.find(l => l.id === 'photos-landmarks-overview');
-    assert.deepEqual([overview.minzoom, overview.maxzoom], [12, 14]);
-    assert.ok(style.layers.indexOf(overview) > style.layers.findLastIndex(l => l.id.startsWith('photos-poi-')));
-    assert.ok(source.attribution.includes('GeoNames'));
-  }
 });

@@ -1639,15 +1639,6 @@ body.drop-active::after {
 
 .viewer-vreset { width: auto; padding: 0 calc(8px * var(--text-scale, 1)); font-size: calc(11px * var(--text-scale, 1)); }
 
-/* Map navigation uses the same translucent rounded treatment as the photo pins. */
-.maplibregl-ctrl-group { border-radius: 18px; background: rgba(255,255,255,0.88); backdrop-filter: blur(14px); box-shadow: 0 2px 10px rgba(0,0,0,0.18); overflow: hidden; }
-.maplibregl-ctrl-group button { width: 32px; height: 32px; }
-@media (prefers-color-scheme: dark) {
-  .maplibregl-ctrl-group { background: rgba(29,51,91,0.85); }
-  .maplibregl-ctrl-group button + button { border-top-color: rgba(255,255,255,0.1); }
-  .maplibregl-ctrl-group .maplibregl-ctrl-icon { filter: invert(1); }
-}
-
 /* Text size also scales toolbar hit areas and symbols. Keep native window controls fixed. */
 #toolbar { gap: calc(12px * var(--text-scale, 1)); }
 #toolbar > button { flex-shrink: 0; }
