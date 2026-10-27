@@ -16,8 +16,8 @@ test('all map themes draw named points of interest with category colors and coll
     const ids = style.layers.map((l) => l.id);
     assert.equal(new Set(ids).size, ids.length);
     const pois = style.layers.filter((l) => l.id.startsWith('photos-poi-'));
-    assert.equal(pois.length, 3);
-    assert.deepEqual(pois.map((l) => [l.minzoom, l.maxzoom]), [[13, 16], [16, 17], [17, 24]]);
+    assert.equal(pois.length, 4);
+    assert.deepEqual(pois.map((l) => [l.minzoom, l.maxzoom]), [[12, 14], [14, 16], [16, 17], [17, 24]]);
     for (const layer of pois) {
       assert.equal(layer['source-layer'], 'poi');
       assert.equal(layer.layout['icon-allow-overlap'], undefined);

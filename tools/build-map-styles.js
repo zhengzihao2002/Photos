@@ -132,20 +132,26 @@ function enhance(style, darkMode) {
   style.layers.push({ id: 'photos-park-labels', type: 'symbol', source: 'openmaptiles', 'source-layer': 'park', minzoom: 12,
     filter: ['has', 'name'], layout: { 'text-field': ENGLISH_LABEL, 'text-font': ['Noto Sans Bold'], 'text-size': 12,
       'text-max-width': 9, 'text-padding': 4 }, paint: { 'text-color': colors.park, 'text-halo-color': darkMode ? '#17483f' : '#e0f0d5', 'text-halo-width': 1.5 } });
-  // Rank is local to a tile/grid cell, not a global importance score: even
-  // ordinary shops can have rank 1. Keep commercial POIs out of overview
-  // maps by category as well as rank, then reveal them at street scale.
-  const overviewCategory = ['match', CATEGORY, ['culture', 'attraction', 'park'], true, false];
-  for (const [suffix, minzoom, maxzoom, rank, padding] of [['major', 13, 16, 3, 7], ['neighborhood', 16, 17, 12, 4], ['detail', 17, 24, 10000, 2]]) {
-    const filter = ['all', ['has', 'name'], ['<=', ['coalesce', ['get', 'rank'], 999], rank]];
-    if (suffix === 'major') filter.push(overviewCategory);
+  // Keep a mixed selection of places at overview zoom, as in Apple's map.
+  // Rank is local to a tile/grid cell, so use a tighter business threshold
+  // and reserve collision space for landmarks, parks and transport first.
+  const importantCategory = ['match', CATEGORY, ['culture', 'attraction', 'park', 'transit'], true, false];
+  const poiRank = ['coalesce', ['get', 'rank'], 999];
+  const priority = ['+', poiRank, ['case', importantCategory, 0, 50]];
+  for (const [suffix, minzoom, maxzoom, importantRank, businessRank, padding] of [
+    ['major', 12, 14, 12, 2, 8],
+    ['neighborhood', 14, 16, 30, 10, 5],
+    ['street', 16, 17, 60, 30, 3],
+    ['detail', 17, 24, 10000, 10000, 2],
+  ]) {
+    const filter = ['all', ['has', 'name'], ['<=', poiRank, ['case', importantCategory, importantRank, businessRank]]];
     style.layers.push({ id: 'photos-poi-' + suffix, type: 'symbol', source: 'openmaptiles', 'source-layer': 'poi', minzoom, maxzoom,
       filter,
       layout: { 'icon-image': ['case', LANDMARK, ['concat', 'photos-poi-landmark-', CATEGORY], ['concat', 'photos-poi-', CATEGORY]], 'icon-size': ['interpolate', ['linear'], ['zoom'], 12, 0.7, 16, 0.9, 18, 1],
         'icon-padding': padding, 'text-field': ENGLISH_LABEL, 'text-font': ['Noto Sans Bold'],
         'text-size': ['interpolate', ['linear'], ['zoom'], 12, 10.5, 16, 12, 18, 13],
         'text-variable-anchor': ['left', 'right', 'top', 'bottom'], 'text-radial-offset': 0.75,
-        'text-max-width': 9, 'text-line-height': 1.1, 'text-padding': padding, 'symbol-sort-key': ['coalesce', ['get', 'rank'], 999] },
+        'text-max-width': 9, 'text-line-height': 1.1, 'text-padding': padding, 'symbol-sort-key': priority },
       paint: { 'text-color': textColor, 'text-halo-color': darkMode ? '#304159' : '#fcfaf5', 'text-halo-width': 1.2, 'text-halo-blur': 0.2 } });
   }
 }
