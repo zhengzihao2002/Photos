@@ -25,6 +25,11 @@ https://maplibre.org/ . Licence text: src/renderer/vendor/maplibre/LICENSE.txt
 
 https://github.com/mapbox/supercluster . Licence text: src/renderer/vendor/supercluster/LICENSE.txt
 
+### OpenCC-js 1.4.2 (vendored Traditional-to-Simplified converter)
+**License:** MIT AND Apache-2.0
+
+https://github.com/nk2028/opencc-js . Used locally for Simplified Chinese map labels. Code and dictionary licence texts: src/renderer/vendor/opencc/.
+
 ### YuNet face detection model (resources/models)
 **License:** MIT
 

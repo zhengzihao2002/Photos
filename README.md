@@ -51,7 +51,7 @@ In a folder named `PhotosData` **next to** `Photos.app` (by default both are ins
 
 ## Language
 
-Menu bar → **View → Language** → English / 简体中文. Everything switches at once (menus, windows, dates, numbers, place names, map labels). Map labels use Chinese where the map tiles have a Chinese name and fall back to the local name where they do not. Your own file names, folder names, titles and captions are never translated.
+Menu bar → **View → Language** → English / 简体中文. Everything switches at once (menus, windows, dates, numbers, place names, map labels). Map labels use Simplified Chinese where the map tiles have a Chinese name; Traditional Chinese fallbacks are converted locally, and places without a Chinese name keep their local name. Your own file names, folder names, titles and captions are never translated.
 
 ## Requirements and limits
 

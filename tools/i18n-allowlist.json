@@ -58,6 +58,11 @@
       "file": "src/main/menu.js",
       "regex": "^Copyright ",
       "reason": "legal notice, identical in every language"
+    },
+    {
+      "file": "src/renderer/lib/map-labels.js",
+      "text": "Tile",
+      "reason": "MapLibre request-resource enum; not user-visible text."
     }
   ],
   "placeholderExempt": [

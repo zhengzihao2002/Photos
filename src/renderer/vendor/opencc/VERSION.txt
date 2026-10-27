@@ -1,0 +1,2 @@
+opencc-js 1.4.2, t2cn UMD build, unmodified. https://github.com/nk2028/opencc-js
+5009384a6bdc904babee967a8bb9928e3c92288ec8a89ed036d53257e74cd8ab  src/renderer/vendor/opencc/t2cn.js

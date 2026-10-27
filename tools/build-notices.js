@@ -17,6 +17,7 @@ const manual = [
   ['Preact 10.24.3 (vendored: src/renderer/vendor/preact-bundle.js)', 'MIT', 'https://preactjs.com/'],
   ['MapLibre GL JS 5.24.0 (vendored)', 'BSD-3-Clause', 'https://maplibre.org/ . Licence text: src/renderer/vendor/maplibre/LICENSE.txt'],
   ['Supercluster 9.1.0 (vendored)', 'ISC', 'https://github.com/mapbox/supercluster . Licence text: src/renderer/vendor/supercluster/LICENSE.txt'],
+  ['OpenCC-js 1.4.2 (vendored Traditional-to-Simplified converter)', 'MIT AND Apache-2.0', 'https://github.com/nk2028/opencc-js . Used locally for Simplified Chinese map labels. Code and dictionary licence texts: src/renderer/vendor/opencc/.'],
   ['YuNet face detection model (resources/models)', 'MIT', 'Copyright (c) 2020 Shiqi Yu, from OpenCV Zoo. Licence text: resources/models/LICENSE-yunet.txt'],
   ['SFace face recognition model (resources/models)', 'Apache-2.0', 'From OpenCV Zoo. Licence text: resources/models/LICENSE-sface.txt'],
   ['ONNX Runtime (onnxruntime-node)', 'MIT', 'https://onnxruntime.ai/ . Telemetry is disabled (ORT_DISABLE_TELEMETRY=1).'],
