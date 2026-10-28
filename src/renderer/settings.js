@@ -88,7 +88,15 @@
       h('div', { class: 'up-actions' },
         st.phase === 'available'
           ? h('button', { class: 'st-btn up-primary', type: 'button', onClick: () => window.api.installUpdate() }, t('update.install'))
-          : h('button', { class: 'st-btn', type: 'button', disabled: busy, onClick: () => window.api.checkForUpdates() }, t('update.check'))),
+          : h('button', { class: 'st-btn', type: 'button', disabled: busy, onClick: () => window.api.checkForUpdates() }, t('update.check')),
+        st.phase === 'available' && st.notesIncomplete && h('button', { class: 'st-btn', type: 'button', onClick: () => window.api.checkForUpdates() }, t('update.check'))),
+      st.releases && st.releases.length > 0 && h('section', { class: 'up-releases', 'aria-labelledby': 'up-notes-title' },
+        h('h2', { id: 'up-notes-title' }, t('update.whatsNew')),
+        h('div', { class: 'up-release-list', tabIndex: 0, role: 'region', 'aria-label': t('update.whatsNew') },
+          st.releases.map(release => h('article', { class: 'up-release', key: release.version },
+            h('h3', null, release.version),
+            h('p', null, release.notes[window.i18n.getLocale()] || release.notes.en || t('update.noNotes')))))),
+      st.notesIncomplete && h('div', { class: 'up-notes-error', role: 'status' }, t('update.notesIncomplete')),
       h('div', { class: 'up-note' }, t('update.note')));
   }
 
@@ -136,7 +144,7 @@
       h('button', { class: 'st-tab' + (tab === 'appearance' ? ' is-selected' : ''), type: 'button', 'aria-pressed': tab === 'appearance' ? 'true' : 'false', onClick: () => setTab('appearance') }, h(AppearanceIcon), t('settings.tab.appearance')),
       h('button', { class: 'st-tab' + (tab === 'storage' ? ' is-selected' : ''), type: 'button', 'aria-pressed': tab === 'storage' ? 'true' : 'false', onClick: () => setTab('storage') }, h(StorageIcon), t('settings.tab.storage')),
       h('button', { class: 'st-tab' + (tab === 'updates' ? ' is-selected' : ''), type: 'button', 'aria-pressed': tab === 'updates' ? 'true' : 'false', onClick: () => setTab('updates') }, h(UpdatesIcon), t('settings.tab.updates')));
-    if (tab === 'updates') return h('div', null, tabs, h(Updates, { active: true }));
+    if (tab === 'updates') return h('div', { class: 'st-with-updates' }, tabs, h(Updates, { active: true }));
     if (tab === 'appearance') return h('div', null, tabs, h(Appearance));
 
     return h('div', null,

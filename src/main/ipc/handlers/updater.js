@@ -1,7 +1,8 @@
 /**
  * IPC channels for Settings > Updates. See src/main/updater.js.
  *
- * updater:get-state  Request: none.   Response: { phase, current, latest, percent, error }
+ * updater:get-state  Request: none.   Response: { phase, current, latest, percent, error,
+ *   releases: [{ version, notes: { en, 'zh-Hans' } }], notesIncomplete }
  * updater:check      Request: none.   Response: the same state (asks GitHub for the latest release)
  * updater:install    Request: none.   Response: the same state; on success the app quits and reopens
  * Event (window-bus): 'updater:state' with the same state object.

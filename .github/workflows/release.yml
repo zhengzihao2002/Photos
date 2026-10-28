@@ -16,6 +16,8 @@ on:
       - 'package.json'
       - 'package-lock.json'
       - '.github/workflows/release.yml'
+      - 'RELEASE_NOTES.md'
+      - 'tools/release-notes.js'
   workflow_dispatch:
     inputs:
       publish:
@@ -158,15 +160,8 @@ jobs:
           path: out
       - name: What was downloaded
         run: ls -l out
-      - name: Release notes from CHANGELOG.md
-        run: |
-          VER="${{ needs.build.outputs.version }}"
-          awk -v v="$VER" '$0 ~ "^## \\[" v "\\]" {p=1; next} /^## \[/ {p=0} p' CHANGELOG.md > notes.md
-          [ -s notes.md ] || echo "Photos $VER" > notes.md
-          cat >> notes.md <<'EONOTES'
-
-          **Install:** download the repository and run `bash install.sh` (Apple Silicon, macOS 12+). The app is signed ad-hoc and not notarized; see the README for the one-time "Open Anyway" step.
-          EONOTES
+      - name: Prepare release notes
+        run: node tools/release-notes.js "${{ needs.build.outputs.version }}" > notes.md
       - uses: softprops/action-gh-release@v2.2.1
         with:
           tag_name: v${{ needs.build.outputs.version }}

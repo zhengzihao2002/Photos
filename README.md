@@ -23,6 +23,7 @@ The script downloads the latest release from GitHub, checks its SHA-256, install
 Every change to the app on `main` is built and released automatically.
 
 - **In the app:** **Photos → Check for Updates…** (or **Settings → Updates**). When a newer version exists, click **Update and Restart**: Photos downloads it, checks the SHA-256, quits, swaps itself and reopens. Nothing is checked unless you click.
+- **What's New:** the Updates tab lists every newer published version, newest first, with its release notes. Updating once installs the latest version; you do not need to install each intermediate version. Older releases that did not include descriptions say so.
 - **From the terminal:** `git pull` in the project folder, then `bash install.sh`. It quits a running Photos for you, replaces the app, keeps `PhotosData` and reopens it. No questions asked.
 
 ### If macOS blocks the first launch

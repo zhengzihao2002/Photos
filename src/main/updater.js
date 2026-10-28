@@ -16,13 +16,14 @@ const { app, net } = require('electron');
 const paths = require('./paths');
 const windowBus = require('./window-bus');
 const { compareVersions } = require('./version-compare');
+const { validTag, loadReleaseNotes } = require('./update-notes');
 
 const REPO = 'zhengzihao2002/Photos';
 const LATEST_URL = `https://api.github.com/repos/${REPO}/releases/latest`;
 const DOWNLOAD_BASE = `https://github.com/${REPO}/releases/download/`;
 const ZIP_NAME = 'Photos-arm64.zip';
 
-const state = { phase: 'idle', current: null, latest: null, percent: 0, error: null };
+const state = { phase: 'idle', current: null, latest: null, percent: 0, error: null, releases: [], notesIncomplete: false };
 
 function publish(patch) {
   Object.assign(state, patch);
@@ -45,14 +46,17 @@ async function fetchOk(url, init) {
 
 async function check() {
   if (state.phase === 'checking' || state.phase === 'downloading' || state.phase === 'installing') return getState();
-  publish({ phase: 'checking', error: null, percent: 0 });
+  publish({ phase: 'checking', error: null, percent: 0, latest: null, releases: [], notesIncomplete: false });
   try {
-    const res = await fetchOk(LATEST_URL, { headers: { Accept: 'application/vnd.github+json' } });
+    const metadata = url => fetchOk(url, { headers: { Accept: 'application/vnd.github+json' }, signal: AbortSignal.timeout(15000) });
+    const res = await metadata(LATEST_URL);
     const body = await res.json();
     const tag = typeof body.tag_name === 'string' ? body.tag_name : '';
-    if (!/^v?\d+(\.\d+){1,3}$/.test(tag)) throw new Error('unexpected release tag');
+    if (!validTag(tag)) throw new Error('unexpected release tag');
     const latest = tag.replace(/^v/, '');
-    publish({ phase: compareVersions(latest, app.getVersion()) > 0 ? 'available' : 'uptodate', latest });
+    const available = compareVersions(latest, app.getVersion()) > 0;
+    const notes = available ? await loadReleaseNotes(metadata, body, app.getVersion(), latest) : { releases: [], notesIncomplete: false };
+    publish({ phase: available ? 'available' : 'uptodate', latest, ...notes });
   } catch (err) {
     publish({ phase: 'error', error: err && err.message ? err.message : String(err) });
   }

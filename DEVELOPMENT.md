@@ -136,6 +136,10 @@ If a file's modification time ever changes unexpectedly, the scan worker also lo
 
 The active language is in `config.json` (`language`). `PHOTOS_PSEUDO_LOCALE=1 ./dev start` shows accented, bracketed English so any text that bypasses `t()` stands out.
 
+## Release notes
+
+For each release change, update `RELEASE_NOTES.md` with concise English and Simplified Chinese descriptions of the resulting behavior. Automatic releases publish this file, unless `CHANGELOG.md` has a section for the exact release version. The Updates tab reads the published notes for every version newer than the installed app; keep older GitHub release descriptions intact so users skipping versions can read them.
+
 ## Uninstall
 
 Quit the app, then delete the project folder. Nothing else is needed after a
